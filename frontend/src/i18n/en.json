@@ -330,19 +330,19 @@
       ],
       "results": "Cards summarize daily water and energy; map markers locate demo fields.",
       "beginner": "Overview remains a reproducible demo baseline, not your latest custom calculation.",
-      "professional": "All 24 Tunisian governorates have a geocoded demo center and a synthetic example farm. Baselines are illustrative; optional Open-Meteo weather uses the selected center coordinates."
+      "professional": "All 24 Tunisian governorates and 47 Japanese prefectures have geocoded demo centers and synthetic example farms. Baselines are illustrative; optional Open-Meteo weather uses the selected center coordinates."
     },
     "comparison": {
       "purpose": "Compare regional demo conditions within one country.",
-      "inputs": "Country; Tunisia includes all 24 governorates. Japan/Fukuoka is a reference example.",
+      "inputs": "Country; Tunisia includes all 24 governorates and Japan all 47 prefectures.",
       "steps": [
         "Choose a country.",
         "Compare the water, energy and stress cards.",
         "Select a region above for further exploration."
       ],
       "results": "Differences illustrate how regional baseline weather affects the same example farm.",
-      "beginner": "Every Tunisian governorate is available. Farm and fallback weather data are simulated, not rankings of real farms.",
-      "professional": "Tunisian governorate centers are geocoded. Baseline weather is synthetic and varies north to south; live Open-Meteo forecasts use the selected center coordinates. Farm calculations are not locally calibrated."
+      "beginner": "All 24 Tunisian governorates and 47 Japanese prefectures are available. Farm and fallback weather data are simulated, not rankings of real farms.",
+      "professional": "Administrative centers are geocoded. Baseline weather is synthetic and varies north to south; live Open-Meteo forecasts use the selected center coordinates. Farm calculations are not locally calibrated."
     },
     "twin": {
       "purpose": "Explore a map of demo fields and simulated Studio devices.",

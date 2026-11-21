@@ -330,19 +330,19 @@
       ],
       "results": "Les cartes résument l’eau et l’énergie quotidiennes ; les marqueurs localisent les champs de démonstration.",
       "beginner": "Cette vue conserve les valeurs de référence de la démo, pas votre dernier calcul personnalisé.",
-      "professional": "Les 24 gouvernorats tunisiens disposent d’un chef-lieu géolocalisé et d’une ferme d’exemple simulée. Les références sont illustratives ; la météo Open-Meteo optionnelle utilise les coordonnées du chef-lieu sélectionné."
+      "professional": "Les 24 gouvernorats tunisiens et les 47 préfectures japonaises disposent d’un centre administratif géolocalisé et d’une ferme d’exemple simulée. Les références sont illustratives ; la météo Open-Meteo optionnelle utilise les coordonnées du centre sélectionné."
     },
     "comparison": {
       "purpose": "Comparer les conditions régionales de démonstration dans un même pays.",
-      "inputs": "Pays ; la Tunisie comprend ses 24 gouvernorats. Le Japon/Fukuoka sert de référence.",
+      "inputs": "Pays ; la Tunisie comprend ses 24 gouvernorats et le Japon ses 47 préfectures.",
       "steps": [
         "Choisissez un pays.",
         "Comparez eau, énergie et stress.",
         "Sélectionnez une région en haut pour continuer."
       ],
       "results": "Les différences illustrent l’effet des conditions régionales sur la même ferme type.",
-      "beginner": "Les 24 gouvernorats tunisiens sont disponibles. Les fermes et la météo de secours sont simulées, sans classement de fermes réelles.",
-      "professional": "Les chefs-lieux des gouvernorats tunisiens sont géolocalisés. La météo de référence est synthétique et varie du nord au sud ; les prévisions Open-Meteo utilisent les coordonnées du chef-lieu choisi. Les calculs agricoles ne sont pas calibrés localement."
+      "beginner": "Les 24 gouvernorats tunisiens et les 47 préfectures japonaises sont disponibles. Les fermes et la météo de secours sont simulées, sans classement de fermes réelles.",
+      "professional": "Les centres administratifs sont géolocalisés. La météo de référence est synthétique et varie du nord au sud ; les prévisions Open-Meteo utilisent les coordonnées du centre choisi. Les calculs agricoles ne sont pas calibrés localement."
     },
     "twin": {
       "purpose": "Explorer les champs de démonstration et les appareils Studio simulés sur une carte.",

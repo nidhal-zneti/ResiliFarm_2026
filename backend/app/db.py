@@ -73,6 +73,69 @@ REGIONS = [
     {'id': 24, 'country_id': 1, 'name': 'Tunis', 'lat': 36.80278, 'lon': 10.17972, 'climate': 'subHumid'},
     {'id': 25, 'country_id': 1, 'name': 'Zaghouan', 'lat': 36.40000, 'lon': 10.14000, 'climate': 'semiArid'},
 ]
+
+def _degrees(degrees, minutes, seconds=0):
+    return degrees + minutes / 60 + seconds / 3600
+
+JP_PREFECTURES = [
+    ('Aichi', 35, 11, 0, 136, 54, 0),
+    ('Akita', 39, 43, 0, 140, 6, 0),
+    ('Aomori', 40, 49, 0, 140, 44, 0),
+    ('Chiba', 35, 36, 0, 140, 7, 0),
+    ('Ehime', 33, 50, 0, 132, 46, 0),
+    ('Fukui', 36, 4, 0, 136, 13, 0),
+    ('Fukushima', 37, 45, 0, 140, 28, 0),
+    ('Gifu', 35, 26, 0, 136, 47, 0),
+    ('Gunma', 36, 24, 0, 139, 5, 0),
+    ('Hiroshima', 34, 24, 0, 132, 27, 0),
+    ('Hokkaido', 43, 4, 0, 141, 21, 0),
+    ('Hyogo', 34, 41, 0, 135, 11, 0),
+    ('Ibaraki', 36, 21, 0, 140, 27, 0),
+    ('Ishikawa', 36, 36, 0, 136, 37, 0),
+    ('Iwate', 39, 42, 0, 141, 9, 0),
+    ('Kagawa', 34, 20, 0, 134, 3, 0),
+    ('Kagoshima', 31, 34, 0, 130, 33, 0),
+    ('Kanagawa', 35, 26, 0, 139, 39, 0),
+    ('Kochi', 33, 33, 0, 133, 32, 0),
+    ('Kumamoto', 32, 47, 0, 130, 44, 0),
+    ('Kyoto', 35, 1, 0, 135, 45, 0),
+    ('Mie', 34, 44, 0, 136, 31, 0),
+    ('Miyagi', 38, 16, 0, 140, 52, 0),
+    ('Miyazaki', 31, 55, 0, 131, 25, 0),
+    ('Nagano', 36, 39, 0, 138, 11, 0),
+    ('Nagasaki', 32, 45, 0, 129, 53, 0),
+    ('Nara', 34, 41, 0, 135, 50, 0),
+    ('Niigata', 37, 54, 0, 139, 0, 0),
+    ('Oita', 33, 14, 0, 131, 36, 0),
+    ('Okayama', 34, 39, 0, 133, 56, 0),
+    ('Okinawa', 26, 13, 0, 127, 41, 0),
+    ('Osaka', 34, 41, 0, 135, 31, 0),
+    ('Saga', 33, 14, 0, 130, 18, 0),
+    ('Saitama', 35, 54, 0, 139, 39, 0),
+    ('Shiga', 35, 0, 0, 135, 52, 0),
+    ('Shimane', 35, 29, 0, 133, 3, 0),
+    ('Shizuoka', 34, 59, 0, 138, 23, 0),
+    ('Tochigi', 36, 34, 0, 139, 53, 0),
+    ('Tokushima', 34, 4, 0, 134, 34, 0),
+    ('Tokyo', 35, 41, 6, 139, 45, 5),
+    ('Tottori', 35, 30, 0, 134, 14, 0),
+    ('Toyama', 36, 42, 0, 137, 13, 0),
+    ('Wakayama', 34, 14, 0, 135, 10, 0),
+    ('Yamagata', 38, 14, 0, 140, 22, 0),
+    ('Yamaguchi', 34, 11, 0, 131, 28, 0),
+    ('Yamanashi', 35, 40, 0, 138, 34, 0),
+]
+REGIONS.extend(
+    {
+        'id': 26 + i,
+        'country_id': 2,
+        'name': name,
+        'lat': _degrees(lat_d, lat_m, lat_s),
+        'lon': _degrees(lon_d, lon_m, lon_s),
+        'climate': 'humid',
+    }
+    for i, (name, lat_d, lat_m, lat_s, lon_d, lon_m, lon_s) in enumerate(JP_PREFECTURES)
+)
 KC = {'olive': [0.55, 0.65, 0.60], 'wheat': [0.30, 1.15, 0.40], 'tomato': [0.60, 1.15, 0.80]}
 
 def initialize():

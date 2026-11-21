@@ -10,6 +10,10 @@ def sample_weather(region):
     seeded={1:(5.8,31,.2,19.8),2:(3.7,25,2.4,16.5),3:(3.2,24,3.2,14.4)}
     if region['id'] in seeded:
         base=seeded[region['id']]
+    elif region.get('country_id') == 2:
+        # A clearly simulated June profile across Japan's north-to-south range.
+        southness=min(1,max(0,(43-region['lat'])/17))
+        base=(3.1+1.5*southness,18+11*southness,1.2+2*southness,17.5-southness)
     else:
         # A clearly simulated north-to-south profile for newly supported Tunisian governorates.
         northness=min(1,max(0,(region['lat']-33)/4))

@@ -94,8 +94,9 @@ def test_distinct_design_profiles():
 def test_api_end_to_end(client):
     assert client.get('/health').json()['status']=='ok'
     all_regions=client.get('/api/v1/regions').json()['regions']
-    assert len(all_regions)==25
+    assert len(all_regions)==71
     assert sum(r['country_id']==1 for r in all_regions)==24
+    assert sum(r['country_id']==2 for r in all_regions)==47
     for name in ['overview','weather','water-network','energy']:
         assert client.get('/api/v1/regions/1/'+name).status_code==200
     for name in ['predictions/water-demand','predictions/solar','recommendations/irrigation']:
