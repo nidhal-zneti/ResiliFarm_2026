@@ -330,19 +330,19 @@
       ],
       "results": "Cards summarize daily water and energy; map markers locate demo fields.",
       "beginner": "Overview remains a reproducible demo baseline, not your latest custom calculation.",
-      "professional": "Seeded Kairouan, Jendouba and Fukuoka records feed deterministic estimates in m³/day and kWh/day. Optional live weather does not replace these baseline cards."
+      "professional": "All 24 Tunisian governorates have a geocoded demo center and a synthetic example farm. Baselines are illustrative; optional Open-Meteo weather uses the selected center coordinates."
     },
     "comparison": {
-      "purpose": "Compare demo regions within one country.",
-      "inputs": "Country; use Tunisia to compare Kairouan and Jendouba.",
+      "purpose": "Compare regional demo conditions within one country.",
+      "inputs": "Country; Tunisia includes all 24 governorates. Japan/Fukuoka is a reference example.",
       "steps": [
         "Choose a country.",
         "Compare the water, energy and stress cards.",
         "Select a region above for further exploration."
       ],
       "results": "Differences illustrate how regional baseline weather affects the same example farm.",
-      "beginner": "These are example conditions, not rankings of real farms. Japan currently has one demo region.",
-      "professional": "Each region uses the baseline farm calculation and fixed weather samples. Stress is a capped demand index, not a measured yield loss."
+      "beginner": "Every Tunisian governorate is available. Farm and fallback weather data are simulated, not rankings of real farms.",
+      "professional": "Tunisian governorate centers are geocoded. Baseline weather is synthetic and varies north to south; live Open-Meteo forecasts use the selected center coordinates. Farm calculations are not locally calibrated."
     },
     "twin": {
       "purpose": "Explore a map of demo fields and simulated Studio devices.",

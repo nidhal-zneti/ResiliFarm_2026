@@ -50,27 +50,68 @@ REGIONS = [
     {'id': 1, 'country_id': 1, 'name': 'Kairouan', 'lat': 35.6781, 'lon': 10.0963, 'climate': 'semiArid'},
     {'id': 2, 'country_id': 1, 'name': 'Jendouba', 'lat': 36.5011, 'lon': 8.7802, 'climate': 'subHumid'},
     {'id': 3, 'country_id': 2, 'name': 'Fukuoka', 'lat': 33.6064, 'lon': 130.4181, 'climate': 'humid'},
+    {'id': 4, 'country_id': 1, 'name': 'Ariana', 'lat': 36.86250, 'lon': 10.19556, 'climate': 'subHumid'},
+    {'id': 5, 'country_id': 1, 'name': 'Beja', 'lat': 36.73333, 'lon': 9.18333, 'climate': 'subHumid'},
+    {'id': 6, 'country_id': 1, 'name': 'Ben Arous', 'lat': 36.75333, 'lon': 10.22220, 'climate': 'subHumid'},
+    {'id': 7, 'country_id': 1, 'name': 'Bizerte', 'lat': 37.29000, 'lon': 9.87000, 'climate': 'subHumid'},
+    {'id': 8, 'country_id': 1, 'name': 'Gabes', 'lat': 33.88333, 'lon': 10.11667, 'climate': 'semiArid'},
+    {'id': 9, 'country_id': 1, 'name': 'Gafsa', 'lat': 34.42500, 'lon': 8.78417, 'climate': 'semiArid'},
+    {'id': 10, 'country_id': 1, 'name': 'Kasserine', 'lat': 35.18000, 'lon': 8.83000, 'climate': 'semiArid'},
+    {'id': 11, 'country_id': 1, 'name': 'Kebili', 'lat': 33.70194, 'lon': 8.97361, 'climate': 'semiArid'},
+    {'id': 12, 'country_id': 1, 'name': 'Kef', 'lat': 36.19000, 'lon': 8.71000, 'climate': 'subHumid'},
+    {'id': 13, 'country_id': 1, 'name': 'Mahdia', 'lat': 35.52000, 'lon': 11.07000, 'climate': 'semiArid'},
+    {'id': 14, 'country_id': 1, 'name': 'Manouba', 'lat': 36.80778, 'lon': 10.10111, 'climate': 'subHumid'},
+    {'id': 15, 'country_id': 1, 'name': 'Medenine', 'lat': 33.35000, 'lon': 10.49000, 'climate': 'semiArid'},
+    {'id': 16, 'country_id': 1, 'name': 'Monastir', 'lat': 35.79000, 'lon': 10.82000, 'climate': 'semiArid'},
+    {'id': 17, 'country_id': 1, 'name': 'Nabeul', 'lat': 36.45000, 'lon': 10.73333, 'climate': 'subHumid'},
+    {'id': 18, 'country_id': 1, 'name': 'Sfax', 'lat': 34.74056, 'lon': 10.76028, 'climate': 'semiArid'},
+    {'id': 19, 'country_id': 1, 'name': 'Sidi Bouzid', 'lat': 35.04028, 'lon': 9.49361, 'climate': 'semiArid'},
+    {'id': 20, 'country_id': 1, 'name': 'Siliana', 'lat': 36.08333, 'lon': 9.36667, 'climate': 'subHumid'},
+    {'id': 21, 'country_id': 1, 'name': 'Sousse', 'lat': 35.82556, 'lon': 10.64111, 'climate': 'semiArid'},
+    {'id': 22, 'country_id': 1, 'name': 'Tataouine', 'lat': 32.93333, 'lon': 10.45000, 'climate': 'semiArid'},
+    {'id': 23, 'country_id': 1, 'name': 'Tozeur', 'lat': 33.93000, 'lon': 8.13000, 'climate': 'semiArid'},
+    {'id': 24, 'country_id': 1, 'name': 'Tunis', 'lat': 36.80278, 'lon': 10.17972, 'climate': 'subHumid'},
+    {'id': 25, 'country_id': 1, 'name': 'Zaghouan', 'lat': 36.40000, 'lon': 10.14000, 'climate': 'semiArid'},
 ]
 KC = {'olive': [0.55, 0.65, 0.60], 'wheat': [0.30, 1.15, 0.40], 'tomato': [0.60, 1.15, 0.80]}
 
 def initialize():
     metadata.create_all(engine)
     with engine.begin() as c:
-        if c.execute(select(countries.c.id)).first():
-            return
-        c.execute(countries.insert(), [{'id': 1, 'code': 'TN', 'name': 'Tunisia'}, {'id': 2, 'code': 'JP', 'name': 'Japan'}])
-        c.execute(regions.insert(), REGIONS)
-        c.execute(crops.insert(), [{'id': i+1, 'name': k, 'coefficients': v} for i, (k,v) in enumerate(KC.items())])
+        for country in [{'id': 1, 'code': 'TN', 'name': 'Tunisia'}, {'id': 2, 'code': 'JP', 'name': 'Japan'}]:
+            if not c.execute(select(countries.c.id).where(countries.c.id == country['id'])).first():
+                c.execute(countries.insert().values(**country))
+        existing = {row['id'] for row in c.execute(select(regions.c.id)).mappings()}
+        for r in REGIONS:
+            if r['id'] not in existing:
+                c.execute(regions.insert().values(**r))
+        crop_ids = {}
+        for i, (name, coefficients) in enumerate(KC.items(), 1):
+            crop_id = c.execute(select(crops.c.id).where(crops.c.name == name)).scalar_one_or_none()
+            if crop_id is None:
+                result = c.execute(crops.insert().values(name=name, coefficients=coefficients))
+                crop_id = result.inserted_primary_key[0]
+            crop_ids[name] = crop_id
         for r in REGIONS:
             rid = r['id']
-            c.execute(zones.insert().values(id=rid, region_id=rid, name='Demo zone'))
-            c.execute(farms.insert().values(id=rid, zone_id=rid, name=f"{r['name']} · Demo"))
-            c.execute(networks.insert().values(id=rid, region_id=rid, name='Demo network'))
-            for i in range(3):
-                c.execute(fields.insert().values(id=rid*10+i, farm_id=rid, crop_id=i+1, name=f'F-{i+1:02}', area_ha=[5,3,2][i], lat=r['lat']+.009*i, lon=r['lon']+.012*i))
-                c.execute(nodes.insert().values(id=rid*10+i, network_id=rid, name=['reservoir','pump','field'][i], kind=['storage','pump','demand'][i]))
-            for i in range(2):
-                c.execute(pipes.insert().values(network_id=rid, from_node=rid*10+i, to_node=rid*10+i+1, length_m=150, diameter_m=.08))
+            zone_id = c.execute(select(zones.c.id).where(zones.c.region_id == rid)).scalar_one_or_none()
+            if zone_id is None:
+                zone_id = c.execute(zones.insert().values(region_id=rid, name='Illustrative zone · simulated')).inserted_primary_key[0]
+            farm_id = c.execute(select(farms.c.id).where(farms.c.zone_id == zone_id)).scalar_one_or_none()
+            if farm_id is None:
+                farm_id = c.execute(farms.insert().values(zone_id=zone_id, name=f"{r['name']} · Demo farm")).inserted_primary_key[0]
+            network_id = c.execute(select(networks.c.id).where(networks.c.region_id == rid)).scalar_one_or_none()
+            if network_id is None:
+                network_id = c.execute(networks.insert().values(region_id=rid, name='Illustrative network · simulated')).inserted_primary_key[0]
+            if not c.execute(select(fields.c.id).where(fields.c.farm_id == farm_id)).first():
+                for i, (crop, area) in enumerate([('olive', 5), ('wheat', 3), ('tomato', 2)]):
+                    c.execute(fields.insert().values(farm_id=farm_id, crop_id=crop_ids[crop], name=f'Demo field {i+1}', area_ha=area, lat=r['lat']+.009*i, lon=r['lon']+.012*i))
+            if not c.execute(select(nodes.c.id).where(nodes.c.network_id == network_id)).first():
+                node_ids = []
+                for name, kind in [('reservoir','storage'), ('pump','pump'), ('field','demand')]:
+                    node_ids.append(c.execute(nodes.insert().values(network_id=network_id, name=name, kind=kind)).inserted_primary_key[0])
+                for i in range(2):
+                    c.execute(pipes.insert().values(network_id=network_id, from_node=node_ids[i], to_node=node_ids[i+1], length_m=150, diameter_m=.08))
 
 def save_record(name, region_id, payload, source='deterministic-demo', simulated=True):
     with engine.begin() as c:

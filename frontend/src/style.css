@@ -2120,6 +2120,156 @@ footer span {
 .blueprint-pin .react-flow__handle-right {
   right: -4px;
 }
+.assembly-stage {
+  display: grid;
+  gap: 10px;
+  padding: 13px;
+  overflow: hidden;
+  border: 1px solid #294455;
+  border-radius: 11px;
+  background: linear-gradient(145deg, #203b4a, #142a36);
+  color: #edf4ef;
+  box-shadow: 0 12px 28px rgb(24 48 59 / 14%);
+}
+.assembly-stage-header,
+.assembly-stage-footer,
+.assembly-inspector {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.assembly-stage-header > div,
+.assembly-inspector > div {
+  display: grid;
+  gap: 4px;
+}
+.assembly-stage-header strong,
+.assembly-inspector strong {
+  font-size: 0.78rem;
+}
+.assembly-kicker,
+.assembly-stage-footer,
+.assembly-inspector p {
+  color: #b5c9c6;
+  font-size: 0.62rem;
+}
+.assembly-kicker {
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.assembly-stage-footer i {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: #74c7a0;
+}
+.assembly-camera-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.assembly-tool {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 9px;
+  border: 1px solid #456171;
+  border-radius: 6px;
+  background: #294554;
+  color: #e5efeb;
+  font-size: 0.62rem;
+}
+.assembly-tool:hover,
+.assembly-tool[aria-pressed="true"] {
+  border-color: #78b89a;
+  background: #345f58;
+  color: #fff;
+}
+.assembly-preview.assembly-detailed {
+  height: clamp(320px, 48vh, 540px);
+  border-color: #34515f;
+  background: #172d3b;
+}
+.assembly-label {
+  display: inline-block;
+  padding: 4px 7px;
+  border: 1px solid #648078;
+  border-radius: 5px;
+  background: rgb(24 47 58 / 92%);
+  color: #e8f1ed;
+  font: 600 11px/1.2 system-ui, sans-serif;
+  white-space: nowrap;
+  box-shadow: 0 3px 10px rgb(0 0 0 / 22%);
+}
+.assembly-label.active {
+  border-color: #f0c47f;
+  background: #725c39;
+  color: #fff;
+}
+.assembly-inspector {
+  min-height: 54px;
+  padding: 9px 11px;
+  border: 1px solid #dfe8df;
+  border-radius: 8px;
+  background: #f5f8f3;
+  color: #29453a;
+}
+.assembly-inspector .eyebrow {
+  color: var(--muted);
+  font-size: 0.57rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.assembly-inspector p {
+  margin: 0;
+  color: var(--muted);
+}
+.assembly-inspector > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.assembly-parts {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #e5ebe0;
+  border-radius: 8px;
+  background: #fff;
+}
+.assembly-parts h3 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 0.78rem;
+}
+.assembly-parts > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.assembly-parts button {
+  min-height: 30px;
+  padding: 4px 8px;
+  font-size: 0.63rem;
+}
+.assembly-parts button[aria-pressed="true"] {
+  border-color: #557a5d;
+  background: #edf3e8;
+  color: #31513a;
+}
+.assembly-parts button span {
+  color: var(--muted);
+}
+.assembly-fallback {
+  padding: 18px;
+  color: #eff5f1;
+}
 .assembly-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -2283,8 +2433,12 @@ footer span {
   .wiring-canvas {
     height: 380px;
   }
-  .assembly-preview {
+  .assembly-preview,
+  .assembly-preview.assembly-detailed {
     height: 280px;
+  }
+  .assembly-stage {
+    padding: 9px;
   }
   .blueprint-legend {
     gap: 8px;
