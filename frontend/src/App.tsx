@@ -72,6 +72,13 @@ function weatherOnlyOverview(region: Region, weather: Weather): Overview {
   return { region, weather, calculation: null, fields: [], devices: [], network: null, risks: null };
 }
 
+function requireCurrentWeather(weather: Weather): Weather {
+  if (!weather || !weather.current || !Array.isArray(weather.days)) {
+    throw new Error("weatherUnavailable");
+  }
+  return weather;
+}
+
 export default function App() {
   const { t, i18n } = useTranslation();
   const [page, setPage] = useState(initialPage);
@@ -155,7 +162,9 @@ export default function App() {
       const r = await api<{ regions: Region[] }>("/regions");
       setRegions(r.regions);
       const region = r.regions.find((item) => item.id === rid);
-      const current = await api<Weather>(`/regions/${rid}/weather`);
+      const current = requireCurrentWeather(
+        await api<Weather>(`/regions/${rid}/weather`),
+      );
       setOverview(region ? weatherOnlyOverview(region, current) : null);
       setWeather(current);
       setCalc(null);
@@ -169,7 +178,9 @@ export default function App() {
   useEffect(() => {
     const refresh = async () => {
       try {
-        const current = await api<Weather>(`/regions/${rid}/weather`);
+        const current = requireCurrentWeather(
+          await api<Weather>(`/regions/${rid}/weather`),
+        );
         setWeather(current);
         setOverview((value) => value ? { ...value, weather: current } : selectedRegion ? weatherOnlyOverview(selectedRegion, current) : null);
         setCalc(null);
@@ -676,8 +687,8 @@ export default function App() {
                       setWeather(null);
                       setCalc(null);
                       setCalculatedFarm(null);
-                      const w = await api<Weather>(
-                        `/regions/${rid}/weather`,
+                      const w = requireCurrentWeather(
+                        await api<Weather>(`/regions/${rid}/weather`),
                       );
                       setWeather(w);
                       setOverview((o) => o ? { ...o, weather: w } : selectedRegion ? weatherOnlyOverview(selectedRegion, w) : null);
