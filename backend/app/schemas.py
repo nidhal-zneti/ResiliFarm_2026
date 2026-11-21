@@ -24,7 +24,7 @@ class ScenarioInput(FarmInput):
 
 class MessageInput(Input):
     text: str = Field(min_length=1, max_length=4000)
-    language: Literal['en','fr','ja'] = 'en'
+    language: Literal['en','fr','ja','ar'] = 'en'
 
 class ProjectInput(MessageInput):
     region_id: int = Field(1, ge=1)
@@ -39,3 +39,22 @@ class TelemetryInput(Input):
 class ValidateInput(Input):
     supply_v: float = Field(3.3, ge=0, le=48)
     soil_count: int = Field(2, ge=1, le=12)
+
+EMAIL = r'^[^@\s]+@[^@\s]+\.[^@\s]+$'
+
+class SignupInput(Input):
+    email: str = Field(min_length=3, max_length=255, pattern=EMAIL)
+    password: str = Field(min_length=8, max_length=128)
+    full_name: str = Field(min_length=1, max_length=120)
+
+class LoginInput(Input):
+    email: str = Field(min_length=3, max_length=255, pattern=EMAIL)
+    password: str = Field(min_length=1, max_length=128)
+
+class ProfileInput(Input):
+    email: str = Field(min_length=3, max_length=255, pattern=EMAIL)
+    full_name: str = Field(min_length=1, max_length=120)
+
+class PasswordInput(Input):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)

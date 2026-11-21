@@ -27,8 +27,10 @@ import {
   Activity,
   Download,
   Home,
+  Lock,
+  UserRound,
 } from "lucide-react";
-import { api, download } from "./api";
+import { api, download, getToken, setToken } from "./api";
 import {
   Panel,
   Metrics,
@@ -36,6 +38,7 @@ import {
   FarmForm,
 } from "./components";
 import Studio from "./Studio";
+import { AuthScreen, ProfileView } from "./Auth";
 import { ExperienceMode, SectionGuide, StartHere } from "./Guide";
 import MapControls from "./MapControls";
 import type {
@@ -45,6 +48,8 @@ import type {
   FarmDraft,
   Calculation,
   Weather,
+  User,
+  AuthResponse,
 } from "./types";
 
 const pages = [
@@ -60,8 +65,10 @@ const pages = [
   ["security", ShieldCheck],
   ["studio", CircuitBoard],
   ["settings", Settings],
+  ["profile", UserRound],
 ] as const;
 const knownPages = new Set(pages.map(([key]) => key));
+const publicPages = new Set(["home", "overview", "twin"]);
 function initialPage() {
   const hash = location.hash.slice(1);
   return knownPages.has(hash as (typeof pages)[number][0]) ? hash : "home";
@@ -110,6 +117,8 @@ export default function App() {
       ? "professional"
       : "beginner",
   );
+  const [user, setUser] = useState<User | null>(null);
+  const [authReady, setAuthReady] = useState(false);
   const selectedRegion = regions.find((r) => r.id === rid);
   const navigate = (p: string) => {
     location.hash = p;
@@ -117,6 +126,15 @@ export default function App() {
     setMenu(false);
     window.scrollTo(0, 0);
     document.getElementById("main-content")?.focus({ preventScroll: true });
+  };
+  const handleAuthenticated = (result: AuthResponse) => {
+    setToken(result.token);
+    setUser(result.user);
+  };
+  const signOut = () => {
+    setToken(null);
+    setUser(null);
+    navigate("home");
   };
   useEffect(() => {
     const handler = () => {
@@ -132,7 +150,18 @@ export default function App() {
     localStorage.setItem("rf-mode", mode);
   }, [mode]);
   useEffect(() => {
+    if (!getToken()) {
+      setAuthReady(true);
+      return;
+    }
+    api<User>("/auth/me")
+      .then(setUser)
+      .catch(() => setToken(null))
+      .finally(() => setAuthReady(true));
+  }, []);
+  useEffect(() => {
     document.documentElement.lang = i18n.language;
+    document.documentElement.dir = i18n.language === "ar" ? "rtl" : "ltr";
     localStorage.setItem("rf-language", i18n.language);
   }, [i18n.language]);
   useEffect(() => {
@@ -250,7 +279,20 @@ export default function App() {
     ? t(page)
     : t("overview");
   const showHeader =
-    page !== "home" && page !== "overview" && page !== "studio";
+    page !== "home" &&
+    page !== "overview" &&
+    page !== "studio" &&
+    page !== "profile";
+  const locked = !user && !publicPages.has(page) && page !== "profile";
+  const initials = user
+    ? user.full_name
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((w) => w[0])
+        .join("")
+        .toUpperCase()
+    : "";
   return (
     <div className="app">
       <a
@@ -288,6 +330,9 @@ export default function App() {
                 <Icon size={18} />
                 <span>{t(key)}</span>
                 {key === "studio" && <span className="new-dot" />}
+                {!user && !publicPages.has(key) && key !== "profile" && (
+                  <Lock size={13} className="nav-lock" />
+                )}
               </button>
             </div>
           ))}
@@ -351,13 +396,15 @@ export default function App() {
               <option value="en">EN</option>
               <option value="fr">FR</option>
               <option value="ja">日本語</option>
+              <option value="ar">العربية</option>
             </select>
             <button
               className="avatar"
-              onClick={() => navigate("settings")}
-              aria-label={t("settings")}
+              onClick={() => navigate("profile")}
+              aria-label={t(user ? "profile" : "signIn")}
+              title={user ? user.full_name : t("signIn")}
             >
-              BB
+              {initials || <UserRound size={17} />}
             </button>
           </div>
         </header>
@@ -408,6 +455,13 @@ export default function App() {
               {t("loading")}
             </div>
           )}
+          {locked ? (
+            <AuthScreen
+              onAuthenticated={handleAuthenticated}
+              heading={t("unauthenticated")}
+            />
+          ) : (
+            <>
           {showHeader && (
             <div className="section-intro">
               <div>
@@ -428,7 +482,9 @@ export default function App() {
             </div>
           )}
           {page === "home" && <StartHere mode={mode} onNavigate={navigate} />}
-          {page !== "home" && <SectionGuide section={page} mode={mode} />}
+          {page !== "home" && page !== "profile" && (
+            <SectionGuide section={page} mode={mode} />
+          )}
           {page === "overview" && weather && (
             <>
               <div className="section-intro">
@@ -644,6 +700,19 @@ export default function App() {
               }
             />
           )}
+          {page === "profile" && (
+            <>
+              {user ? (
+                <ProfileView
+                  user={user}
+                  onUpdate={setUser}
+                  onSignOut={signOut}
+                />
+              ) : authReady ? (
+                <AuthScreen onAuthenticated={handleAuthenticated} />
+              ) : null}
+            </>
+          )}
           {page === "settings" && (
             <div className="two-col">
               <Panel title={t("settings")}>
@@ -739,6 +808,8 @@ export default function App() {
                 {weather?.updated_at}
               </p>
             </Panel>
+          )}
+            </>
           )}
         </main>
         <footer>

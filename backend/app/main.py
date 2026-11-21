@@ -4,14 +4,14 @@ import json
 import os
 import zipfile
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.responses import Response, JSONResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
-from . import db
-from .schemas import FarmInput, ScenarioInput, MessageInput, ProjectInput, TelemetryInput, ValidateInput
+from . import auth, db
+from .schemas import FarmInput, ScenarioInput, MessageInput, ProjectInput, TelemetryInput, ValidateInput, SignupInput, LoginInput, ProfileInput, PasswordInput
 from .services import irrigation, anomalies
 from .integrations import weather, WeatherUnavailable
 from .studio import CATALOG, generate, validate, UnsupportedRequest, ProviderUnavailable, provider_status
@@ -25,7 +25,7 @@ async def lifespan(app):
     yield
 
 app=FastAPI(title='ResiliFarm AI',version='1.0.0',lifespan=lifespan)
-app.add_middleware(CORSMiddleware,allow_origins=os.getenv('CORS_ORIGINS','http://localhost:5173,http://127.0.0.1:5173').split(','),allow_methods=['GET','POST'],allow_headers=['Content-Type'])
+app.add_middleware(CORSMiddleware,allow_origins=os.getenv('CORS_ORIGINS','http://localhost:5173,http://127.0.0.1:5173').split(','),allow_methods=['GET','POST'],allow_headers=['Content-Type','Authorization'])
 
 @app.exception_handler(RequestValidationError)
 async def invalid(_, exc):
@@ -58,6 +58,39 @@ def region(rid):
 def health():
     with db.engine.connect() as c: c.execute(select(1))
     return {'status':'ok','database':db.engine.dialect.name}
+
+@app.post('/api/v1/auth/signup',status_code=201)
+def signup(x:SignupInput):
+    email=x.email.strip().lower()
+    with db.engine.begin() as c:
+        if c.execute(select(db.users.c.id).where(db.users.c.email==email)).scalar_one_or_none(): raise HTTPException(409,'emailTaken')
+        uid=c.execute(db.users.insert().values(email=email,full_name=x.full_name.strip(),password_hash=auth.hash_password(x.password))).inserted_primary_key[0]
+        row=c.execute(select(db.users).where(db.users.c.id==uid)).mappings().first()
+    return {'token':auth.create_token(uid),'user':auth.public_user(dict(row))}
+
+@app.post('/api/v1/auth/login')
+def login(x:LoginInput):
+    with db.engine.connect() as c: row=c.execute(select(db.users).where(db.users.c.email==x.email.strip().lower())).mappings().first()
+    if not row or not auth.verify_password(x.password,row['password_hash']): raise HTTPException(401,'invalidCredentials')
+    return {'token':auth.create_token(row['id']),'user':auth.public_user(dict(row))}
+
+@app.get('/api/v1/auth/me')
+def me(user=Depends(auth.current_user)): return auth.public_user(user)
+
+@app.post('/api/v1/auth/profile')
+def save_profile(x:ProfileInput,user=Depends(auth.current_user)):
+    email=x.email.strip().lower()
+    with db.engine.begin() as c:
+        if c.execute(select(db.users.c.id).where(db.users.c.email==email,db.users.c.id!=user['id'])).scalar_one_or_none(): raise HTTPException(409,'emailTaken')
+        c.execute(db.users.update().where(db.users.c.id==user['id']).values(email=email,full_name=x.full_name.strip()))
+        row=c.execute(select(db.users).where(db.users.c.id==user['id'])).mappings().first()
+    return auth.public_user(dict(row))
+
+@app.post('/api/v1/auth/password')
+def change_password(x:PasswordInput,user=Depends(auth.current_user)):
+    if not auth.verify_password(x.current_password,user['password_hash']): raise HTTPException(401,'invalidCredentials')
+    with db.engine.begin() as c: c.execute(db.users.update().where(db.users.c.id==user['id']).values(password_hash=auth.hash_password(x.new_password)))
+    return {'updated':True}
 
 @app.get('/api/v1/regions')
 def regions():
@@ -167,7 +200,7 @@ def deploy(pid:int):
     raise HTTPException(503,'hardwareConnectorUnavailable')
 
 @app.get('/api/v1/aiot/projects/{pid}/export')
-def export(pid:int,language:str=Query('en',pattern='^(en|fr|ja)$'),version:int|None=Query(None,ge=1)):
+def export(pid:int,language:str=Query('en',pattern='^(en|fr|ja|ar)$'),version:int|None=Query(None,ge=1)):
     p=project(pid); data=io.BytesIO(); bom=io.StringIO(); writer=csv.writer(bom)
     if version is not None:
         selected=next((v for v in p['versions'] if v['version']==version),None)

@@ -8,6 +8,7 @@ import { FarmForm } from "../src/components";
 import en from "../src/i18n/en.json";
 import fr from "../src/i18n/fr.json";
 import ja from "../src/i18n/ja.json";
+import ar from "../src/i18n/ar.json";
 
 export async function run() {
   await i18n.use(initReactI18next).init({
@@ -15,6 +16,7 @@ export async function run() {
       en: { translation: en },
       fr: { translation: fr },
       ja: { translation: ja },
+      ar: { translation: ar },
     },
     lng: "en",
     fallbackLng: false,
@@ -23,11 +25,11 @@ export async function run() {
   const escaped = (text: string) =>
     renderToStaticMarkup(createElement("span", null, text)).slice(6, -7);
   let combinations = 0;
-  for (const [language, dictionary] of Object.entries({ en, fr, ja })) {
+  for (const [language, dictionary] of Object.entries({ en, fr, ja, ar })) {
     await i18n.changeLanguage(language);
     for (const mode of ["beginner", "professional"] as const) {
       const home = renderToStaticMarkup(
-        createElement(StartHere, { mode, onNavigate() {} }),
+        createElement(StartHere, { mode, onNavigate() { } }),
       );
       assert.ok(home.includes(escaped(dictionary.homeTitle)));
       for (const [section, guide] of Object.entries(dictionary.guides)) {
@@ -75,8 +77,8 @@ export async function run() {
   const form = renderToStaticMarkup(
     createElement(FarmForm, {
       value: farm,
-      onChange() {},
-      onSubmit() {},
+      onChange() { },
+      onSubmit() { },
       busy: false,
     }),
   );
