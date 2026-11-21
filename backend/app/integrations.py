@@ -1,52 +1,77 @@
-"""Server-side Open-Meteo connector; fixed deterministic fallback and bounded cache."""
-from datetime import datetime, timedelta, timezone
+"""Open-Meteo current model weather and forecast integration; never substitutes samples."""
+from datetime import datetime, timezone
 import math
 import time
 import httpx
 
 _cache={}
+_CACHE_SECONDS=300
 
-def sample_weather(region):
-    seeded={1:(5.8,31,.2,19.8),2:(3.7,25,2.4,16.5),3:(3.2,24,3.2,14.4)}
-    if region['id'] in seeded:
-        base=seeded[region['id']]
-    elif region.get('country_id') == 2:
-        # A clearly simulated June profile across Japan's north-to-south range.
-        southness=min(1,max(0,(43-region['lat'])/17))
-        base=(3.1+1.5*southness,18+11*southness,1.2+2*southness,17.5-southness)
-    else:
-        # A clearly simulated north-to-south profile for newly supported Tunisian governorates.
-        northness=min(1,max(0,(region['lat']-33)/4))
-        base=(5.2-.9*northness,29-4*northness,.4+1.5*northness,19-2.5*northness)
-    days=[]
-    for i in range(14):
-        days.append({'date':(datetime(2026,6,1)+timedelta(days=i)).date().isoformat(), 'et0_mm':round(base[0]+.35*math.sin(i),2),'temperature_c':round(base[1]+2*math.sin(i),1),'rain_mm':round(base[2]*(1+i%3),2),'radiation_mj_m2':base[3], 'humidity_pct':round(55-10*math.sin(i)), 'wind_kmh':round(10+3*math.cos(i),1)})
-    return {'source':'ResiliFarm deterministic sample','kind':'simulated','is_simulated':True,'updated_at':'2026-06-14T12:00:00Z','coverage':{'lat':region['lat'],'lon':region['lon'],'scope':'regional'},'days':days,'units':{'et0':'mm/day','rain':'mm/day','temperature':'°C','radiation':'MJ/m²/day','humidity':'%','wind':'km/h'}}
+
+class WeatherUnavailable(RuntimeError):
+    """The external weather provider returned no usable current data."""
+
 
 def normalize(data, region):
-    d=data['daily']
-    days=[{'date':date,'et0_mm':float(d['et0_fao_evapotranspiration'][i]),'temperature_c':float(d['temperature_2m_max'][i]),'rain_mm':float(d['precipitation_sum'][i]),'radiation_mj_m2':float(d['shortwave_radiation_sum'][i]),'humidity_pct':float(d['relative_humidity_2m_mean'][i]),'wind_kmh':float(d['wind_speed_10m_max'][i])} for i,date in enumerate(d['time'])]
-    if not days or any(not math.isfinite(v) for day in days for k,v in day.items() if k!='date'):
-        raise ValueError('Incomplete weather data')
-    return {**sample_weather(region),'source':'Open-Meteo (CC BY 4.0)','kind':'forecast','is_simulated':False,'updated_at':datetime.now(timezone.utc).isoformat(),'days':days}
+    current=data['current']
+    daily=data['daily']
+    required_current=(
+        'time','temperature_2m','relative_humidity_2m','precipitation',
+        'rain','weather_code','wind_speed_10m','wind_direction_10m',
+        'wind_gusts_10m','shortwave_radiation',
+    )
+    if any(key not in current for key in required_current):
+        raise ValueError('Incomplete current weather')
+    fields=('et0_fao_evapotranspiration','temperature_2m_max','precipitation_sum',
+            'shortwave_radiation_sum','relative_humidity_2m_mean','wind_speed_10m_max')
+    if not daily.get('time') or any(key not in daily for key in fields):
+        raise ValueError('Incomplete weather forecast')
+    days=[]
+    for i,date in enumerate(daily['time']):
+        day={'date':date,'et0_mm':float(daily['et0_fao_evapotranspiration'][i]),
+             'temperature_c':float(daily['temperature_2m_max'][i]),
+             'rain_mm':float(daily['precipitation_sum'][i]),
+             'radiation_mj_m2':float(daily['shortwave_radiation_sum'][i]),
+             'humidity_pct':float(daily['relative_humidity_2m_mean'][i]),
+             'wind_kmh':float(daily['wind_speed_10m_max'][i])}
+        if any(not math.isfinite(v) for v in day.values() if isinstance(v,(int,float))):
+            raise ValueError('Non-finite weather value')
+        days.append(day)
+    now={key:current[key] for key in required_current if key!='time'}
+    now['interval_seconds']=int(current.get('interval',900))
+    if any(not math.isfinite(float(v)) for v in now.values()):
+        raise ValueError('Non-finite current weather value')
+    return {
+        'source':'Open-Meteo weather model (15-minute current conditions)',
+        'kind':'current_model','is_simulated':False,'is_measured':False,
+        'updated_at':current['time'],'coverage':{'lat':region['lat'],'lon':region['lon'],'scope':'regional model grid'},
+        'current':now,'days':days,
+        'units':{'temperature':'°C','precipitation':'mm','radiation':'W/m²',
+                 'et0':'mm/day','wind':'km/h','wind_direction':'°','humidity':'%'},
+    }
 
-def weather(region, live=False, historical=False):
-    if not live and not historical: return sample_weather(region)
-    key=(region['id'],historical); cached=_cache.get(key)
-    if cached and time.monotonic()-cached[0]<1800: return cached[1]
+
+def weather(region, live=True, historical=False):
+    # Historical archive values are not current measurements and are not served
+    # by the live dashboard. Keep the parameter for API compatibility but refuse it.
+    if historical:
+        raise WeatherUnavailable('historicalWeatherNotLive')
+    key=region['id']
+    cached=_cache.get(key)
+    if cached and time.monotonic()-cached[0]<_CACHE_SECONDS:
+        return cached[1]
+    params={
+        'latitude':region['lat'],'longitude':region['lon'],
+        'current':'temperature_2m,relative_humidity_2m,precipitation,rain,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,shortwave_radiation',
+        'daily':'temperature_2m_max,precipitation_sum,et0_fao_evapotranspiration,shortwave_radiation_sum,relative_humidity_2m_mean,wind_speed_10m_max',
+        'timezone':'auto','forecast_days':7,
+    }
     try:
-        params={'latitude':region['lat'],'longitude':region['lon'],'daily':'temperature_2m_max,precipitation_sum,et0_fao_evapotranspiration,shortwave_radiation_sum,relative_humidity_2m_mean,wind_speed_10m_max','timezone':'auto'}
-        endpoint='https://api.open-meteo.com/v1/forecast'
-        if historical:
-            end=datetime.now(timezone.utc).date()-timedelta(days=7)
-            params.update(start_date=(end-timedelta(days=13)).isoformat(),end_date=end.isoformat())
-            endpoint='https://archive-api.open-meteo.com/v1/archive'
-        else: params['forecast_days']=7
-        r=httpx.get(endpoint,params=params,timeout=8)
-        r.raise_for_status()
-        result=normalize(r.json(),region)
-        if historical: result['kind']='reanalysis'
+        response=httpx.get('https://api.open-meteo.com/v1/forecast',params=params,timeout=8)
+        response.raise_for_status()
+        result=normalize(response.json(),region)
         _cache[key]=(time.monotonic(),result)
         return result
-    except (httpx.HTTPError,ValueError,KeyError,TypeError,IndexError):
-        return {**sample_weather(region),'fallback_reason':'weatherUnavailable'}
+    except (httpx.HTTPError,ValueError,KeyError,TypeError,IndexError) as exc:
+        _cache.pop(key,None)
+        raise WeatherUnavailable('weatherUnavailable') from exc

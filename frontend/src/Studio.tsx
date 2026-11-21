@@ -577,18 +577,9 @@ export default function Studio({
               </Panel>
               <button
                 className="primary wide"
-                disabled={
-                  busy || historical || !project.design.validation.valid
-                }
-                onClick={() =>
-                  act(async () => {
-                    await api(`/aiot/projects/${project.id}/deploy`, {});
-                    setDeployed(true);
-                    onDeploy();
-                  })
-                }
+                disabled
               >
-                {t(deployed ? "deployed" : "deploy")}
+                {t("hardwareUnavailable")}
               </button>
               <a
                 className="button wide"

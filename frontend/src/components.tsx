@@ -11,7 +11,7 @@ import {
   Legend,
 } from "recharts";
 import { Droplets, Sun, Zap, Sprout, ArrowUpRight } from "lucide-react";
-import type { Calculation, Farm, Weather, Network } from "./types";
+import type { Calculation, Farm, FarmDraft, Weather, Network } from "./types";
 
 export function Panel({
   title,
@@ -127,7 +127,7 @@ export function WeatherChart({ weather }: { weather: Weather }) {
         </ResponsiveContainer>
       </div>
       <details>
-        <summary>{t("history")}</summary>
+        <summary>{t("forecastDays")}</summary>
         <div className="table-scroll">
           <table>
             <thead>
@@ -160,14 +160,14 @@ export function FarmForm({
   busy,
   compact = false,
 }: {
-  value: Farm;
-  onChange: (v: Farm) => void;
+  value: FarmDraft;
+  onChange: (v: FarmDraft) => void;
   onSubmit: () => void;
   busy: boolean;
   compact?: boolean;
 }) {
   const { t } = useTranslation();
-  const nums: [keyof Farm, string, number, number, number][] = [
+  const nums: [keyof Omit<Farm, "region_id">, string, number, number, number][] = [
     ["area_ha", "area", 0.01, 10000, 0.01],
     ["efficiency", "efficiency", 0.1, 1, 0.01],
     ["et0", "et0", 0, 30, 0.01],
@@ -188,9 +188,11 @@ export function FarmForm({
         <label>
           {t("crop")}
           <select
-            value={value.crop}
+            required
+            value={value.crop ?? ""}
             onChange={(e) => onChange({ ...value, crop: e.target.value })}
           >
+            <option value="" disabled>—</option>
             {["olive", "wheat", "tomato"].map((k) => (
               <option key={k} value={k}>
                 {t(k)}
@@ -201,9 +203,11 @@ export function FarmForm({
         <label>
           {t("stage")}
           <select
-            value={value.stage}
+            required
+            value={value.stage ?? ""}
             onChange={(e) => onChange({ ...value, stage: e.target.value })}
           >
+            <option value="" disabled>—</option>
             {["initial", "mid", "late"].map((k) => (
               <option key={k} value={k}>
                 {t(k)}
@@ -220,11 +224,11 @@ export function FarmForm({
               min={min}
               max={max}
               step={step}
-              value={value[key]}
+              value={value[key] ?? ""}
               onChange={(e) =>
                 onChange({
                   ...value,
-                  [key]: e.target.value === "" ? "" : Number(e.target.value),
+                  [key]: e.target.value === "" ? undefined : Number(e.target.value),
                 })
               }
             />

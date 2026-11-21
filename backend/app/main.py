@@ -12,8 +12,8 @@ from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
 from . import db
 from .schemas import FarmInput, ScenarioInput, MessageInput, ProjectInput, TelemetryInput, ValidateInput
-from .services import irrigation, network, scenario, anomalies
-from .integrations import weather
+from .services import irrigation, anomalies
+from .integrations import weather, WeatherUnavailable
 from .studio import CATALOG, generate, validate, UnsupportedRequest, ProviderUnavailable, provider_status
 
 @asynccontextmanager
@@ -42,6 +42,10 @@ async def unsupported_request(_, exc):
 async def provider_unavailable(_, exc):
     return JSONResponse(status_code=503,content={'error':{'code':'studioAiUnavailable'}})
 
+@app.exception_handler(WeatherUnavailable)
+async def weather_unavailable(_, exc):
+    return JSONResponse(status_code=503,content={'error':{'code':'weatherUnavailable'}})
+
 @app.get('/api/v1/aiot/provider')
 def studio_provider(): return provider_status()
 
@@ -60,44 +64,40 @@ def regions():
     with db.engine.connect() as c:
         return {'regions':[dict(r) for r in c.execute(select(db.regions).order_by(db.regions.c.country_id, db.regions.c.name)).mappings()], 'countries':[dict(r) for r in c.execute(select(db.countries)).mappings()]}
 @app.get('/api/v1/regions/{rid}/weather')
-def get_weather(rid:int, live:bool=False, historical:bool=False): return weather(region(rid),live,historical)
+def get_weather(rid:int, live:bool=True, historical:bool=False): return weather(region(rid),live,historical)
 
 @app.get('/api/v1/regions/{rid}/overview')
 def overview(rid:int):
-    r=region(rid); w=weather(r); d=w['days'][-1]
-    calc=irrigation(FarmInput(region_id=rid,et0=d['et0_mm'],rainfall=d['rain_mm']))
-    with db.engine.connect() as c:
-        field_query=(select(db.fields).join(db.farms,db.fields.c.farm_id==db.farms.c.id)
-                     .join(db.zones,db.farms.c.zone_id==db.zones.c.id)
-                     .where(db.zones.c.region_id==rid))
-        fs=[dict(f) for f in c.execute(field_query).mappings()]
-        devices=[dict(p) for p in c.execute(select(db.projects).where(db.projects.c.region_id==rid,db.projects.c.deployed==True)).mappings()]
-    return {'region':r,'weather':w,'calculation':calc,'fields':fs,'devices':devices,'network':network(calc['water_m3']),'risks':{'heat':min(100,max(0,round((d['temperature_c']-25)*6))),'drought':calc['stress']},'is_simulated':True}
+    r=region(rid); w=weather(r,live=True)
+    # A region is not a farm. Do not attach seeded fields, assumed irrigation
+    # hardware, or calculated risks to live weather as if they were measured.
+    return {'region':r,'weather':w,'calculation':None,'fields':[],'devices':[],
+            'network':None,'risks':None,'is_simulated':False}
 
 @app.get('/api/v1/regions/{rid}/water-network')
 def get_network(rid:int, leak:float=Query(0,ge=0,le=.9), volume:float=Query(220,ge=0,le=100000000)):
-    region(rid); return network(volume=volume,leak=leak)
+    region(rid)
+    raise HTTPException(503,'liveWaterTelemetryUnavailable')
 
 @app.get('/api/v1/regions/{rid}/energy')
 def energy(rid:int):
-    r=region(rid); d=weather(r)['days'][-1]
-    return irrigation(FarmInput(region_id=rid,sun_hours=d['radiation_mj_m2']/3.6,et0=d['et0_mm'],rainfall=d['rain_mm']))
+    region(rid)
+    raise HTTPException(503,'liveEnergyTelemetryUnavailable')
 
 @app.post('/api/v1/predictions/water-demand')
 @app.post('/api/v1/predictions/solar')
 @app.post('/api/v1/recommendations/irrigation')
 def calculate(x:FarmInput):
+    required=set(FarmInput.model_fields)
+    if not required.issubset(x.model_fields_set): raise HTTPException(422,'farmInputsRequired')
     region(x.region_id); result=irrigation(x)
-    db.save_record('irrigation_recommendations',x.region_id,{'input':x.model_dump(),'result':result})
+    db.save_record('irrigation_recommendations',x.region_id,{'input':x.model_dump(),'result':result},source='user-input-calculation',simulated=False)
     return result
 
 @app.post('/api/v1/simulations/scenario',status_code=201)
 def simulate(x:ScenarioInput):
-    region(x.region_id); result=scenario(x)
-    result['id']=db.save_record('simulation_runs',x.region_id,{'input':x.model_dump(),'result':result})
-    if x.scenario in ['leak','tampering','pumpFailure']:
-        db.save_record('alerts',x.region_id,{'code':{'leak':'leakDetected','tampering':'sensorRange','pumpFailure':'pumpOffline'}[x.scenario],'severity':'high','scenario_id':result['id']})
-    return result
+    region(x.region_id)
+    raise HTTPException(503,'liveTelemetryRequired')
 
 @app.get('/api/v1/simulations/{sid}')
 def get_simulation(sid:int):
@@ -109,7 +109,7 @@ def get_simulation(sid:int):
 @app.get('/api/v1/alerts')
 def alerts(region_id:int=1):
     region(region_id); t=db.records['alerts']
-    with db.engine.connect() as c: return [dict(r) for r in c.execute(select(t).where(t.c.region_id==region_id).order_by(t.c.id.desc()).limit(30)).mappings()]
+    with db.engine.connect() as c: return [dict(r) for r in c.execute(select(t).where(t.c.region_id==region_id,t.c.is_simulated==False).order_by(t.c.id.desc()).limit(30)).mappings()]
 
 @app.post('/api/v1/security/analyze')
 def analyze(x:TelemetryInput):
@@ -163,10 +163,8 @@ def validate_project(pid:int,x:ValidateInput): return validate(project(pid)['des
 
 @app.post('/api/v1/aiot/projects/{pid}/deploy')
 def deploy(pid:int):
-    p=project(pid)
-    if not validate(p['design'])['valid']: raise HTTPException(422,'incompatibleDesign')
-    with db.engine.begin() as c: c.execute(db.projects.update().where(db.projects.c.id==pid).values(deployed=True))
-    return {'deployed':True,'is_simulated':True,'project_id':pid}
+    project(pid)
+    raise HTTPException(503,'hardwareConnectorUnavailable')
 
 @app.get('/api/v1/aiot/projects/{pid}/export')
 def export(pid:int,language:str=Query('en',pattern='^(en|fr|ja)$'),version:int|None=Query(None,ge=1)):

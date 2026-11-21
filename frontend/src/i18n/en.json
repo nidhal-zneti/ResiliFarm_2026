@@ -14,7 +14,7 @@
   "engineering": "ENGINEERING",
   "tagline": "Growing resilience, together.",
   "welcome": "A clearer view of your farm.",
-  "overviewSub": "Connect every drop, every field and every kilowatt.",
+  "overviewSub": "Current regional weather from a model; farm sensors are not connected.",
   "demo": "Deterministic demo",
   "simulated": "Simulated",
   "estimated": "Engineering estimate",
@@ -28,7 +28,7 @@
   "runScenario": "Run a scenario",
   "source": "Source",
   "updated": "Updated",
-  "sampleNote": "Demonstration data · 1–14 June 2026 · no physical sensors connected",
+  "sampleNote": "No on-farm sensors are connected; field and equipment measurements are unavailable.",
   "waterDemand": "Irrigation demand",
   "solarYield": "Solar availability",
   "pumpEnergy": "Pumping energy",
@@ -92,7 +92,7 @@
   "deficit": "Energy deficit",
   "heatRisk": "Heat-risk indicator",
   "droughtRisk": "Drought indicator",
-  "regionalNote": "Same 5 ha olive reference, mid-season, 85% irrigation efficiency. Regional sample data, not measured farm performance.",
+  "regionalNote": "Regional comparison shows Open-Meteo weather-model output, not measured farm conditions.",
   "inspect": "Inspect",
   "mapNote": "Illustrative field locations. Map tiles require internet; field controls remain available offline.",
   "devices": "Simulated devices",
@@ -118,7 +118,7 @@
   "run": "Run simulation",
   "savedRun": "Saved simulation",
   "rules": "Explainable rules · no trained model",
-  "insightsText": "Demand is estimated from crop coefficients and weather. Risk scores are illustrative thresholds, not calibrated forecasts or accuracy claims.",
+  "insightsText": "Calculations use the farm values you enter and weather-model inputs. They are estimates, not measured field outcomes.",
   "securityText": "Simulated telemetry checks: out-of-range moisture, frozen readings, abrupt jumps and high flow with low pressure. This is not a live security service.",
   "analyze": "Analyze telemetry",
   "normal": "Normal",
@@ -229,10 +229,10 @@
   "accessibilityHelp": "Preferences are saved on this device. All design actions are available with a keyboard.",
   "dataMode": "Weather source",
   "demoWeather": "Deterministic samples",
-  "liveWeather": "Request Open-Meteo forecast",
+  "liveWeather": "Open-Meteo current model weather",
   "refreshWeather": "Refresh weather",
-  "weatherUnavailable": "Weather service unavailable; labeled demo data is shown.",
-  "loading": "Loading…",
+  "weatherUnavailable": "Weather service unavailable; no weather values are shown.",
+  "loading": "Weather unavailable",
   "error": "The request failed. Check the backend and try again.",
   "retry": "Try again",
   "invalidInput": "Check the input values.",
@@ -249,7 +249,7 @@
   "activeField": "Selected field",
   "team": "Besbes Bobi · KIZUNA 2026 – ESPRIT",
   "status": "System status",
-  "operational": "Local demo ready",
+  "operational": "Weather model online",
   "date": "Date",
   "inspectConnection": "Select a component to inspect its specification. Connections are listed below.",
   "uploadSketch": "Upload sketch or image reference",
@@ -280,7 +280,7 @@
   "samples": "Samples",
   "last": "Last value",
   "telemetry": "Sensor reading (%)",
-  "inputNote": "Results use the last calculated inputs; recalculate after editing.",
+  "inputNote": "Calculated from the values you entered and illustrative crop coefficients; this is not a measured irrigation requirement.",
   "allocation": "Water allocation",
   "allocated": "Allocated water",
   "dailyAllocation": "Daily allocation (m³)",
@@ -291,28 +291,28 @@
   "experienceMode": "Guidance level",
   "beginnerMode": "Beginner",
   "professionalMode": "Pro",
-  "homeEyebrow": "Your local demo guide",
+  "homeEyebrow": "Live weather workspace",
   "homeTitle": "Explore a more resilient farm",
-  "homeIntro": "Choose a region, estimate daily water needs, and explore how water, energy and simulated disruptions connect. Start with the guided path below or open any section.",
+  "homeIntro": "View Open-Meteo current model weather by administrative region. No farm sensors are connected; calculations require your own farm inputs.",
   "startIrrigation": "Calculate irrigation",
   "openDashboard": "Open Overview",
   "homeQuickStart": "A suggested path",
   "homeJourneySteps": [
-    "Choose a country and region above. Open Overview, then compare the demo regions.",
-    "Calculate irrigation with your crop, area and weather inputs. Inspect Water and Energy using those results.",
-    "Run a leak scenario with an intervention. Review recommendations and try a security analysis.",
-    "Create a supported Studio design, review its parts and validation, then export it. Explore the Twin and personalize Settings."
+    "Choose a country and administrative region. Review current model weather and the seven-day forecast.",
+    "In Agriculture, enter actual farm parameters. Optionally copy weather-model inputs, then review the labeled calculation estimate.",
+    "Water, Energy, Simulator, Insights and Security remain unavailable until live farm meters or sensor data are connected.",
+    "Use Studio to draft hardware concepts; a design is not connected to or deployed on equipment."
   ],
-  "homeDataNote": "Changing region resets the current farm inputs and results to that region’s demo baseline.",
+  "homeDataNote": "Changing region loads that region’s weather-model data. Farm values are not prefilled.",
   "homeModeTitle": "Guidance that fits you",
   "homeBeginnerMode": "Beginner explains each section in plain language, with inputs, steps and help reading results.",
   "homeProMode": "Pro adds methods, units, assumptions and data provenance to the same guides.",
   "homeModeHelp": "Use the switch above at any time. Both modes have the same features and calculations. Your choice is remembered on this browser.",
-  "homeMapEyebrow": "11 sections · one connected demo",
+  "homeMapEyebrow": "Regional weather · no farm sensors",
   "homeSectionMap": "Find your next step",
   "homeSectionMapHelp": "Every section includes a guide. Open one below to follow its steps.",
   "openSection": "Open",
-  "homeScopeNote": "This is a single-user local demo. Estimates and synthetic scenarios are not validated farm predictions. No live sensors or hardware are controlled.",
+  "homeScopeNote": "Current weather is regional model output, not a station measurement. Farm calculations are estimates from your inputs. No hardware is controlled.",
   "howToUseSection": "How to use {{section}}",
   "guideSteps": "Steps",
   "guideInputs": "Choose or enter",
@@ -321,136 +321,131 @@
   "guideProfessionalDetail": "Methods and provenance",
   "guides": {
     "overview": {
-      "purpose": "See a region’s water, energy, weather and farm snapshot.",
-      "inputs": "Country and region in the bar above.",
+      "purpose": "View current regional model weather and its seven-day forecast.",
+      "inputs": "Country and administrative region.",
       "steps": [
         "Select a region.",
-        "Read the metric cards, weather chart and map.",
-        "Continue to Agriculture to try your own inputs."
+        "Review current model conditions and the forecast.",
+        "Use Agriculture only after entering values from your farm."
       ],
-      "results": "Cards summarize daily water and energy; map markers locate demo fields.",
-      "beginner": "Overview remains a reproducible demo baseline, not your latest custom calculation.",
-      "professional": "All 24 Tunisian governorates and 47 Japanese prefectures have geocoded demo centers and synthetic example farms. Baselines are illustrative; optional Open-Meteo weather uses the selected center coordinates."
+      "results": "Weather-model values for the administrative center grid; no farm measurements are available.",
+      "beginner": "Open-Meteo current conditions are 15-minute model output, not a local station reading.",
+      "professional": "The overview does not include seeded farms, synthetic telemetry or calculated baselines. Weather is coordinate-based model output and may differ from field conditions."
     },
     "comparison": {
-      "purpose": "Compare regional demo conditions within one country.",
+      "purpose": "Compare weather-model output across administrative regions.",
       "inputs": "Country; Tunisia includes all 24 governorates and Japan all 47 prefectures.",
       "steps": [
         "Choose a country.",
-        "Compare the water, energy and stress cards.",
-        "Select a region above for further exploration."
+        "Compare the regional weather forecasts.",
+        "Select a region to open its current weather."
       ],
-      "results": "Differences illustrate how regional baseline weather affects the same example farm.",
-      "beginner": "All 24 Tunisian governorates and 47 Japanese prefectures are available. Farm and fallback weather data are simulated, not rankings of real farms.",
-      "professional": "Administrative centers are geocoded. Baseline weather is synthetic and varies north to south; live Open-Meteo forecasts use the selected center coordinates. Farm calculations are not locally calibrated."
+      "results": "A comparison of regional model data, not measured conditions on farms.",
+      "beginner": "No farm or sensor readings are included.",
+      "professional": "Each region is queried at its administrative-center coordinate. The provider returns model values, not station observations."
     },
     "twin": {
-      "purpose": "Explore a map of demo fields and simulated Studio devices.",
-      "inputs": "Region and a field marker or field card.",
+      "purpose": "View an administrative-center map point and its regional weather.",
+      "inputs": "Country and administrative region.",
       "steps": [
-        "Select a field.",
-        "Read its crop, area and illustrative readings.",
-        "Create and add a valid Studio design to see a simulated device here."
+        "Select a region.",
+        "Read its center coordinate and current model weather.",
+        "Farm boundaries and devices appear only after real data sources are connected."
       ],
-      "results": "The selected field and device cards describe what is represented on the map.",
-      "beginner": "This is a visual demo, not a live digital twin or device control panel.",
-      "professional": "Geography and fields are seeded SQL records; deployed Studio projects are simulated markers. OpenStreetMap tiles need internet. Field readings are synthetic."
+      "results": "The map locates the administrative center only; it does not show a surveyed farm or sensor.",
+      "beginner": "This is not yet a live farm digital twin.",
+      "professional": "The map marker is the administrative-center coordinate; farm shapes and device telemetry are not generated."
     },
     "agriculture": {
-      "purpose": "Estimate daily irrigation water and pump energy.",
-      "inputs": "Crop, growth stage, area (ha), efficiency, reference evaporation and rain (mm/day); pump and solar inputs.",
+      "purpose": "Calculate an irrigation estimate from supplied farm parameters.",
+      "inputs": "Your actual crop, stage, area, efficiencies, pump and solar specifications, and weather inputs.",
       "steps": [
-        "Review or edit the farm inputs.",
-        "Press Calculate.",
-        "Read water, energy and stress estimates, then export the report or open Water and Energy."
+        "Enter values from your farm; no example values are prefilled.",
+        "Optionally copy ET0, rainfall and radiation-derived sun hours from the labeled Open-Meteo forecast.",
+        "Calculate and review the estimate and its assumptions."
       ],
-      "results": "Net depth is the water gap after rain; gross depth includes irrigation losses. Volume is the daily water estimate.",
-      "beginner": "These simplified estimates omit soil storage and field calibration. Editing inputs does not update results until you calculate.",
-      "professional": "ETc = Kc × ET0; effective rain = 0.8 × rain; net = max(0, ETc − effective rain); gross = net / efficiency; m³ = 10 × gross mm × ha. Inputs come from defaults, your entries or applied weather. Stress = min(100, net / 8 × 100)."
+      "results": "Formula-based calculations from the values you entered; they are not measured water use.",
+      "beginner": "Use accurate field and equipment values. Model weather inputs and crop coefficients add uncertainty.",
+      "professional": "The calculation is labeled estimated and uses reference Kc values and simplified formulas; it has no root-zone model or field calibration."
     },
     "water": {
-      "purpose": "Inspect delivery, allocation gaps and possible rainwater collection.",
+      "purpose": "Live flow, pressure and network views require installed meters and a real network description.",
       "inputs": "Farm inputs and Calculate; daily allocation (m³), roof area (m²) and storage capacity (m³).",
       "steps": [
-        "Calculate the farm demand.",
-        "Compare demand with daily allocation and inspect the network.",
-        "Adjust roof and storage; try a leak in the Simulator."
+        "Connect and configure water meters first.",
+        "This page shows no assumed or simulated readings."
       ],
-      "results": "A positive allocation gap is demand beyond available water. Harvesting shows a single rainfall collection estimate.",
-      "beginner": "The network is illustrative. After a leak scenario it displays that scenario’s after-state; recalculate or change region for a fresh baseline.",
-      "professional": "Darcy-Weisbach approximation: 8-hour pumping day, 300 m of 80 mm pipe, friction factor 0.025 and 30 m head. Collection = min(storage, rain mm × roof m² × 0.8 / 1000). Collection uses the current rainfall input; no tank history is modeled."
+      "results": "Unavailable until live telemetry is connected.",
+      "beginner": "No flow or pressure sensors are connected yet.",
+      "professional": "Synthetic Darcy network outputs are not exposed in the live workspace."
     },
     "energy": {
-      "purpose": "Compare estimated solar generation with pumping needs.",
+      "purpose": "Live energy tracking requires a connected inverter or energy meter.",
       "inputs": "Farm water demand, pump head (m), pump efficiency, solar capacity (kWp) and equivalent sun hours.",
       "steps": [
-        "Set inputs in the farm form.",
-        "Press Calculate.",
-        "Compare solar, pumping and deficit bars."
+        "Connect an energy meter.",
+        "This page shows no assumed generation or pump usage."
       ],
-      "results": "A positive deficit means estimated daily solar output is below pumping demand.",
-      "beginner": "The suggested time window is illustrative; no battery dispatch or real pump schedule is calculated.",
-      "professional": "Pump kWh = 1000 × 9.81 × volume m³ × head m / (efficiency × 3,600,000). Solar kWh = kWp × sun hours × 0.8. No panel tilt, temperature losses or hourly matching is modeled."
+      "results": "Unavailable until live energy telemetry is connected.",
+      "beginner": "Solar and pump meters are not connected yet.",
+      "professional": "Calculated kWh values require real hardware inputs and are not reported as measurements."
     },
     "simulator": {
-      "purpose": "Explore how a disruption and a possible intervention change outcomes.",
+      "purpose": "Scenario results are simulations, not live farm data.",
       "inputs": "Scenario, severity, intervention toggle and farm inputs under Calculate.",
       "steps": [
-        "Choose a scenario and severity.",
-        "Run once without intervention.",
-        "Enable intervention, run again and compare the three result columns."
+        "Scenario execution is disabled in the live workspace.",
+        "Connect farm telemetry before building data-driven interventions."
       ],
-      "results": "Before is the baseline; disturbed includes the shock; after includes the selected intervention. Check lost, delivered and unmet water.",
-      "beginner": "Runs are synthetic and saved locally. They do not predict an actual event or trigger equipment.",
-      "professional": "Deterministic rules: leak repair removes 90% of leakage, soil cover lowers demand 10%, pump recovery restores 80% delivery, restriction prioritizes 70% of area. Backup kWh is additional energy, not extra solar generation."
+      "results": "No synthetic scenario outputs are shown.",
+      "beginner": "This page will remain unavailable until real telemetry is integrated.",
+      "professional": "The simulation API rejects requests until a live data source is connected."
     },
     "insights": {
-      "purpose": "Read recommendations linked to the current calculation.",
+      "purpose": "Operational insights require connected farm measurements.",
       "inputs": "Calculate in Agriculture first, or inspect the initial regional estimate.",
       "steps": [
-        "Calculate a farm case.",
-        "Read the recommendations.",
-        "Review the displayed formulas and verify assumptions before applying an idea."
+        "Connect and verify farm sensors.",
+        "Then calculate recommendations from measured data and labeled model weather."
       ],
-      "results": "Recommendations explain rule-based actions associated with the current water and energy estimates.",
-      "beginner": "No trained AI or agronomist review is involved; advice requires local validation.",
-      "professional": "Threshold rules use the current in-memory irrigation calculation, including net demand, stress and energy deficit. Changing inputs alone does not refresh these results."
+      "results": "Unavailable without field and equipment telemetry.",
+      "beginner": "No recommendations are generated from demo values.",
+      "professional": "The live insights view does not use threshold rules over example data."
     },
     "security": {
-      "purpose": "Try simple anomaly detection on simulated sensor readings.",
+      "purpose": "Live anomaly analysis requires connected sensor telemetry.",
       "inputs": "Normal, leak, tampering, frozen sensor or sudden sensor jump.",
       "steps": [
-        "Choose a telemetry example.",
-        "Press Analyze.",
-        "Read the alert and evidence; compare with Normal and inspect the saved alert log."
+        "Connect real flow, pressure and soil sensors.",
+        "Then analyze timestamped readings."
       ],
-      "results": "An alert means the sample crossed a rule threshold. No alerts means only that these rules found none.",
-      "beginner": "This is not real cyber protection. The saved log contains scenario alerts, not each Analyze result.",
-      "professional": "Synthetic six-sample flow, pressure (bar) and moisture (%) arrays are sent to the threshold API. Leak uses increased flow plus reduced pressure; invalid, frozen and jumping moisture are separate rules. No device ingestion or authentication exists."
+      "results": "Unavailable until real sensor data is integrated.",
+      "beginner": "No sample sensor arrays are presented as real readings.",
+      "professional": "Only explicitly submitted telemetry can be analyzed; there is no device ingestion yet."
     },
     "studio": {
       "purpose": "Create and revise a catalogue-based irrigation hardware concept.",
       "inputs": "A supported irrigation request, then power, network and profile choices; or a saved project.",
       "steps": [
-        "Try “solar irrigation controller”, review the plan and build.",
-        "Inspect parts, wiring, assumptions and validation; try “add another soil sensor” or “replace Wi-Fi with LoRa”.",
-        "Select a version, export its ZIP, or add a valid current design to the Twin."
+        "Create a supported irrigation design.",
+        "Review its components and illustrative prices.",
+        "Export the concept; hardware deployment is disabled until a connector exists."
       ],
       "results": "Versions preserve each accepted edit. Compatibility checks highlight a limited set of electrical issues; the ZIP includes design, parts, connections, guide and starter firmware.",
-      "beginner": "Robots, drones and arbitrary engineering requests are unsupported. Nothing is saved for a rejected request. Adding to the Twin is simulated; the firmware keeps the pump off.",
+      "beginner": "Designs are concepts; the backend does not connect or deploy physical hardware.",
       "professional": "Local keyword rules use a fixed catalogue (generation provenance is recorded; an optional configured provider can plan within it). USD prices are illustrative; the 60 W pump is a bench example. Geometry is conceptual, wiring is unreviewed and firmware is uncompiled."
     },
     "settings": {
-      "purpose": "Personalize readability and choose the weather source.",
-      "inputs": "Language above; contrast, text size, reduced motion and weather source here.",
+      "purpose": "Adjust accessibility and refresh regional model weather.",
+      "inputs": "Language, contrast, text size and motion settings.",
       "steps": [
-        "Choose EN, FR or Japanese and adjust accessibility controls.",
-        "Select demo or live weather and load it.",
-        "Check its source label, then calculate again to apply weather inputs."
+        "Adjust display preferences.",
+        "Refresh current model weather.",
+        "Check provider source and model-valid time."
       ],
-      "results": "Readability and language choices persist on this browser. Weather labels distinguish forecast from demo or fallback data.",
-      "beginner": "Internet is needed for live weather. On failure the app uses labeled sample data. Overview and Comparison stay at demo baselines.",
-      "professional": "Open-Meteo has an 8-second server timeout and a 30-minute process-local success cache. Live weather selection itself is not persisted. Guidance mode, language and accessibility use browser localStorage; no account sync."
+      "results": "Current Open-Meteo model values and a seven-day forecast.",
+      "beginner": "No fallback or sample weather is shown if the provider fails.",
+      "professional": "Current weather is 15-minute model output; it is not station telemetry."
     }
   },
   "studioAiStatusUnknown": "Checking Studio generation mode…",
@@ -461,5 +456,27 @@
   "studioRulesDesign": "Selected version: local rule-based design.",
   "studioAiWorking": "The model is planning your design. The first request may take up to 90 seconds.",
   "studioAiUnavailable": "The AI model could not return a usable plan. Nothing was saved. Check that the model server is running and the model is downloaded, then try again. A simpler request may help.",
-  "choice_auto": "Infer from my request"
+  "choice_auto": "Infer from my request",
+  "currentWeather": "Current weather conditions",
+  "modelWeather": "Current weather model (not a station)",
+  "weatherValidAt": "model time",
+  "weatherGridNote": "Open-Meteo current conditions use 15-minute weather-model data for this regional grid; they are not local station measurements.",
+  "farmDataStatus": "Farm measurements",
+  "noFarmTelemetry": "No farm sensors are connected. Soil, flow, pressure, pump and on-farm weather readings are unavailable.",
+  "regionLocation": "Administrative region location",
+  "regionCoordinatesOnly": "This point marks the administrative center, not a surveyed farm.",
+  "realFarmInputsOnly": "Enter values from your real farm. No example farm values are prefilled. Results are calculations, not measurements.",
+  "farmInputsRequired": "Enter all required values from your real farm before calculating.",
+  "noWaterTelemetry": "No live flow meter, pressure sensor, or water network feed is connected.",
+  "noEnergyTelemetry": "No live solar inverter or energy meter is connected.",
+  "scenarioLiveUnavailable": "Scenario outputs are simulations, so they are disabled in the live workspace.",
+  "securityLiveUnavailable": "Live security analysis is unavailable until real sensor telemetry is connected.",
+  "weatherConnected": "Weather model connected",
+  "modelWeatherPolicy": "Current conditions and the forecast come from Open-Meteo weather models. They are not readings from a local station.",
+  "forecastDays": "Seven-day model forecast",
+  "precipitationInterval": "precipitation, last {minutes} min",
+  "useWeatherForecastInputs": "Use Open-Meteo forecast for weather inputs",
+  "calculationEstimate": "Calculated estimate from your farm values, reference crop coefficients, and the labeled weather model; not a sensor measurement.",
+  "hardwareUnavailable": "Hardware connection unavailable",
+  "weatherUpdates": "The app refreshes weather every 10 minutes. The displayed time is the model-valid time."
 }

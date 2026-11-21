@@ -13,7 +13,7 @@ def irrigation(x: FarmInput):
     volume = 10*gross*x.area_ha
     energy = 1000*9.81*volume*x.head_m/(x.pump_efficiency*3600000)
     solar = x.solar_kw*x.sun_hours*.8
-    return dict(kc=kc, etc_mm=round(etc,3), effective_rain_mm=round(effective,3), net_mm=round(net,3), gross_mm=round(gross,3), water_m3=round(volume,2), pump_kwh=round(energy,2), solar_kwh=round(solar,2), deficit_kwh=round(max(0,energy-solar),2), stress=round(min(100,net/8*100)), method='fao56', is_simulated=True, action='solarWindow' if solar>=energy else 'backupEnergy')
+    return dict(kc=kc, etc_mm=round(etc,3), effective_rain_mm=round(effective,3), net_mm=round(net,3), gross_mm=round(gross,3), water_m3=round(volume,2), pump_kwh=round(energy,2), solar_kwh=round(solar,2), deficit_kwh=round(max(0,energy-solar),2), stress=round(min(100,net/8*100)), method='fao56', kind='calculation', is_estimated=True, is_simulated=False, source='user_supplied_inputs', action='solarWindow' if solar>=energy else 'backupEnergy')
 
 def network(volume=220.0, leak=0.0, pump=True):
     # Steady flow over an assumed eight-hour pumping day; Darcy-Weisbach, f=0.025.
@@ -65,4 +65,4 @@ def anomalies(flow, pressure, moisture):
     if any(x<0 or x>100 for x in moisture): alerts.append({'code':'sensorRange','severity':'high','evidence':{'min':min(moisture),'max':max(moisture)}})
     elif len(set(moisture[-5:]))==1: alerts.append({'code':'sensorFrozen','severity':'medium','evidence':{'samples':5}})
     elif abs(moisture[-1]-median(moisture[:-1]))>25: alerts.append({'code':'sensorJump','severity':'high','evidence':{'last':moisture[-1]}})
-    return {'alerts':alerts,'method':'thresholds','is_simulated':True}
+    return {'alerts':alerts,'method':'thresholds','kind':'rule_analysis','is_estimated':True,'is_simulated':False,'source':'submitted_telemetry'}

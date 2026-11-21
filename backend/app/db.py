@@ -155,26 +155,27 @@ def initialize():
                 result = c.execute(crops.insert().values(name=name, coefficients=coefficients))
                 crop_id = result.inserted_primary_key[0]
             crop_ids[name] = crop_id
-        for r in REGIONS:
-            rid = r['id']
-            zone_id = c.execute(select(zones.c.id).where(zones.c.region_id == rid)).scalar_one_or_none()
-            if zone_id is None:
-                zone_id = c.execute(zones.insert().values(region_id=rid, name='Illustrative zone · simulated')).inserted_primary_key[0]
-            farm_id = c.execute(select(farms.c.id).where(farms.c.zone_id == zone_id)).scalar_one_or_none()
-            if farm_id is None:
-                farm_id = c.execute(farms.insert().values(zone_id=zone_id, name=f"{r['name']} · Demo farm")).inserted_primary_key[0]
-            network_id = c.execute(select(networks.c.id).where(networks.c.region_id == rid)).scalar_one_or_none()
-            if network_id is None:
-                network_id = c.execute(networks.insert().values(region_id=rid, name='Illustrative network · simulated')).inserted_primary_key[0]
-            if not c.execute(select(fields.c.id).where(fields.c.farm_id == farm_id)).first():
-                for i, (crop, area) in enumerate([('olive', 5), ('wheat', 3), ('tomato', 2)]):
-                    c.execute(fields.insert().values(farm_id=farm_id, crop_id=crop_ids[crop], name=f'Demo field {i+1}', area_ha=area, lat=r['lat']+.009*i, lon=r['lon']+.012*i))
-            if not c.execute(select(nodes.c.id).where(nodes.c.network_id == network_id)).first():
-                node_ids = []
-                for name, kind in [('reservoir','storage'), ('pump','pump'), ('field','demand')]:
-                    node_ids.append(c.execute(nodes.insert().values(network_id=network_id, name=name, kind=kind)).inserted_primary_key[0])
-                for i in range(2):
-                    c.execute(pipes.insert().values(network_id=network_id, from_node=node_ids[i], to_node=node_ids[i+1], length_m=150, diameter_m=.08))
+        # Remove legacy generated demo records. Keep real region metadata, crop
+        # profiles, user projects, and any explicitly non-simulated telemetry.
+        demo_farms=list(c.execute(select(farms.c.id).where(
+            farms.c.name.like('%Demo farm') | farms.c.name.like('% · Demo')
+        )).scalars())
+        if demo_farms:
+            c.execute(fields.delete().where(fields.c.farm_id.in_(demo_farms)))
+            c.execute(farms.delete().where(farms.c.id.in_(demo_farms)))
+        demo_zones=list(c.execute(select(zones.c.id).where(zones.c.name.in_(['Illustrative zone · simulated','Demo zone']))).scalars())
+        for zone_id in demo_zones:
+            if not c.execute(select(farms.c.id).where(farms.c.zone_id==zone_id)).first():
+                c.execute(zones.delete().where(zones.c.id==zone_id))
+        demo_networks=list(c.execute(select(networks.c.id).where(networks.c.name.in_(['Illustrative network · simulated','Demo network']))).scalars())
+        if demo_networks:
+            c.execute(pipes.delete().where(pipes.c.network_id.in_(demo_networks)))
+            c.execute(nodes.delete().where(nodes.c.network_id.in_(demo_networks)))
+            c.execute(networks.delete().where(networks.c.id.in_(demo_networks)))
+        for table in records.values():
+            c.execute(table.delete().where(table.c.is_simulated==True))
+        # A saved Studio design is not a physical deployment.
+        c.execute(projects.update().where(projects.c.deployed==True).values(deployed=False))
 
 def save_record(name, region_id, payload, source='deterministic-demo', simulated=True):
     with engine.begin() as c:

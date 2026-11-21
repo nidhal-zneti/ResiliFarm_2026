@@ -19,6 +19,7 @@ export type Farm = {
   solar_kw: number;
   sun_hours: number;
 };
+export type FarmDraft = { region_id: number } & Partial<Omit<Farm, "region_id">>;
 export type Calculation = {
   kc: number;
   etc_mm: number;
@@ -36,8 +37,20 @@ export type Weather = {
   source: string;
   kind: string;
   is_simulated: boolean;
+  is_measured: boolean;
   updated_at: string;
-  fallback_reason?: string;
+  current: {
+    temperature_2m: number;
+    relative_humidity_2m: number;
+    precipitation: number;
+    rain: number;
+    weather_code: number;
+    wind_speed_10m: number;
+    wind_direction_10m: number;
+    wind_gusts_10m: number;
+    shortwave_radiation: number;
+    interval_seconds: number;
+  };
   days: {
     date: string;
     et0_mm: number;
@@ -67,11 +80,11 @@ export type Network = {
 export type Overview = {
   region: Region;
   weather: Weather;
-  calculation: Calculation;
+  calculation: Calculation | null;
   fields: Field[];
   devices: { id: number; name: string }[];
-  network: Network;
-  risks: { heat: number; drought: number };
+  network: Network | null;
+  risks: { heat: number; drought: number } | null;
 };
 export type Scenario = {
   telemetry?: {

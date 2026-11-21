@@ -14,7 +14,7 @@
   "engineering": "INGÉNIERIE",
   "tagline": "Cultivons la résilience.",
   "welcome": "Votre exploitation, en perspective.",
-  "overviewSub": "Reliez chaque goutte, chaque parcelle et chaque kilowatt.",
+  "overviewSub": "Météo régionale actuelle issue d’un modèle ; les capteurs agricoles ne sont pas connectés.",
   "demo": "Démo déterministe",
   "simulated": "Simulé",
   "estimated": "Estimation technique",
@@ -28,7 +28,7 @@
   "runScenario": "Tester un scénario",
   "source": "Source",
   "updated": "Mise à jour",
-  "sampleNote": "Données de démonstration · 1–14 juin 2026 · aucun capteur physique connecté",
+  "sampleNote": "Aucun capteur agricole n’est connecté ; les mesures des champs et équipements sont indisponibles.",
   "waterDemand": "Besoin d’irrigation",
   "solarYield": "Énergie solaire disponible",
   "pumpEnergy": "Énergie de pompage",
@@ -92,7 +92,7 @@
   "deficit": "Déficit énergétique",
   "heatRisk": "Indicateur de chaleur",
   "droughtRisk": "Indicateur de sécheresse",
-  "regionalNote": "Référence identique : 5 ha d’oliviers, mi-saison, efficacité de 85 %. Échantillons régionaux, pas de mesures d’exploitation.",
+  "regionalNote": "La comparaison régionale montre des sorties du modèle météo Open-Meteo, pas des mesures agricoles.",
   "inspect": "Inspecter",
   "mapNote": "Emplacements illustratifs. La carte nécessite Internet ; les commandes des parcelles fonctionnent hors ligne.",
   "devices": "Appareils simulés",
@@ -118,7 +118,7 @@
   "run": "Lancer la simulation",
   "savedRun": "Simulation enregistrée",
   "rules": "Règles explicables · aucun modèle entraîné",
-  "insightsText": "Les besoins sont estimés à partir du climat et des coefficients culturaux. Les risques utilisent des seuils indicatifs, sans prévision calibrée ni précision revendiquée.",
+  "insightsText": "Les calculs utilisent les valeurs saisies et les données du modèle météo. Ce sont des estimations, pas des mesures du champ.",
   "securityText": "Contrôles de télémétrie simulée : humidité hors limites, valeurs figées, sauts et débit élevé avec pression faible. Aucun service de sécurité en direct.",
   "analyze": "Analyser la télémétrie",
   "normal": "Normal",
@@ -229,10 +229,10 @@
   "accessibilityHelp": "Préférences enregistrées sur cet appareil. Toutes les actions de conception sont accessibles au clavier.",
   "dataMode": "Source météo",
   "demoWeather": "Échantillons déterministes",
-  "liveWeather": "Demander la prévision Open-Meteo",
+  "liveWeather": "Modèle météo actuel Open-Meteo",
   "refreshWeather": "Actualiser la météo",
-  "weatherUnavailable": "Service météo indisponible ; données de démo identifiées.",
-  "loading": "Chargement…",
+  "weatherUnavailable": "Service météo indisponible ; aucune valeur météo n’est affichée.",
+  "loading": "Météo indisponible",
   "error": "Échec de la requête. Vérifiez le serveur et réessayez.",
   "retry": "Réessayer",
   "invalidInput": "Vérifiez les valeurs saisies.",
@@ -249,7 +249,7 @@
   "activeField": "Parcelle sélectionnée",
   "team": "Besbes Bobi · KIZUNA 2026 – ESPRIT",
   "status": "État du système",
-  "operational": "Démo locale prête",
+  "operational": "Modèle météo en ligne",
   "date": "Date",
   "inspectConnection": "Sélectionnez un composant pour ses caractéristiques. Connexions ci-dessous.",
   "uploadSketch": "Téléverser un croquis ou une image de référence",
@@ -280,7 +280,7 @@
   "samples": "Échantillons",
   "last": "Dernière valeur",
   "telemetry": "Mesure du capteur (%)",
-  "inputNote": "Les résultats utilisent les dernières valeurs calculées ; recalculez après modification.",
+  "inputNote": "Calculé à partir des valeurs saisies et de coefficients culturaux indicatifs ; ce n’est pas un besoin d’irrigation mesuré.",
   "allocation": "Allocation d’eau",
   "allocated": "Eau allouée",
   "dailyAllocation": "Allocation quotidienne (m³)",
@@ -291,28 +291,28 @@
   "experienceMode": "Niveau de guidage",
   "beginnerMode": "Débutant",
   "professionalMode": "Pro",
-  "homeEyebrow": "Votre guide de démo locale",
+  "homeEyebrow": "Espace météo en direct",
   "homeTitle": "Explorez une ferme plus résiliente",
-  "homeIntro": "Choisissez une région, estimez les besoins quotidiens en eau et explorez les liens entre eau, énergie et perturbations simulées. Suivez le parcours ou ouvrez une section.",
+  "homeIntro": "Consultez le modèle météo Open-Meteo par région administrative. Aucun capteur agricole n’est connecté ; les calculs exigent vos propres données agricoles.",
   "startIrrigation": "Calculer l’irrigation",
   "openDashboard": "Ouvrir la vue d’ensemble",
   "homeQuickStart": "Parcours conseillé",
   "homeJourneySteps": [
-    "Choisissez le pays et la région ci-dessus. Consultez la vue d’ensemble, puis comparez les régions de démonstration.",
-    "Calculez l’irrigation avec la culture, la surface et la météo. Consultez Eau et Énergie avec ces résultats.",
-    "Simulez une fuite avec une intervention. Lisez les recommandations et essayez une analyse de sécurité.",
-    "Créez un modèle Studio pris en charge, examinez les pièces et la validation, puis exportez-le. Explorez le jumeau et les paramètres."
+    "Choisissez un pays et une région administrative. Consultez le modèle météo actuel et sa prévision sur sept jours.",
+    "Dans Agriculture, saisissez les vrais paramètres de l’exploitation. Vous pouvez reprendre les valeurs météo du modèle, puis lire le calcul estimatif identifié.",
+    "Eau, Énergie, Simulateur, Analyses et Sécurité sont indisponibles tant que les compteurs ou capteurs agricoles ne sont pas connectés.",
+    "Studio sert à concevoir des concepts ; un design n’est pas connecté ni déployé sur du matériel."
   ],
-  "homeDataNote": "Changer de région réinitialise les données agricoles et les résultats avec les valeurs de démonstration de cette région.",
+  "homeDataNote": "Changer de région charge son modèle météo. Les valeurs agricoles ne sont pas préremplies.",
   "homeModeTitle": "Un guidage adapté",
   "homeBeginnerMode": "Le mode Débutant explique chaque section simplement : saisie, étapes et lecture des résultats.",
   "homeProMode": "Le mode Pro ajoute les méthodes, unités, hypothèses et origines des données aux mêmes guides.",
   "homeModeHelp": "Changez de mode à tout moment avec le sélecteur ci-dessus. Les fonctions et calculs restent identiques. Votre choix est mémorisé dans ce navigateur.",
-  "homeMapEyebrow": "11 sections · une démo connectée",
+  "homeMapEyebrow": "Météo régionale · aucun capteur agricole",
   "homeSectionMap": "Choisissez la prochaine étape",
   "homeSectionMapHelp": "Chaque section dispose d’un guide. Ouvrez-en une pour suivre ses étapes.",
   "openSection": "Ouvrir",
-  "homeScopeNote": "Démo locale pour un seul utilisateur. Les estimations et scénarios synthétiques ne sont pas des prévisions agricoles validées. Aucun capteur réel ni matériel n’est piloté.",
+  "homeScopeNote": "La météo actuelle est une sortie de modèle régional, pas une mesure de station. Les calculs agricoles sont des estimations fondées sur vos entrées. Aucun matériel n’est commandé.",
   "howToUseSection": "Utiliser {{section}}",
   "guideSteps": "Étapes",
   "guideInputs": "Choisir ou saisir",
@@ -321,136 +321,131 @@
   "guideProfessionalDetail": "Méthodes et provenance",
   "guides": {
     "overview": {
-      "purpose": "Voir un aperçu régional de l’eau, de l’énergie, de la météo et des champs.",
-      "inputs": "Pays et région dans la barre supérieure.",
+      "purpose": "Consulter la météo régionale modélisée et sa prévision sur sept jours.",
+      "inputs": "Pays et région administrative.",
       "steps": [
         "Choisissez une région.",
-        "Lisez les indicateurs, la météo et la carte.",
-        "Ouvrez Agriculture pour saisir vos propres valeurs."
+        "Consultez les conditions du modèle et la prévision.",
+        "Utilisez Agriculture uniquement après avoir saisi les valeurs de votre exploitation."
       ],
-      "results": "Les cartes résument l’eau et l’énergie quotidiennes ; les marqueurs localisent les champs de démonstration.",
-      "beginner": "Cette vue conserve les valeurs de référence de la démo, pas votre dernier calcul personnalisé.",
-      "professional": "Les 24 gouvernorats tunisiens et les 47 préfectures japonaises disposent d’un centre administratif géolocalisé et d’une ferme d’exemple simulée. Les références sont illustratives ; la météo Open-Meteo optionnelle utilise les coordonnées du centre sélectionné."
+      "results": "Valeurs du modèle météo pour la grille du centre administratif ; aucune mesure agricole n’est disponible.",
+      "beginner": "Les conditions Open-Meteo actuelles sont issues d’un modèle par pas de 15 minutes, pas d’une station locale.",
+      "professional": "La vue ne contient ni fermes préremplies, ni télémétrie synthétique, ni référence calculée. La météo est modélisée aux coordonnées et peut différer du champ."
     },
     "comparison": {
-      "purpose": "Comparer les conditions régionales de démonstration dans un même pays.",
+      "purpose": "Comparer les sorties du modèle météo entre régions administratives.",
       "inputs": "Pays ; la Tunisie comprend ses 24 gouvernorats et le Japon ses 47 préfectures.",
       "steps": [
         "Choisissez un pays.",
-        "Comparez eau, énergie et stress.",
-        "Sélectionnez une région en haut pour continuer."
+        "Comparez les prévisions météo régionales.",
+        "Choisissez une région pour afficher sa météo actuelle."
       ],
-      "results": "Les différences illustrent l’effet des conditions régionales sur la même ferme type.",
-      "beginner": "Les 24 gouvernorats tunisiens et les 47 préfectures japonaises sont disponibles. Les fermes et la météo de secours sont simulées, sans classement de fermes réelles.",
-      "professional": "Les centres administratifs sont géolocalisés. La météo de référence est synthétique et varie du nord au sud ; les prévisions Open-Meteo utilisent les coordonnées du centre choisi. Les calculs agricoles ne sont pas calibrés localement."
+      "results": "Comparaison de données météo modélisées, pas de mesures agricoles.",
+      "beginner": "Aucune mesure de ferme ou de capteur n’est incluse.",
+      "professional": "Chaque région utilise les coordonnées de son centre administratif. Le fournisseur donne des valeurs modélisées, pas des observations de station."
     },
     "twin": {
-      "purpose": "Explorer les champs de démonstration et les appareils Studio simulés sur une carte.",
-      "inputs": "Région et marqueur ou fiche d’un champ.",
+      "purpose": "Voir le centre administratif sur une carte avec sa météo régionale modélisée.",
+      "inputs": "Pays et région administrative.",
       "steps": [
-        "Sélectionnez un champ.",
-        "Lisez sa culture, sa surface et les mesures illustratives.",
-        "Créez puis ajoutez un modèle Studio valide pour voir un appareil simulé."
+        "Choisissez une région.",
+        "Consultez ses coordonnées centrales et la météo modélisée.",
+        "Les limites agricoles et appareils apparaîtront après connexion de vraies sources."
       ],
-      "results": "Les fiches décrivent le champ sélectionné et les appareils représentés.",
-      "beginner": "Il s’agit d’une représentation visuelle, sans jumeau connecté ni commande matérielle.",
-      "professional": "La géographie et les champs proviennent de données SQL initiales ; les projets déployés deviennent des marqueurs simulés. Les tuiles OpenStreetMap nécessitent internet. Les mesures sont synthétiques."
+      "results": "Le point situe le centre administratif ; il ne représente ni ferme mesurée ni capteur.",
+      "beginner": "Ce n’est pas encore un jumeau numérique agricole en direct.",
+      "professional": "Le marqueur est la coordonnée du centre administratif ; aucune géométrie agricole ni télémétrie n’est générée."
     },
     "agriculture": {
-      "purpose": "Estimer l’eau d’irrigation quotidienne et l’énergie de pompage.",
-      "inputs": "Culture, stade, surface (ha), efficacité, évaporation de référence et pluie (mm/jour), paramètres de pompe et de solaire.",
+      "purpose": "Calculer une estimation d’irrigation à partir des paramètres fournis.",
+      "inputs": "Culture réelle, stade, superficie, rendements, données pompe/solaire et météo.",
       "steps": [
-        "Vérifiez ou modifiez les entrées.",
-        "Appuyez sur Calculer.",
-        "Lisez les estimations puis exportez le rapport ou consultez Eau et Énergie."
+        "Saisissez les valeurs de votre exploitation ; aucune valeur exemple n’est préremplie.",
+        "Vous pouvez copier ET₀, pluie et heures solaires dérivées du rayonnement depuis la prévision Open-Meteo identifiée.",
+        "Calculez et consultez l’estimation et ses hypothèses."
       ],
-      "results": "La lame nette est le besoin après pluie ; la lame brute inclut les pertes d’irrigation. Le volume estime l’eau nécessaire par jour.",
-      "beginner": "Le modèle omet le stockage du sol et l’étalonnage local. Les résultats ne changent qu’après un calcul.",
-      "professional": "ETc = Kc × ET0 ; pluie efficace = 0,8 × pluie ; net = max(0, ETc − pluie efficace) ; brut = net / efficacité ; m³ = 10 × brut mm × ha. Entrées : valeurs par défaut, saisie ou météo appliquée. Stress = min(100, net / 8 × 100)."
+      "results": "Calculs selon vos entrées ; ce ne sont pas des volumes d’eau mesurés.",
+      "beginner": "Utilisez les valeurs réelles du champ et du matériel. La météo modélisée et les coefficients culturaux ajoutent une incertitude.",
+      "professional": "Le résultat est identifié comme estimatif et utilise des Kc de référence et formules simplifiées ; aucun modèle de réserve du sol ni calibration terrain."
     },
     "water": {
-      "purpose": "Examiner la distribution, le manque d’allocation et la récupération de pluie.",
+      "purpose": "Les vues de débit, pression et réseau exigent des compteurs et un réseau réel.",
       "inputs": "Paramètres agricoles et Calculer ; allocation quotidienne (m³), toiture (m²), capacité de stockage (m³).",
       "steps": [
-        "Calculez la demande.",
-        "Comparez-la à l’allocation et examinez le réseau.",
-        "Ajustez toiture et stockage ; essayez une fuite dans le simulateur."
+        "Connectez et configurez les compteurs d’eau.",
+        "Cette page n’affiche aucune mesure supposée ou simulée."
       ],
-      "results": "Un écart positif indique une demande supérieure à l’allocation. La collecte estime un seul apport de pluie.",
-      "beginner": "Le réseau est illustratif. Après une simulation de fuite, il montre son état après intervention ; recalculez ou changez de région pour revenir à une base fraîche.",
-      "professional": "Approximation Darcy-Weisbach : 8 h de pompage, conduite de 300 m et 80 mm, facteur de frottement 0,025, hauteur 30 m. Collecte = min(stockage, pluie mm × toiture m² × 0,8 / 1000). La pluie saisie est utilisée sans historique de cuve."
+      "results": "Indisponible avant connexion de la télémétrie.",
+      "beginner": "Aucun débitmètre ni capteur de pression n’est connecté.",
+      "professional": "Les valeurs synthétiques du réseau Darcy ne sont pas exposées dans l’espace en direct."
     },
     "energy": {
-      "purpose": "Comparer la production solaire estimée aux besoins de pompage.",
+      "purpose": "Le suivi énergétique en direct exige un onduleur ou compteur connecté.",
       "inputs": "Demande en eau, hauteur de pompe (m), rendement, capacité solaire (kWp) et heures solaires équivalentes.",
       "steps": [
-        "Réglez les paramètres agricoles.",
-        "Appuyez sur Calculer.",
-        "Comparez production, pompage et déficit."
+        "Connectez un compteur d’énergie.",
+        "Cette page n’affiche aucune production ni consommation supposée."
       ],
-      "results": "Un déficit positif signifie que l’énergie solaire quotidienne estimée ne couvre pas le pompage.",
-      "beginner": "Le créneau proposé est illustratif ; aucune gestion de batterie ou programmation réelle n’est calculée.",
-      "professional": "Pompe kWh = 1000 × 9,81 × volume m³ × hauteur m / (rendement × 3 600 000). Solaire kWh = kWp × heures × 0,8. Inclinaison, pertes thermiques et concordance horaire ne sont pas modélisées."
+      "results": "Indisponible avant connexion de la télémétrie énergétique.",
+      "beginner": "Aucun compteur solaire ou de pompe n’est connecté.",
+      "professional": "Les kWh calculés exigent des paramètres matériels réels et ne sont pas présentés comme des mesures."
     },
     "simulator": {
-      "purpose": "Explorer les effets d’une perturbation et d’une intervention.",
+      "purpose": "Les scénarios sont des simulations, pas des données de ferme en direct.",
       "inputs": "Scénario, intensité, option d’intervention et entrées agricoles sous Calculer.",
       "steps": [
-        "Choisissez le scénario et son intensité.",
-        "Exécutez sans intervention.",
-        "Activez l’intervention, relancez et comparez les trois colonnes."
+        "Les scénarios sont désactivés dans l’espace en direct.",
+        "Connectez la télémétrie agricole avant de créer des interventions basées sur les données."
       ],
-      "results": "Avant est la référence ; perturbé inclut le choc ; après inclut l’intervention. Vérifiez les volumes perdus, livrés et non satisfaits.",
-      "beginner": "Les simulations sont synthétiques et sauvegardées localement. Elles ne prédisent pas un événement réel et ne commandent aucun équipement.",
-      "professional": "Règles déterministes : réparation = 90 % de fuite supprimée ; couverture du sol = demande réduite de 10 % ; reprise de pompe = 80 % de livraison ; restriction = priorité à 70 % de surface. L’énergie de secours est un apport supplémentaire, pas du solaire."
+      "results": "Aucun scénario synthétique n’est affiché.",
+      "beginner": "Cette page restera indisponible tant que les données réelles ne sont pas intégrées.",
+      "professional": "L’API refuse les simulations tant qu’une source de données en direct n’est pas connectée."
     },
     "insights": {
-      "purpose": "Lire les recommandations associées au calcul actuel.",
+      "purpose": "Les recommandations opérationnelles exigent des mesures agricoles connectées.",
       "inputs": "Un calcul dans Agriculture ou l’estimation régionale initiale.",
       "steps": [
-        "Calculez un cas agricole.",
-        "Lisez les recommandations.",
-        "Examinez les formules et vérifiez les hypothèses avant toute application."
+        "Connectez et validez les capteurs agricoles.",
+        "Calculez ensuite à partir des mesures et d’une météo modélisée clairement indiquée."
       ],
-      "results": "Les recommandations relient des actions à des règles basées sur l’eau et l’énergie estimées.",
-      "beginner": "Aucun modèle entraîné ni avis agronomique validé n’intervient. Une validation locale est nécessaire.",
-      "professional": "Les seuils utilisent le calcul d’irrigation en mémoire : demande nette, stress, déficit énergétique. Modifier une entrée sans recalculer ne les actualise pas."
+      "results": "Indisponible sans télémétrie du champ et du matériel.",
+      "beginner": "Aucune recommandation ne repose sur des valeurs de démonstration.",
+      "professional": "La vue en direct n’applique pas de règles à des données d’exemple."
     },
     "security": {
-      "purpose": "Tester la détection simple d’anomalies sur des mesures simulées.",
+      "purpose": "L’analyse d’anomalies exige une télémétrie réelle de capteurs.",
       "inputs": "Normal, fuite, falsification, capteur figé ou saut de mesure.",
       "steps": [
-        "Choisissez un exemple.",
-        "Appuyez sur Analyser.",
-        "Lisez les alertes et preuves, comparez avec Normal et consultez le journal."
+        "Connectez les capteurs réels de débit, pression et sol.",
+        "Analysez ensuite les relevés horodatés."
       ],
-      "results": "Une alerte indique un seuil franchi. L’absence d’alerte signifie seulement que ces règles n’ont rien trouvé.",
-      "beginner": "Ce n’est pas une protection réelle. Le journal contient les alertes des scénarios, pas chaque résultat d’analyse.",
-      "professional": "Six échantillons synthétiques de débit, pression (bar) et humidité (%) sont envoyés à l’API. La fuite combine débit accru et pression réduite ; humidité invalide, figée ou brusque suit des règles distinctes. Aucune ingestion réelle ni authentification."
+      "results": "Indisponible avant intégration de données de capteurs.",
+      "beginner": "Aucun tableau d’exemple n’est affiché comme mesure réelle.",
+      "professional": "Seule une télémétrie explicitement fournie peut être analysée ; aucune ingestion d’appareils n’existe encore."
     },
     "studio": {
       "purpose": "Créer et modifier un concept de matériel d’irrigation à partir du catalogue.",
       "inputs": "Demande d’irrigation prise en charge, puis alimentation, réseau et profil ; ou projet sauvegardé.",
       "steps": [
-        "Essayez « contrôleur d’irrigation solaire », examinez le plan puis générez.",
-        "Vérifiez pièces, câblage, hypothèses et validation ; essayez « ajouter un autre capteur » ou « remplacer Wi-Fi par LoRa ».",
-        "Choisissez une version et exportez le ZIP, ou ajoutez le modèle actuel valide au jumeau."
+        "Créez un concept d’irrigation pris en charge.",
+        "Vérifiez ses pièces et prix indicatifs.",
+        "Exportez le concept ; le déploiement matériel est désactivé sans connecteur."
       ],
       "results": "Les versions préservent les modifications acceptées. La validation vérifie quelques contraintes électriques. Le ZIP contient conception, pièces, connexions, guide et programme initial.",
-      "beginner": "Robots, drones et demandes techniques arbitraires ne sont pas pris en charge. Une demande refusée n’enregistre rien. Le jumeau est simulé et le programme maintient la pompe arrêtée.",
+      "beginner": "Les conceptions sont conceptuelles ; le backend ne connecte ni ne déploie du matériel physique.",
       "professional": "Règles locales par mots-clés et catalogue fixe ; provenance enregistrée, fournisseur optionnel configurable. Prix USD illustratifs ; pompe de 60 W de laboratoire. Géométrie conceptuelle, câblage non expertisé, programme non compilé."
     },
     "settings": {
-      "purpose": "Adapter la lisibilité et choisir la météo.",
-      "inputs": "Langue en haut ; contraste, taille du texte, animations réduites et source météo ici.",
+      "purpose": "Régler l’accessibilité et actualiser la météo régionale modélisée.",
+      "inputs": "Langue, contraste, taille du texte et mouvement.",
       "steps": [
-        "Choisissez EN, FR ou japonais et ajustez l’accessibilité.",
-        "Sélectionnez la météo de démo ou réelle, puis chargez-la.",
-        "Vérifiez la source et recalculez pour appliquer la météo."
+        "Réglez l’affichage.",
+        "Actualisez la météo actuelle modélisée.",
+        "Vérifiez la source et l’heure de validité du modèle."
       ],
-      "results": "Langue et lisibilité sont mémorisées dans ce navigateur. Les étiquettes distinguent prévision, démo et repli.",
-      "beginner": "La météo réelle nécessite internet. En cas d’échec, des données exemples étiquetées sont utilisées. Vue d’ensemble et Comparaison restent fixes.",
-      "professional": "Open-Meteo : délai serveur de 8 s, cache de succès de 30 min en mémoire. Le choix météo réelle n’est pas mémorisé. Mode, langue et accessibilité utilisent localStorage, sans synchronisation de compte."
+      "results": "Valeurs actuelles du modèle Open-Meteo et prévision sur sept jours.",
+      "beginner": "Aucun échantillon ou repli météo n’est affiché en cas de panne.",
+      "professional": "La météo actuelle est issue d’un modèle par pas de 15 minutes, pas de la télémétrie d’une station."
     }
   },
   "studioAiStatusUnknown": "Vérification du mode de génération Studio…",
@@ -461,5 +456,27 @@
   "studioRulesDesign": "Version sélectionnée : conception par règles locales.",
   "studioAiWorking": "Le modèle prépare votre conception. La première demande peut prendre jusqu’à 90 secondes.",
   "studioAiUnavailable": "Le modèle IA n’a pas pu produire un plan exploitable. Rien n’a été enregistré. Vérifiez que le serveur fonctionne et que le modèle est téléchargé, puis réessayez. Une demande plus simple peut aider.",
-  "choice_auto": "Déduire de ma demande"
+  "choice_auto": "Déduire de ma demande",
+  "currentWeather": "Conditions météo actuelles",
+  "modelWeather": "Modèle météo actuel (pas une station)",
+  "weatherValidAt": "heure du modèle",
+  "weatherGridNote": "Les conditions actuelles Open-Meteo proviennent d’un modèle météo par pas de 15 minutes sur cette grille régionale, pas de mesures d’une station locale.",
+  "farmDataStatus": "Mesures de l’exploitation",
+  "noFarmTelemetry": "Aucun capteur agricole n’est connecté. Les mesures du sol, du débit, de la pression, de la pompe et de la météo sur site sont indisponibles.",
+  "regionLocation": "Emplacement administratif",
+  "regionCoordinatesOnly": "Le point indique le centre administratif, pas une exploitation relevée.",
+  "realFarmInputsOnly": "Saisissez les valeurs réelles de votre exploitation. Aucun exemple n’est prérempli. Les résultats sont des calculs, pas des mesures.",
+  "farmInputsRequired": "Saisissez toutes les valeurs requises de votre exploitation avant le calcul.",
+  "noWaterTelemetry": "Aucun débitmètre, capteur de pression ou flux réseau d’eau en direct n’est connecté.",
+  "noEnergyTelemetry": "Aucun onduleur solaire ni compteur d’énergie en direct n’est connecté.",
+  "scenarioLiveUnavailable": "Les scénarios sont des simulations ; ils sont désactivés dans l’espace en direct.",
+  "securityLiveUnavailable": "L’analyse de sécurité en direct nécessite des données réelles de capteurs.",
+  "weatherConnected": "Modèle météo connecté",
+  "modelWeatherPolicy": "Les conditions actuelles et les prévisions proviennent des modèles météo Open-Meteo, pas d’une station locale.",
+  "forecastDays": "Prévision du modèle sur sept jours",
+  "precipitationInterval": "précipitations sur les {minutes} dernières min",
+  "useWeatherForecastInputs": "Utiliser la prévision Open-Meteo pour les données météo",
+  "calculationEstimate": "Estimation calculée à partir des valeurs agricoles saisies, de coefficients culturaux de référence et du modèle météo indiqué ; ce n’est pas une mesure de capteur.",
+  "hardwareUnavailable": "Connexion au matériel indisponible",
+  "weatherUpdates": "L’application actualise la météo toutes les 10 minutes. L’heure affichée est celle de validité du modèle."
 }

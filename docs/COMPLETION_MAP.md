@@ -1,6 +1,6 @@
 # ResiliFarm completion map
 
-Target: a guided, verified **single-user local demo**. Real-farm operation is a separate project. Beginner and Pro change guidance only; neither changes calculations or removes capabilities.
+Historical QA notes below document the earlier demo build and are not the current product contract. Current policy is weather-only: regional Open-Meteo model data is shown with provenance, and generated farms, telemetry, network values, and scenario outputs are not used in the live workspace. See `README.md` for current data policy and limitations.
 
 ## Local demo delivery
 

@@ -32,7 +32,7 @@ cd ..
 
 On Linux/macOS replace `py` with `python3` and `.venv\Scripts\python.exe` with `.venv/bin/python`. Standard frontend commands are `pnpm dev` and `pnpm build` inside `frontend`.
 
-Local startup requires **no environment variables**. The app initializes and seeds `backend/resilifarm.db` once. To use an existing PostgreSQL server, set `DATABASE_URL=postgresql+psycopg://user:URL_ENCODED_PASSWORD@host:5432/database`. `CORS_ORIGINS` is an optional comma-separated origin list. Local mode reads environment variables directly; it does not load `.env` automatically.
+Local startup requires **no environment variables**. Initialization stores country, administrative-region and crop-coefficient reference data; it does not create demo farms, fields or networks. Existing generated demo farms, networks and simulated telemetry are removed at startup. To use an existing PostgreSQL server, set `DATABASE_URL=postgresql+psycopg://user:URL_ENCODED_PASSWORD@host:5432/database`. `CORS_ORIGINS` is an optional comma-separated origin list. Local mode reads environment variables directly; it does not load `.env` automatically.
 
 ## Docker / PostgreSQL
 
@@ -42,25 +42,17 @@ Copy-Item .env.example .env
 docker compose up --build
 ```
 
-Open http://localhost:8080. Database credentials stay in the backend; no database port is exposed. Compose injects `DB_HOST` and `DB_PASSWORD`, avoiding URL interpolation problems with special characters. The database volume persists. Initialization is idempotent (`metadata.create_all` and seed transaction); this initial schema has no upgrade migration history yet. Docker was unavailable on the development machine, so the Compose/PostgreSQL runtime is **not verified**; SQLite initialization and the PostgreSQL schema compilation are tested.
+Open http://localhost:8080. Database credentials stay in the backend; no database port is exposed. Compose injects `DB_HOST` and `DB_PASSWORD`, avoiding URL interpolation problems with special characters. The database volume persists. Initialization is idempotent (`metadata.create_all`, region/crop references, and removal of legacy generated samples); this initial schema has no upgrade migration history yet. Docker was unavailable on the development machine, so the Compose/PostgreSQL runtime is **not verified**; SQLite initialization and the PostgreSQL schema compilation are tested.
 
-## Demo flow
+## Live weather and calculation policy
 
-For pretrained-model planning in Studio, follow the local AI setup below. The ordinary backend command continues to use rules when no provider is configured.
+Choose one of Tunisia’s 24 governorates or Japan’s 47 prefectures. The map marker is the administrative center, not a surveyed farm. The overview requests current conditions and a seven-day forecast from Open-Meteo for that regional model grid. Open-Meteo current conditions are 15-minute weather-model output, not measurements from a local station. The UI labels the model source and its valid time. Successful responses are cached for up to 5 minutes; the app refreshes the selected region every 10 minutes. If the service is unavailable or returns invalid data, the API responds with 503 and displays no replacement samples.
 
-Open **Start Here** for a suggested path and links to all 11 sections. An empty or unknown URL hash opens this home page; **Overview** remains the regional baseline dashboard. First visits use **Beginner** guidance. The **Pro** switch adds methods, units, assumptions and data provenance without changing features or calculations. The choice is saved in this browser. Every section has an expandable EN/FR/JA guide covering its purpose, inputs, steps, result interpretation and demo limits.
+No on-farm sensors, farm boundaries, irrigation network, pump meters or solar meters are connected. The app does not fabricate those readings: water, energy, scenario simulation, security analysis and deploy-as-hardware views are unavailable until their real data sources are integrated. The digital twin map shows only the real administrative-center coordinate and current regional model weather.
 
-1. Choose any of Tunisia’s 24 governorates or Japan’s 47 prefectures.
-2. Open Agricultural Intelligence, choose crop, stage, area, efficiency and weather inputs, then calculate.
-3. Inspect water allocation, pipe pressure, rainwater collection and pump/solar energy.
-4. Run a leak scenario, then apply intervention and compare lost water and pumping demand. Try restriction, drought, heatwave, pump outage, solar shortage and sensor tampering.
-5. Analyze simulated leak or tampering telemetry in Cybersecurity.
-6. Generate a Studio blueprint. Review the plan, then explore its Info, Parts, Architecture, Wiring, Mechanical and Instructions views. Search the BOM, inspect signal paths, mark build steps complete and export the conceptual assembly as STL.
-7. Add a soil sensor, switch Wi-Fi to LoRa, reduce cost, inspect component specifications and connections. Test 5 V logic to see a validation failure; return to 3.3 V before adding the simulated design to the digital twin.
-8. Export the ZIP: versioned JSON, BOM CSV, connections CSV, localized assembly guide and dry-run Arduino starter.
-9. Switch EN/FR/JA or adjust contrast, text size and motion. Language and accessibility preferences persist on the device.
+Agricultural calculations require every farm value to be entered; there are no prefilled example hectares, crop stage, pump or solar values. Outputs are explicitly labeled calculations using those user-supplied inputs and reference crop coefficients. They are not measured irrigation demand, actual pump use, or calibrated field predictions. If weather-model values are used as inputs, they must remain identified as model output.
 
-Settings can request a real Open-Meteo forecast. The server caches successful responses for 30 minutes, uses an 8-second timeout, and falls back to explicitly labeled fixed sample data. The selected weather populates irrigation inputs; calculate again to apply it. Overview and comparison intentionally remain reproducible demo baselines. Map tiles and optional web fonts need internet; controls and fallback fonts work without them.
+Studio remains a design workspace. Its BOM prices/specifications are illustrative and its wiring/firmware are conceptual; the API no longer marks a design as physically deployed without a hardware connector.
 
 ## Local pretrained Studio AI
 
@@ -95,13 +87,13 @@ This checks EN/FR/JA planning, one-sensor edits, removing solar, rejection witho
 
 - `ETc = Kc × ET0`; effective rain = `0.8 × rain`; net depth = `max(0, ETc − effective rain)`; gross depth = `net / irrigation efficiency`; water = `10 × gross mm × ha`.
 - Pump energy = `1000 × 9.81 × volume × head / (efficiency × 3,600,000)` kWh. Solar = `kWp × equivalent sun hours × 0.8`. Daily irradiance in MJ/m² converts to equivalent hours by dividing by 3.6; no panel tilt or temperature correction is modeled.
-- Water network: steady eight-hour pumping day, 300 m of 80 mm pipe, Darcy friction factor 0.025 and 30 m source head. Illustrative demand-driven estimate, not an EPANET hydraulic solver. Pressure is clipped at zero; infeasible flow is not solved iteratively.
-- Stress = daily net demand / 8 mm, capped at 100%; crop coefficients and risk thresholds are illustrative. No root-zone storage, calibrated yield forecast, trained ML, or accuracy claim.
-- Scenario assumptions are explicit. Leak repair removes 90% of leakage; soil cover reduces demand 10%; pump recovery restores 80% of delivery; restriction prioritizes 70% of area without increasing allowed supply. Backup energy is additional energy, not a solar gain.
+- Live water flow, pressure and network measurements are unavailable until real meters and an actual network description are connected. The prior illustrative network formula is not exposed as live telemetry.
+- Agricultural calculation results are estimates from user-entered values and reference crop coefficients; they are never reported as measured field outcomes.
+- Scenario and cyber-security demo endpoints are unavailable in the live workspace until real sensor telemetry is connected.
 - Studio defaults to deterministic catalogue templates and recognizes supported EN/FR/JA edit phrases. An optional OpenAI-compatible planner can be configured with `STUDIO_AI_BASE_URL`, `STUDIO_AI_API_KEY` and `STUDIO_AI_MODEL`; it is not required for this demo, and generation provenance is recorded. Its six-view blueprint workspace uses React Flow and Three.js; the mechanical massing model and STL are conceptual blocks, not manufacturing CAD. Wiring pins are illustrative, must be checked against datasheets, and are not a reviewed schematic. Arbitrary engineering language and automatic farm-scale sizing are not supported. Prices/specifications are illustrative, not vendor quotes.
 - Unsupported Studio requests such as “robot” return HTTP 422 with `error.code = unsupportedRequest` and a localized explanation in the UI. They do not create a project, version, message or connection. New-project planning preferences are validated separately from the original request; successful response shapes are unchanged.
 - The firmware is an **uncompiled, dry-run starter**: soil ADC output and pump-off state. LoRa/network stacks, field control, sensor calibration and physical commissioning are intentionally not implemented. The 60 W pump is a bench example, not a 5 ha irrigation pump. Hardware proposals require qualified review.
-- The relational schema includes the requested geography, field/crop, weather, network/node/pipe, sensor, energy, prediction, recommendation, alert, simulation and Studio entities. Current persistence workflows cover catalogue, projects/messages/connections/versions, recommendations, scenarios and scenario alerts; other telemetry tables are extension points, not a live ingestion service.
+- The database retains region and crop-reference metadata. Generated demo farms, fields, networks and simulated telemetry are cleaned during initialization; a live farm/sensor ingestion service is not yet connected.
 - Single-user localhost demo: no authentication, multi-tenant authorization, rate limits, production deployment or real cyber protection. Do not expose it publicly as-is. Accessibility features are implemented, but this is not a certified WCAG audit.
 
 See [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) for repository evaluations, licenses, actual data connections and deferred integrations.
@@ -115,10 +107,10 @@ pnpm.cmd test:onboarding
 pnpm.cmd build
 ```
 
-The backend suite passes 55 tests covering physical units, water balance, scenarios, anomaly detection, input validation, CORS, Studio versions/exports, translated prompts, strict AI output validation, context preservation, negative requirements, provider availability, rejected/failed requests without persistence, weather fallback/cache, and recursive translation parity. The onboarding check verifies all 66 language/mode guide renders, their home links and farm-input step validity. TypeScript and the production build pass; Vite reports a non-fatal large-chunk warning for the existing Studio/3D bundle. FastAPI's test client emits one upstream HTTPX deprecation warning. Real-model checks are opt-in through `scripts/verify_studio_ai.py`.
+The earlier demo baseline had a 55-test backend suite and an onboarding-render check; those results predate the weather-only fail-closed conversion and do not verify the current behavior. For this change, Python syntax compilation and the frontend TypeScript build check pass. The full Vite production build could not complete in the restricted environment because esbuild returned `spawn EPERM`. Backend tests were not run. Real-model Studio checks remain opt-in through `scripts/verify_studio_ai.py`.
 
 On Windows, `pnpm.cmd` avoids the PowerShell execution policy for `pnpm.ps1`; use `pnpm` on other platforms. The restricted coding sandbox can prevent SQLite access to the test temporary directory and Vite from spawning esbuild (`spawn EPERM`). These checks pass from a normal local terminal or with scoped execution approval; no security settings need changing.
 
-The browser walkthrough is only partially verified: Start Here, saved Pro mode and an irrigation calculation were checked before Computer Use was stopped. See [docs/COMPLETION_MAP.md](docs/COMPLETION_MAP.md) for the remaining browser checklist, local-demo completion gate and separate real-farm requirements. Do not call the demo fully verified until that gate passes.
+The earlier browser walkthrough covered the demo experience and is not verification of the current weather-only workspace. Farm sensors, water/energy meters, and station weather feeds remain unconnected.
 
 Source layout: `backend/app/{db,schemas,services,integrations,studio,main}.py`; `frontend/src` contains the pages, shared components and separate translation files. Schema initialization also runs explicitly with `python -c "from backend.app.db import initialize; initialize()"` from the repository root.
