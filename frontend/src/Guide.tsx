@@ -40,7 +40,8 @@ export function StartHere({
   onNavigate: (page: string) => void;
 }) {
   const { t } = useTranslation();
-  const journey = t("homeJourneySteps", { returnObjects: true }) as string[];
+  const journeyValue = t("homeJourneySteps", { returnObjects: true });
+  const journey = Array.isArray(journeyValue) ? journeyValue as string[] : [];
 
   return (
     <div className="start-here">
@@ -138,9 +139,10 @@ export function SectionGuide({
   mode: ExperienceMode;
 }) {
   const { t } = useTranslation();
-  const steps = t(`guides.${section}.steps`, {
+  const stepValue = t(`guides.${section}.steps`, {
     returnObjects: true,
-  }) as string[];
+  });
+  const steps = Array.isArray(stepValue) ? stepValue as string[] : [];
 
   return (
     <details key={`${section}-${mode}`} className="section-guide" open>
