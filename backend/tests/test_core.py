@@ -359,3 +359,22 @@ def test_ai_status_reports_actual_model_availability(client,monkeypatch):
     mock_studio_ai(monkeypatch,{'supported':True,'action':'design','changes':{}})
     monkeypatch.setattr(studio.httpx,'get',lambda url,**kw: httpx.Response(200,json={'data':[{'id':'qwen3:4b-instruct'}]},request=httpx.Request('GET',url)))
     assert client.get('/api/v1/aiot/provider').json()['available']
+
+def test_account_signup_login_profile_and_password(client):
+    created=client.post('/api/v1/auth/signup',json={'email':'Farmer@Example.com','password':'secret123','full_name':'Amina Farmer'})
+    assert created.status_code==201
+    token=created.json()['token']
+    assert created.json()['user']['email']=='farmer@example.com'
+    assert set(created.json()['user'])=={'id','email','full_name','created_at'}  # Never expose the password hash.
+    assert client.post('/api/v1/auth/signup',json={'email':'farmer@example.com','password':'secret123','full_name':'Dup'}).status_code==409
+    assert client.post('/api/v1/auth/login',json={'email':'farmer@example.com','password':'wrong'}).status_code==401
+    headers={'Authorization':'Bearer '+token}
+    assert client.get('/api/v1/auth/me').status_code==401
+    assert client.get('/api/v1/auth/me',headers={'Authorization':'Bearer invalid'}).status_code==401
+    assert client.get('/api/v1/auth/me',headers=headers).json()['full_name']=='Amina Farmer'
+    assert client.post('/api/v1/auth/profile',json={'email':'amina@example.com','full_name':'Amina B'},headers=headers).json()['email']=='amina@example.com'
+    assert client.post('/api/v1/auth/password',json={'current_password':'wrong','new_password':'longenough'},headers=headers).status_code==401
+    assert client.post('/api/v1/auth/password',json={'current_password':'secret123','new_password':'longenough'},headers=headers).status_code==200
+    assert client.post('/api/v1/auth/login',json={'email':'amina@example.com','password':'longenough'}).status_code==200
+    assert client.post('/api/v1/auth/signup',json={'email':'not-an-email','password':'short','full_name':'x'}).status_code==422
+

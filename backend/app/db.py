@@ -42,6 +42,7 @@ versions = entity('aiot_design_versions', ref('project_id', 'aiot_projects'), Co
 messages = entity('aiot_conversation_messages', ref('project_id', 'aiot_projects'), Column('role', String(20)), Column('text', String(4000)))
 components = entity('aiot_components', Column('key', String(60), unique=True), Column('specification', json_type))
 connections = entity('aiot_connections', ref('version_id', 'aiot_design_versions'), Column('source', String(80)), Column('target', String(80)), Column('signal', String(100)))
+users = entity('users', Column('email', String(255), unique=True, nullable=False), Column('full_name', String(120), nullable=False), Column('password_hash', String(255), nullable=False))
 records = {}
 for name in ['weather_observations', 'sensor_readings', 'energy_systems', 'predictions', 'alerts', 'irrigation_recommendations', 'simulation_runs']:
     records[name] = entity(name, ref('region_id', 'administrative_areas'), Column('is_simulated', Boolean, nullable=False, default=True), Column('source', String(120)), Column('payload', json_type))

@@ -154,3 +154,13 @@ export type Project = {
   messages: { id: number; role: string; text: string }[];
   versions: { version: number; design: Design }[];
 };
+export type User = {
+  id: number;
+  email: string;
+  full_name: string;
+  created_at: string;
+};
+export type AuthResponse = {
+  token: string;
+  user: User;
+};
