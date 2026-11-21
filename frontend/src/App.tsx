@@ -157,6 +157,7 @@ export default function App() {
   }, [mode]);
   useEffect(() => {
     document.documentElement.lang = i18n.language;
+    document.documentElement.dir = i18n.language === "ar" ? "rtl" : "ltr";
     localStorage.setItem("rf-language", i18n.language);
   }, [i18n.language]);
   useEffect(() => {
@@ -249,13 +250,13 @@ export default function App() {
             mode === "sensorFrozen"
               ? [30, 30, 30, 30, 30, 30]
               : [
-                  31,
-                  32,
-                  31,
-                  32,
-                  30,
-                  mode === "tampering" ? 140 : mode === "sensorJump" ? 70 : 31,
-                ],
+                31,
+                32,
+                31,
+                32,
+                30,
+                mode === "tampering" ? 140 : mode === "sensorJump" ? 70 : 31,
+              ],
         }),
       );
     });
@@ -359,6 +360,7 @@ export default function App() {
               <option value="en">EN</option>
               <option value="fr">FR</option>
               <option value="ja">日本語</option>
+              <option value="ar">العربية</option>
             </select>
             <button
               className="avatar"

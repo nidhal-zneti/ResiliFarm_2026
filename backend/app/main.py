@@ -166,7 +166,7 @@ def deploy(pid:int):
     return {'deployed':True,'is_simulated':True,'project_id':pid}
 
 @app.get('/api/v1/aiot/projects/{pid}/export')
-def export(pid:int,language:str=Query('en',pattern='^(en|fr|ja)$'),version:int|None=Query(None,ge=1)):
+def export(pid:int,language:str=Query('en',pattern='^(en|fr|ja|ar)$'),version:int|None=Query(None,ge=1)):
     p=project(pid); data=io.BytesIO(); bom=io.StringIO(); writer=csv.writer(bom)
     if version is not None:
         selected=next((v for v in p['versions'] if v['version']==version),None)

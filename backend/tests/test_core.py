@@ -174,7 +174,7 @@ def test_weather_fallback_and_cache(monkeypatch):
 
 def test_translation_parity():
     root=Path(__file__).resolve().parents[2]/'frontend/src/i18n'
-    dictionaries=[json.loads((root/f'{lang}.json').read_text(encoding='utf-8')) for lang in ['en','fr','ja']]
+    dictionaries=[json.loads((root/f'{lang}.json').read_text(encoding='utf-8')) for lang in ['en','fr','ja','ar']]
     def shape(value):
         if isinstance(value, dict):
             return {key: shape(child) for key, child in value.items()}
@@ -214,7 +214,7 @@ def test_unsupported_studio_has_no_side_effects(client, monkeypatch, prompt):
         assert counts()==original_counts
     assert client.get(base).json()==before
 
-@pytest.mark.parametrize('language',['en','fr','ja'])
+@pytest.mark.parametrize('language',['en','fr','ja','ar'])
 def test_studio_translated_examples_and_edits(client, monkeypatch, language):
     from backend.app import studio
     monkeypatch.setattr(studio, 'generate_with_provider', lambda *args: None)

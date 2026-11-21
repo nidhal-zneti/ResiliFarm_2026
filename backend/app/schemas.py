@@ -24,7 +24,7 @@ class ScenarioInput(FarmInput):
 
 class MessageInput(Input):
     text: str = Field(min_length=1, max_length=4000)
-    language: Literal['en','fr','ja'] = 'en'
+    language: Literal['en','fr','ja','ar'] = 'en'
 
 class ProjectInput(MessageInput):
     region_id: int = Field(1, ge=1)
