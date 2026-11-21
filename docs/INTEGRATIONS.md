@@ -32,7 +32,7 @@ Inspected 2026-11-17. Status describes actual use, not an integration claim base
 | [Japan MAFF](https://www.maff.go.jp/e/) | REFERENCE ONLY: statistics/publications | Public statistics entry points reviewed; no Japan farm or observation sample is generated. |
 | [Japan Meteorological Agency](https://www.jma.go.jp/jma/en/) | REFERENCE ONLY: official portal | Requested page was inaccessible through research tooling. No undocumented API or JMA observations claimed. |
 
-Open-Meteo is the only connected live data provider. It supplies model weather, not station observations. No farm sensors, boundaries, pump meters, water network or energy meters are connected. Generated farm/network/simulation records are removed at initialization; live calculation outputs require user-entered farm parameters and are labeled estimates. The backend owns weather requests; frontend code does not call the provider directly. Cache entries are process-local.
+ResiliFarm does not depend on IoT devices. Open-Meteo is currently the only integrated live internet data source; it provides regional model weather, not station observations. Other public online sources for farm boundaries, soil, water networks, pump energy and solar generation are not integrated yet. The app does not present those values as live. Generated farm/network/simulation records are removed at initialization; calculation outputs require user-entered farm parameters and are labeled estimates. The backend owns weather requests; frontend code does not call the provider directly. Cache entries are process-local.
 
 ## Pretrained Studio model (2026-11-21)
 

@@ -2,7 +2,7 @@
 
 Besbes Bobi · KIZUNA 2026 – ESPRIT
 
-A working local agricultural resilience MVP: React/TypeScript/Vite, FastAPI/Pydantic, SQLAlchemy, Leaflet, Recharts and i18next. PostgreSQL is configured in Docker Compose; SQLite provides a zero-service local alternative. No API key or physical sensor is required.
+A working local agricultural resilience MVP: React/TypeScript/Vite, FastAPI/Pydantic, SQLAlchemy, Leaflet, Recharts and i18next. PostgreSQL is configured in Docker Compose; SQLite provides a zero-service local alternative. No API key or IoT device is required.
 
 ## Run on this Windows workspace
 
@@ -48,7 +48,7 @@ Open http://localhost:8080. Database credentials stay in the backend; no databas
 
 Choose one of Tunisia’s 24 governorates or Japan’s 47 prefectures. The map marker is the administrative center, not a surveyed farm. The overview requests current conditions and a seven-day forecast from Open-Meteo for that regional model grid. Open-Meteo current conditions are 15-minute weather-model output, not measurements from a local station. The UI labels the model source and its valid time. Successful responses are cached for up to 5 minutes; the app refreshes the selected region every 10 minutes. If the service is unavailable or returns invalid data, the API responds with 503 and displays no replacement samples.
 
-No on-farm sensors, farm boundaries, irrigation network, pump meters or solar meters are connected. The app does not fabricate those readings: water, energy, scenario simulation, security analysis and deploy-as-hardware views are unavailable until their real data sources are integrated. The digital twin map shows only the real administrative-center coordinate and current regional model weather.
+ResiliFarm does not require IoT devices. Open-Meteo is the only live farm-related internet data feed integrated so far. No suitable public online sources for farm boundaries, soil, water networks, flow, pressure, pump energy or solar generation are currently connected, so the app does not invent those values. Water, energy, scenario simulation and security views remain unavailable until appropriate online data sources and methods are integrated. The digital twin map shows the administrative-center coordinate and current regional model weather.
 
 Agricultural calculations require every farm value to be entered; there are no prefilled example hectares, crop stage, pump or solar values. Outputs are explicitly labeled calculations using those user-supplied inputs and reference crop coefficients. They are not measured irrigation demand, actual pump use, or calibrated field predictions. If weather-model values are used as inputs, they must remain identified as model output.
 
@@ -87,13 +87,13 @@ This checks EN/FR/JA planning, one-sensor edits, removing solar, rejection witho
 
 - `ETc = Kc × ET0`; effective rain = `0.8 × rain`; net depth = `max(0, ETc − effective rain)`; gross depth = `net / irrigation efficiency`; water = `10 × gross mm × ha`.
 - Pump energy = `1000 × 9.81 × volume × head / (efficiency × 3,600,000)` kWh. Solar = `kWp × equivalent sun hours × 0.8`. Daily irradiance in MJ/m² converts to equivalent hours by dividing by 3.6; no panel tilt or temperature correction is modeled.
-- Live water flow, pressure and network measurements are unavailable until real meters and an actual network description are connected. The prior illustrative network formula is not exposed as live telemetry.
+- Farm-specific water flow, pressure and network data are unavailable until a suitable public internet source or supported farm configuration is integrated. No IoT meter is required; the prior illustrative network formula is not exposed as live data.
 - Agricultural calculation results are estimates from user-entered values and reference crop coefficients; they are never reported as measured field outcomes.
-- Scenario and cyber-security demo endpoints are unavailable in the live workspace until real sensor telemetry is connected.
+- Scenario and cyber-security demo endpoints remain unavailable until suitable trusted online data sources and validated methods are integrated. They do not require IoT devices.
 - Studio defaults to deterministic catalogue templates and recognizes supported EN/FR/JA edit phrases. An optional OpenAI-compatible planner can be configured with `STUDIO_AI_BASE_URL`, `STUDIO_AI_API_KEY` and `STUDIO_AI_MODEL`; it is not required for this demo, and generation provenance is recorded. Its six-view blueprint workspace uses React Flow and Three.js; the mechanical massing model and STL are conceptual blocks, not manufacturing CAD. Wiring pins are illustrative, must be checked against datasheets, and are not a reviewed schematic. Arbitrary engineering language and automatic farm-scale sizing are not supported. Prices/specifications are illustrative, not vendor quotes.
 - Unsupported Studio requests such as “robot” return HTTP 422 with `error.code = unsupportedRequest` and a localized explanation in the UI. They do not create a project, version, message or connection. New-project planning preferences are validated separately from the original request; successful response shapes are unchanged.
 - The firmware is an **uncompiled, dry-run starter**: soil ADC output and pump-off state. LoRa/network stacks, field control, sensor calibration and physical commissioning are intentionally not implemented. The 60 W pump is a bench example, not a 5 ha irrigation pump. Hardware proposals require qualified review.
-- The database retains region and crop-reference metadata. Generated demo farms, fields, networks and simulated telemetry are cleaned during initialization; a live farm/sensor ingestion service is not yet connected.
+- The database retains region and crop-reference metadata. Generated demo farms, fields, networks and simulated records are cleaned during initialization. IoT ingestion is not required; Open-Meteo is the only integrated live internet feed so far, and other public sources remain future integrations.
 - Single-user localhost demo: no authentication, multi-tenant authorization, rate limits, production deployment or real cyber protection. Do not expose it publicly as-is. Accessibility features are implemented, but this is not a certified WCAG audit.
 
 See [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) for repository evaluations, licenses, actual data connections and deferred integrations.
@@ -111,6 +111,6 @@ The earlier demo baseline had a 55-test backend suite and an onboarding-render c
 
 On Windows, `pnpm.cmd` avoids the PowerShell execution policy for `pnpm.ps1`; use `pnpm` on other platforms. The restricted coding sandbox can prevent SQLite access to the test temporary directory and Vite from spawning esbuild (`spawn EPERM`). These checks pass from a normal local terminal or with scoped execution approval; no security settings need changing.
 
-The earlier browser walkthrough covered the demo experience and is not verification of the current weather-only workspace. Farm sensors, water/energy meters, and station weather feeds remain unconnected.
+The earlier browser walkthrough covered the demo experience and is not verification of the current weather-only workspace. The app does not require IoT devices. Open-Meteo is the only integrated live internet data source; other farm-specific online sources remain future integrations.
 
 Source layout: `backend/app/{db,schemas,services,integrations,studio,main}.py`; `frontend/src` contains the pages, shared components and separate translation files. Schema initialization also runs explicitly with `python -c "from backend.app.db import initialize; initialize()"` from the repository root.

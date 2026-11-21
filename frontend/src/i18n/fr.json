@@ -14,7 +14,7 @@
   "engineering": "INGÉNIERIE",
   "tagline": "Cultivons la résilience.",
   "welcome": "Votre exploitation, en perspective.",
-  "overviewSub": "Météo régionale actuelle issue d’un modèle ; les capteurs agricoles ne sont pas connectés.",
+  "overviewSub": "Météo actuelle du service Internet Open-Meteo ; aucune connexion IoT n’est nécessaire.",
   "demo": "Démo déterministe",
   "simulated": "Simulé",
   "estimated": "Estimation technique",
@@ -28,7 +28,7 @@
   "runScenario": "Tester un scénario",
   "source": "Source",
   "updated": "Mise à jour",
-  "sampleNote": "Aucun capteur agricole n’est connecté ; les mesures des champs et équipements sont indisponibles.",
+  "sampleNote": "Open-Meteo fournit la météo régionale modélisée. Les autres sources en ligne de données agricoles ne sont pas encore intégrées.",
   "waterDemand": "Besoin d’irrigation",
   "solarYield": "Énergie solaire disponible",
   "pumpEnergy": "Énergie de pompage",
@@ -293,26 +293,26 @@
   "professionalMode": "Pro",
   "homeEyebrow": "Espace météo en direct",
   "homeTitle": "Explorez une ferme plus résiliente",
-  "homeIntro": "Consultez le modèle météo Open-Meteo par région administrative. Aucun capteur agricole n’est connecté ; les calculs exigent vos propres données agricoles.",
+  "homeIntro": "Consultez les conditions actuelles et les prévisions Open-Meteo par région administrative. Aucun appareil IoT n’est nécessaire ; les calculs agricoles utilisent les valeurs que vous saisissez.",
   "startIrrigation": "Calculer l’irrigation",
   "openDashboard": "Ouvrir la vue d’ensemble",
   "homeQuickStart": "Parcours conseillé",
   "homeJourneySteps": [
-    "Choisissez un pays et une région administrative. Consultez le modèle météo actuel et sa prévision sur sept jours.",
-    "Dans Agriculture, saisissez les vrais paramètres de l’exploitation. Vous pouvez reprendre les valeurs météo du modèle, puis lire le calcul estimatif identifié.",
-    "Eau, Énergie, Simulateur, Analyses et Sécurité sont indisponibles tant que les compteurs ou capteurs agricoles ne sont pas connectés.",
-    "Studio sert à concevoir des concepts ; un design n’est pas connecté ni déployé sur du matériel."
+    "Choisissez un pays et une région administrative. Consultez le modèle météo actuel et ses prévisions sur sept jours.",
+    "Dans Agriculture, saisissez les paramètres réels de l’exploitation. Vous pouvez reprendre les valeurs du modèle météo, puis consulter le calcul clairement identifié.",
+    "Eau, Énergie, Simulation, Analyses et Sécurité nécessitent des sources Internet adaptées aux données agricoles. Aucune n’est encore intégrée : ces vues indiquent leur indisponibilité au lieu d’inventer des données.",
+    "Utilisez Studio pour concevoir un concept matériel ; il n’est ni connecté ni déployé sur un équipement."
   ],
   "homeDataNote": "Changer de région charge son modèle météo. Les valeurs agricoles ne sont pas préremplies.",
   "homeModeTitle": "Un guidage adapté",
   "homeBeginnerMode": "Le mode Débutant explique chaque section simplement : saisie, étapes et lecture des résultats.",
   "homeProMode": "Le mode Pro ajoute les méthodes, unités, hypothèses et origines des données aux mêmes guides.",
   "homeModeHelp": "Changez de mode à tout moment avec le sélecteur ci-dessus. Les fonctions et calculs restent identiques. Votre choix est mémorisé dans ce navigateur.",
-  "homeMapEyebrow": "Météo régionale · aucun capteur agricole",
+  "homeMapEyebrow": "Météo régionale en ligne · IoT non requis",
   "homeSectionMap": "Choisissez la prochaine étape",
   "homeSectionMapHelp": "Chaque section dispose d’un guide. Ouvrez-en une pour suivre ses étapes.",
   "openSection": "Ouvrir",
-  "homeScopeNote": "La météo actuelle est une sortie de modèle régional, pas une mesure de station. Les calculs agricoles sont des estimations fondées sur vos entrées. Aucun matériel n’est commandé.",
+  "homeScopeNote": "La météo actuelle est une sortie de modèle régional, pas une mesure de station. Les calculs agricoles sont des estimations fondées sur vos données. ResiliFarm ne dépend pas d’appareils IoT connectés.",
   "howToUseSection": "Utiliser {{section}}",
   "guideSteps": "Étapes",
   "guideInputs": "Choisir ou saisir",
@@ -348,13 +348,13 @@
       "purpose": "Voir le centre administratif sur une carte avec sa météo régionale modélisée.",
       "inputs": "Pays et région administrative.",
       "steps": [
-        "Choisissez une région.",
-        "Consultez ses coordonnées centrales et la météo modélisée.",
-        "Les limites agricoles et appareils apparaîtront après connexion de vraies sources."
+        "Sélectionnez une région.",
+        "Consultez ses coordonnées centrales et sa météo issue du modèle.",
+        "Les limites de parcelles et équipements ne s’affichent que si une source publique en ligne adaptée devient disponible."
       ],
-      "results": "Le point situe le centre administratif ; il ne représente ni ferme mesurée ni capteur.",
+      "results": "La carte indique uniquement le centre administratif ; elle ne montre pas une ferme relevée sur le terrain.",
       "beginner": "Ce n’est pas encore un jumeau numérique agricole en direct.",
-      "professional": "Le marqueur est la coordonnée du centre administratif ; aucune géométrie agricole ni télémétrie n’est générée."
+      "professional": "Le marqueur indique le centre administratif. Aucune source de parcelles agricoles ou d’équipements n’est intégrée ; l’IoT n’est pas requis."
     },
     "agriculture": {
       "purpose": "Calculer une estimation d’irrigation à partir des paramètres fournis.",
@@ -369,59 +369,59 @@
       "professional": "Le résultat est identifié comme estimatif et utilise des Kc de référence et formules simplifiées ; aucun modèle de réserve du sol ni calibration terrain."
     },
     "water": {
-      "purpose": "Les vues de débit, pression et réseau exigent des compteurs et un réseau réel.",
+      "purpose": "La météo ne fournit pas les données propres au débit, à la pression et au réseau d’une exploitation ; une source en ligne adaptée ou une configuration réelle est nécessaire.",
       "inputs": "Paramètres agricoles et Calculer ; allocation quotidienne (m³), toiture (m²), capacité de stockage (m³).",
       "steps": [
-        "Connectez et configurez les compteurs d’eau.",
-        "Cette page n’affiche aucune mesure supposée ou simulée."
+        "Utilisez une source Internet fiable pour l’exploitation, ou saisissez sa configuration réelle lorsqu’elle sera prise en charge.",
+        "Aucune mesure supposée ou simulée n’est affichée."
       ],
-      "results": "Indisponible avant connexion de la télémétrie.",
-      "beginner": "Aucun débitmètre ni capteur de pression n’est connecté.",
+      "results": "Indisponible : aucune base de données en ligne sur le réseau agricole n’est intégrée.",
+      "beginner": "Aucune source en ligne adaptée au réseau d’eau n’est intégrée ; aucun appareil n’est attendu.",
       "professional": "Les valeurs synthétiques du réseau Darcy ne sont pas exposées dans l’espace en direct."
     },
     "energy": {
-      "purpose": "Le suivi énergétique en direct exige un onduleur ou compteur connecté.",
+      "purpose": "La production solaire et l’énergie de pompage propres à une exploitation nécessitent une source en ligne ou ses spécifications réelles.",
       "inputs": "Demande en eau, hauteur de pompe (m), rendement, capacité solaire (kWp) et heures solaires équivalentes.",
       "steps": [
-        "Connectez un compteur d’énergie.",
-        "Cette page n’affiche aucune production ni consommation supposée."
+        "Utilisez une source Internet fiable ou saisissez les spécifications réelles quand cette fonction sera prise en charge.",
+        "Aucune production ni consommation supposée n’est affichée."
       ],
-      "results": "Indisponible avant connexion de la télémétrie énergétique.",
-      "beginner": "Aucun compteur solaire ou de pompe n’est connecté.",
-      "professional": "Les kWh calculés exigent des paramètres matériels réels et ne sont pas présentés comme des mesures."
+      "results": "Indisponible : aucune source en ligne de données énergétiques agricoles n’est intégrée.",
+      "beginner": "Aucune source en ligne adaptée à l’énergie agricole n’est intégrée ; aucun appareil n’est attendu.",
+      "professional": "Les kWh calculés nécessitent les spécifications réelles de l’équipement et restent des estimations, pas des mesures."
     },
     "simulator": {
       "purpose": "Les scénarios sont des simulations, pas des données de ferme en direct.",
       "inputs": "Scénario, intensité, option d’intervention et entrées agricoles sous Calculer.",
       "steps": [
-        "Les scénarios sont désactivés dans l’espace en direct.",
-        "Connectez la télémétrie agricole avant de créer des interventions basées sur les données."
+        "La simulation est désactivée afin de ne pas présenter des résultats simulés comme des données en direct.",
+        "Des données agricoles en ligne fiables et une méthode validée sont nécessaires avant de calculer des interventions."
       ],
-      "results": "Aucun scénario synthétique n’est affiché.",
-      "beginner": "Cette page restera indisponible tant que les données réelles ne sont pas intégrées.",
-      "professional": "L’API refuse les simulations tant qu’une source de données en direct n’est pas connectée."
+      "results": "Aucun résultat de scénario simulé n’est affiché.",
+      "beginner": "Indisponible tant que des données et méthodes réelles adaptées ne sont pas intégrées.",
+      "professional": "L’API refuse les simulations tant que des données fiables et une méthode validée ne sont pas intégrées."
     },
     "insights": {
-      "purpose": "Les recommandations opérationnelles exigent des mesures agricoles connectées.",
+      "purpose": "Les analyses opérationnelles nécessitent des paramètres agricoles réels et des sources de données en ligne adaptées.",
       "inputs": "Un calcul dans Agriculture ou l’estimation régionale initiale.",
       "steps": [
-        "Connectez et validez les capteurs agricoles.",
-        "Calculez ensuite à partir des mesures et d’une météo modélisée clairement indiquée."
+        "Saisissez les vrais paramètres agricoles dans Agriculture.",
+        "Utilisez le modèle météo régional disponible et vérifiez l’étiquette de chaque calcul."
       ],
-      "results": "Indisponible sans télémétrie du champ et du matériel.",
-      "beginner": "Aucune recommandation ne repose sur des valeurs de démonstration.",
+      "results": "Indisponible tant que des sources agricoles et des méthodes de recommandation validées ne sont pas intégrées.",
+      "beginner": "Aucune recommandation ne repose sur des exemples ou des données manquantes.",
       "professional": "La vue en direct n’applique pas de règles à des données d’exemple."
     },
     "security": {
-      "purpose": "L’analyse d’anomalies exige une télémétrie réelle de capteurs.",
+      "purpose": "Une analyse d’anomalies en direct nécessite une source Internet fiable d’événements ou de mesures réels.",
       "inputs": "Normal, fuite, falsification, capteur figé ou saut de mesure.",
       "steps": [
-        "Connectez les capteurs réels de débit, pression et sol.",
-        "Analysez ensuite les relevés horodatés."
+        "Sélectionnez une source publique ou agricole fiable lorsqu’elle sera intégrée.",
+        "Analysez ensuite ses valeurs avec leurs horodatages et leur provenance."
       ],
-      "results": "Indisponible avant intégration de données de capteurs.",
-      "beginner": "Aucun tableau d’exemple n’est affiché comme mesure réelle.",
-      "professional": "Seule une télémétrie explicitement fournie peut être analysée ; aucune ingestion d’appareils n’existe encore."
+      "results": "Indisponible : aucune source en ligne adaptée aux événements agricoles ou de sécurité n’est intégrée.",
+      "beginner": "Aucun tableau d’exemple n’est présenté comme donnée en direct.",
+      "professional": "Aucune ingestion par appareil ni source externe de sécurité n’est intégrée ; l’IoT n’est pas un prérequis."
     },
     "studio": {
       "purpose": "Créer et modifier un concept de matériel d’irrigation à partir du catalogue.",
@@ -462,21 +462,21 @@
   "weatherValidAt": "heure du modèle",
   "weatherGridNote": "Les conditions actuelles Open-Meteo proviennent d’un modèle météo par pas de 15 minutes sur cette grille régionale, pas de mesures d’une station locale.",
   "farmDataStatus": "Mesures de l’exploitation",
-  "noFarmTelemetry": "Aucun capteur agricole n’est connecté. Les mesures du sol, du débit, de la pression, de la pompe et de la météo sur site sont indisponibles.",
+  "noFarmTelemetry": "Open-Meteo est actuellement la seule source Internet en direct intégrée pour les données agricoles. Aucune source en ligne pour le sol, le débit, la pression ou la météo sur site n’est encore intégrée.",
   "regionLocation": "Emplacement administratif",
   "regionCoordinatesOnly": "Le point indique le centre administratif, pas une exploitation relevée.",
   "realFarmInputsOnly": "Saisissez les valeurs réelles de votre exploitation. Aucun exemple n’est prérempli. Les résultats sont des calculs, pas des mesures.",
   "farmInputsRequired": "Saisissez toutes les valeurs requises de votre exploitation avant le calcul.",
-  "noWaterTelemetry": "Aucun débitmètre, capteur de pression ou flux réseau d’eau en direct n’est connecté.",
-  "noEnergyTelemetry": "Aucun onduleur solaire ni compteur d’énergie en direct n’est connecté.",
+  "noWaterTelemetry": "Aucune source Internet publique concernant le réseau d’eau, le débit ou la pression de cette exploitation n’est intégrée. Aucun appareil IoT n’est requis.",
+  "noEnergyTelemetry": "Aucune source Internet publique concernant la production solaire ou l’énergie de pompage de cette exploitation n’est intégrée. Aucun appareil IoT n’est requis.",
   "scenarioLiveUnavailable": "Les scénarios sont des simulations ; ils sont désactivés dans l’espace en direct.",
-  "securityLiveUnavailable": "L’analyse de sécurité en direct nécessite des données réelles de capteurs.",
+  "securityLiveUnavailable": "L’analyse de sécurité exige une source Internet fiable d’événements ou de mesures réels ; aucune n’est intégrée. La connexion IoT n’est pas nécessaire.",
   "weatherConnected": "Modèle météo connecté",
   "modelWeatherPolicy": "Les conditions actuelles et les prévisions proviennent des modèles météo Open-Meteo, pas d’une station locale.",
   "forecastDays": "Prévision du modèle sur sept jours",
   "precipitationInterval": "précipitations sur les {minutes} dernières min",
   "useWeatherForecastInputs": "Utiliser la prévision Open-Meteo pour les données météo",
-  "calculationEstimate": "Estimation calculée à partir des valeurs agricoles saisies, de coefficients culturaux de référence et du modèle météo indiqué ; ce n’est pas une mesure de capteur.",
+  "calculationEstimate": "Estimation calculée à partir de vos valeurs agricoles, de coefficients culturaux de référence et du modèle météo indiqué ; ce n’est pas une observation directe.",
   "hardwareUnavailable": "Connexion au matériel indisponible",
   "weatherUpdates": "L’application actualise la météo toutes les 10 minutes. L’heure affichée est celle de validité du modèle."
 }

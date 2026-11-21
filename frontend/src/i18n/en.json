@@ -14,7 +14,7 @@
   "engineering": "ENGINEERING",
   "tagline": "Growing resilience, together.",
   "welcome": "A clearer view of your farm.",
-  "overviewSub": "Current regional weather from a model; farm sensors are not connected.",
+  "overviewSub": "Current weather from the Open-Meteo internet service; no IoT connection is needed.",
   "demo": "Deterministic demo",
   "simulated": "Simulated",
   "estimated": "Engineering estimate",
@@ -28,7 +28,7 @@
   "runScenario": "Run a scenario",
   "source": "Source",
   "updated": "Updated",
-  "sampleNote": "No on-farm sensors are connected; field and equipment measurements are unavailable.",
+  "sampleNote": "Open-Meteo provides regional model weather. Other live farm-specific online data sources are not integrated yet.",
   "waterDemand": "Irrigation demand",
   "solarYield": "Solar availability",
   "pumpEnergy": "Pumping energy",
@@ -293,14 +293,14 @@
   "professionalMode": "Pro",
   "homeEyebrow": "Live weather workspace",
   "homeTitle": "Explore a more resilient farm",
-  "homeIntro": "View Open-Meteo current model weather by administrative region. No farm sensors are connected; calculations require your own farm inputs.",
+  "homeIntro": "View current and forecast weather from Open-Meteo by administrative region. No IoT devices are required; farm calculations use values you provide.",
   "startIrrigation": "Calculate irrigation",
   "openDashboard": "Open Overview",
   "homeQuickStart": "A suggested path",
   "homeJourneySteps": [
     "Choose a country and administrative region. Review current model weather and the seven-day forecast.",
     "In Agriculture, enter actual farm parameters. Optionally copy weather-model inputs, then review the labeled calculation estimate.",
-    "Water, Energy, Simulator, Insights and Security remain unavailable until live farm meters or sensor data are connected.",
+    "Water, Energy, Simulator, Insights and Security need suitable online farm-data sources. None are integrated yet, so these views show unavailable status instead of invented data.",
     "Use Studio to draft hardware concepts; a design is not connected to or deployed on equipment."
   ],
   "homeDataNote": "Changing region loads that region’s weather-model data. Farm values are not prefilled.",
@@ -308,11 +308,11 @@
   "homeBeginnerMode": "Beginner explains each section in plain language, with inputs, steps and help reading results.",
   "homeProMode": "Pro adds methods, units, assumptions and data provenance to the same guides.",
   "homeModeHelp": "Use the switch above at any time. Both modes have the same features and calculations. Your choice is remembered on this browser.",
-  "homeMapEyebrow": "Regional weather · no farm sensors",
+  "homeMapEyebrow": "Regional online weather · no IoT required",
   "homeSectionMap": "Find your next step",
   "homeSectionMapHelp": "Every section includes a guide. Open one below to follow its steps.",
   "openSection": "Open",
-  "homeScopeNote": "Current weather is regional model output, not a station measurement. Farm calculations are estimates from your inputs. No hardware is controlled.",
+  "homeScopeNote": "Current weather is regional model output, not a station measurement. Farm calculations are estimates from your inputs. ResiliFarm does not depend on connected IoT devices.",
   "howToUseSection": "How to use {{section}}",
   "guideSteps": "Steps",
   "guideInputs": "Choose or enter",
@@ -350,11 +350,11 @@
       "steps": [
         "Select a region.",
         "Read its center coordinate and current model weather.",
-        "Farm boundaries and devices appear only after real data sources are connected."
+        "Farm boundaries and equipment appear only if a suitable online public data source becomes available."
       ],
       "results": "The map locates the administrative center only; it does not show a surveyed farm or sensor.",
       "beginner": "This is not yet a live farm digital twin.",
-      "professional": "The map marker is the administrative-center coordinate; farm shapes and device telemetry are not generated."
+      "professional": "The map marker is the administrative-center coordinate. No farm boundary or equipment dataset is currently integrated; IoT is not required."
     },
     "agriculture": {
       "purpose": "Calculate an irrigation estimate from supplied farm parameters.",
@@ -369,59 +369,59 @@
       "professional": "The calculation is labeled estimated and uses reference Kc values and simplified formulas; it has no root-zone model or field calibration."
     },
     "water": {
-      "purpose": "Live flow, pressure and network views require installed meters and a real network description.",
+      "purpose": "Farm-specific flow, pressure and network data are not provided by the weather feed; a suitable online source or farm configuration is needed.",
       "inputs": "Farm inputs and Calculate; daily allocation (m³), roof area (m²) and storage capacity (m³).",
       "steps": [
-        "Connect and configure water meters first.",
+        "Use an authoritative online source for the selected farm or enter its actual network configuration when supported.",
         "This page shows no assumed or simulated readings."
       ],
-      "results": "Unavailable until live telemetry is connected.",
-      "beginner": "No flow or pressure sensors are connected yet.",
+      "results": "Unavailable because no online farm-network dataset is integrated.",
+      "beginner": "No suitable online water-network source is integrated yet; no device connection is expected.",
       "professional": "Synthetic Darcy network outputs are not exposed in the live workspace."
     },
     "energy": {
-      "purpose": "Live energy tracking requires a connected inverter or energy meter.",
+      "purpose": "Farm-specific solar generation and pump energy need an online source or real farm specifications.",
       "inputs": "Farm water demand, pump head (m), pump efficiency, solar capacity (kWp) and equivalent sun hours.",
       "steps": [
-        "Connect an energy meter.",
+        "Use an authoritative online source or enter actual farm equipment specifications when supported.",
         "This page shows no assumed generation or pump usage."
       ],
-      "results": "Unavailable until live energy telemetry is connected.",
-      "beginner": "Solar and pump meters are not connected yet.",
-      "professional": "Calculated kWh values require real hardware inputs and are not reported as measurements."
+      "results": "Unavailable because no online farm-energy source is integrated.",
+      "beginner": "No suitable online farm-energy source is integrated yet; no device connection is expected.",
+      "professional": "Calculated kWh values require actual equipment specifications and remain estimates, not measurements."
     },
     "simulator": {
       "purpose": "Scenario results are simulations, not live farm data.",
       "inputs": "Scenario, severity, intervention toggle and farm inputs under Calculate.",
       "steps": [
-        "Scenario execution is disabled in the live workspace.",
-        "Connect farm telemetry before building data-driven interventions."
+        "Scenario execution is disabled because it would otherwise show simulated outcomes as live.",
+        "A trusted online farm-data source and a validated calculation method are needed before data-driven interventions."
       ],
       "results": "No synthetic scenario outputs are shown.",
-      "beginner": "This page will remain unavailable until real telemetry is integrated.",
-      "professional": "The simulation API rejects requests until a live data source is connected."
+      "beginner": "Unavailable until suitable real data and methods are integrated.",
+      "professional": "The simulation API rejects requests until trustworthy source data and a validated method are integrated."
     },
     "insights": {
-      "purpose": "Operational insights require connected farm measurements.",
+      "purpose": "Operational insights need actual farm inputs and relevant online data sources.",
       "inputs": "Calculate in Agriculture first, or inspect the initial regional estimate.",
       "steps": [
-        "Connect and verify farm sensors.",
-        "Then calculate recommendations from measured data and labeled model weather."
+        "Enter actual farm parameters in Agriculture.",
+        "Use the available regional weather model and review each calculation label."
       ],
-      "results": "Unavailable without field and equipment telemetry.",
-      "beginner": "No recommendations are generated from demo values.",
+      "results": "Unavailable until suitable farm data sources and validated recommendation methods are integrated.",
+      "beginner": "No recommendations are generated from demo values or missing sources.",
       "professional": "The live insights view does not use threshold rules over example data."
     },
     "security": {
-      "purpose": "Live anomaly analysis requires connected sensor telemetry.",
+      "purpose": "Live anomaly analysis needs a trusted online source of actual events or readings.",
       "inputs": "Normal, leak, tampering, frozen sensor or sudden sensor jump.",
       "steps": [
-        "Connect real flow, pressure and soil sensors.",
-        "Then analyze timestamped readings."
+        "Select a trusted public or farm data source when one is integrated.",
+        "Then analyze source values with their timestamps and provenance."
       ],
-      "results": "Unavailable until real sensor data is integrated.",
-      "beginner": "No sample sensor arrays are presented as real readings.",
-      "professional": "Only explicitly submitted telemetry can be analyzed; there is no device ingestion yet."
+      "results": "Unavailable because no suitable online security or farm-event source is integrated.",
+      "beginner": "No sample arrays are presented as live data.",
+      "professional": "There is no device ingestion and no external security feed is integrated; IoT is not a prerequisite."
     },
     "studio": {
       "purpose": "Create and revise a catalogue-based irrigation hardware concept.",
@@ -462,21 +462,21 @@
   "weatherValidAt": "model time",
   "weatherGridNote": "Open-Meteo current conditions use 15-minute weather-model data for this regional grid; they are not local station measurements.",
   "farmDataStatus": "Farm measurements",
-  "noFarmTelemetry": "No farm sensors are connected. Soil, flow, pressure, pump and on-farm weather readings are unavailable.",
+  "noFarmTelemetry": "Open-Meteo is the only live farm-related internet feed currently integrated. No online sources for soil, flow, pressure or on-farm weather are integrated yet.",
   "regionLocation": "Administrative region location",
   "regionCoordinatesOnly": "This point marks the administrative center, not a surveyed farm.",
   "realFarmInputsOnly": "Enter values from your real farm. No example farm values are prefilled. Results are calculations, not measurements.",
   "farmInputsRequired": "Enter all required values from your real farm before calculating.",
-  "noWaterTelemetry": "No live flow meter, pressure sensor, or water network feed is connected.",
-  "noEnergyTelemetry": "No live solar inverter or energy meter is connected.",
+  "noWaterTelemetry": "No public internet source for this farm’s water network, flow or pressure is integrated yet. No IoT device connection is assumed.",
+  "noEnergyTelemetry": "No public internet source for this farm’s solar generation or pump energy is integrated yet. No IoT device connection is assumed.",
   "scenarioLiveUnavailable": "Scenario outputs are simulations, so they are disabled in the live workspace.",
-  "securityLiveUnavailable": "Live security analysis is unavailable until real sensor telemetry is connected.",
+  "securityLiveUnavailable": "Security analysis needs a trusted online source of actual events or readings; none is integrated. No IoT connection is required.",
   "weatherConnected": "Weather model connected",
   "modelWeatherPolicy": "Current conditions and the forecast come from Open-Meteo weather models. They are not readings from a local station.",
   "forecastDays": "Seven-day model forecast",
   "precipitationInterval": "precipitation, last {minutes} min",
   "useWeatherForecastInputs": "Use Open-Meteo forecast for weather inputs",
-  "calculationEstimate": "Calculated estimate from your farm values, reference crop coefficients, and the labeled weather model; not a sensor measurement.",
+  "calculationEstimate": "Calculated estimate from your farm values, reference crop coefficients and the labeled weather model; it is not a direct observation.",
   "hardwareUnavailable": "Hardware connection unavailable",
   "weatherUpdates": "The app refreshes weather every 10 minutes. The displayed time is the model-valid time."
 }
