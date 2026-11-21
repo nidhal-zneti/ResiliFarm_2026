@@ -3,7 +3,7 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 from sqlalchemy import (create_engine, MetaData, Table, Column, Integer, String, Float,
-                        Boolean, DateTime, ForeignKey, JSON, event, select, UniqueConstraint)
+                        Boolean, DateTime, ForeignKey, JSON, event, select, inspect, text, UniqueConstraint)
 from sqlalchemy.dialects.postgresql import JSONB
 
 def now():
@@ -42,7 +42,8 @@ versions = entity('aiot_design_versions', ref('project_id', 'aiot_projects'), Co
 messages = entity('aiot_conversation_messages', ref('project_id', 'aiot_projects'), Column('role', String(20)), Column('text', String(4000)))
 components = entity('aiot_components', Column('key', String(60), unique=True), Column('specification', json_type))
 connections = entity('aiot_connections', ref('version_id', 'aiot_design_versions'), Column('source', String(80)), Column('target', String(80)), Column('signal', String(100)))
-users = entity('users', Column('email', String(255), unique=True, nullable=False), Column('full_name', String(120), nullable=False), Column('password_hash', String(255), nullable=False))
+users = entity('users', Column('email', String(255), unique=True, nullable=False), Column('full_name', String(120), nullable=False), Column('password_hash', String(255), nullable=False), Column('role', String(20), nullable=False, server_default='FARMER'))
+farm_assignments = entity('farm_assignments', ref('farm_id', 'farms'), ref('user_id', 'users'), constraints=(UniqueConstraint('farm_id', 'user_id'),))
 records = {}
 for name in ['weather_observations', 'sensor_readings', 'energy_systems', 'predictions', 'alerts', 'irrigation_recommendations', 'simulation_runs']:
     records[name] = entity(name, ref('region_id', 'administrative_areas'), Column('is_simulated', Boolean, nullable=False, default=True), Column('source', String(120)), Column('payload', json_type))
@@ -139,8 +140,16 @@ REGIONS.extend(
 )
 KC = {'olive': [0.55, 0.65, 0.60], 'wheat': [0.30, 1.15, 0.40], 'tomato': [0.60, 1.15, 0.80]}
 
+def _migrate():
+    """Add columns introduced after the first release; portable across SQLite and PostgreSQL."""
+    columns = {column['name'] for column in inspect(engine).get_columns('users')}
+    if 'role' not in columns:
+        with engine.begin() as c:
+            c.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'FARMER'"))
+
 def initialize():
     metadata.create_all(engine)
+    _migrate()
     with engine.begin() as c:
         for country in [{'id': 1, 'code': 'TN', 'name': 'Tunisia'}, {'id': 2, 'code': 'JP', 'name': 'Japan'}]:
             if not c.execute(select(countries.c.id).where(countries.c.id == country['id'])).first():
@@ -177,6 +186,10 @@ def initialize():
             c.execute(table.delete().where(table.c.is_simulated==True))
         # A saved Studio design is not a physical deployment.
         c.execute(projects.update().where(projects.c.deployed==True).values(deployed=False))
+        # Accounts listed in ADMIN_EMAILS are promoted on every boot.
+        admin_emails = {email.strip().lower() for email in os.getenv('ADMIN_EMAILS', '').split(',') if email.strip()}
+        if admin_emails:
+            c.execute(users.update().where(users.c.email.in_(admin_emails)).values(role='ADMIN'))
 
 def save_record(name, region_id, payload, source='deterministic-demo', simulated=True):
     with engine.begin() as c:

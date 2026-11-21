@@ -7,6 +7,7 @@ import {
   Download,
   CheckCircle2,
   AlertTriangle,
+  Lock,
 } from "lucide-react";
 import { api } from "./api";
 import { Panel } from "./components";
@@ -17,9 +18,11 @@ import "@xyflow/react/dist/style.css";
 export default function Studio({
   region,
   onDeploy,
+  readOnly = false,
 }: {
   region: number;
   onDeploy: () => void;
+  readOnly?: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const [text, setText] = useState("");
@@ -204,6 +207,7 @@ export default function Studio({
           <p>{t("studioSub")}</p>
         </div>
         <button
+          disabled={readOnly}
           onClick={() => {
             setProject(null);
             setValidation(null);
@@ -218,6 +222,11 @@ export default function Studio({
           {t("newProject")}
         </button>
       </div>
+      {readOnly && (
+        <p className="notice read-only-notice">
+          <Lock size={16} /> {t("readOnlyNotice")}
+        </p>
+      )}
       <div className="notice">
         <CircuitBoard size={18} />
         <div>
@@ -361,7 +370,7 @@ export default function Studio({
               )}
               <button
                 className="primary wide"
-                disabled={busy}
+                disabled={busy || readOnly}
                 onClick={buildFromPlan}
               >
                 <CircuitBoard size={16} />
@@ -369,7 +378,7 @@ export default function Studio({
               </button>
               <button
                 className="wide"
-                disabled={busy}
+                disabled={busy || readOnly}
                 onClick={() => {
                   setGenerationStep("prompt");
                   setPlanPrompt("");
@@ -386,12 +395,13 @@ export default function Studio({
               <textarea
                 id="studio-prompt"
                 maxLength={project ? 4000 : 3900}
+                disabled={readOnly}
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder={t("prompt")}
                 rows={5}
               />
-              <button className="primary wide" disabled={busy}>
+              <button className="primary wide" disabled={busy || readOnly}>
                 <Send size={16} />
                 {t(busy ? "loading" : project ? "send" : "generate")}
               </button>
@@ -407,7 +417,7 @@ export default function Studio({
                 "repair",
                 "explain",
               ].map((k) => (
-                <button disabled={busy} key={k} onClick={() => send(t(k))}>
+                <button disabled={busy || readOnly} key={k} onClick={() => send(t(k))}>
                   {t(k)} <Plus size={12} />
                 </button>
               ))}
@@ -548,12 +558,13 @@ export default function Studio({
                     min="0"
                     max="48"
                     step=".1"
+                    disabled={readOnly}
                     value={voltage}
                     onChange={(e) => setVoltage(Number(e.target.value))}
                   />
                 </label>
                 <button
-                  disabled={busy || historical}
+                  disabled={busy || historical || readOnly}
                   className="wide"
                   onClick={() =>
                     act(async () =>

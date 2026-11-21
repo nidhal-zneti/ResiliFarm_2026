@@ -219,6 +219,12 @@ export function ProfileView({
       <Panel title={t("accountInfo")}>
         <dl className="readings">
           <div>
+            <dt>{t("role")}</dt>
+            <dd>
+              <span className="badge">{t(user.role)}</span>
+            </dd>
+          </div>
+          <div>
             <dt>{t("memberSince")}</dt>
             <dd>
               {new Date(user.created_at).toLocaleDateString(i18n.language)}

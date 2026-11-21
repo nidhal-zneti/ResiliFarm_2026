@@ -167,13 +167,62 @@ export type Project = {
   messages: { id: number; role: string; text: string }[];
   versions: { version: number; design: Design }[];
 };
+export type Role = "FARMER" | "AGRONOMIST" | "ADMIN";
 export type User = {
   id: number;
   email: string;
   full_name: string;
+  role: Role;
   created_at: string;
 };
 export type AuthResponse = {
   token: string;
   user: User;
+};
+export type FarmSummary = {
+  id: number;
+  name: string;
+  region_id: number;
+  region: string;
+};
+export type FarmFieldReading = {
+  id: number;
+  name: string;
+  area_ha: number;
+  lat: number;
+  lon: number;
+  crop: string;
+  moisture_pct: number;
+};
+export type RecommendationReview = {
+  status: "validated" | "rejected" | "modified";
+  note: string;
+  reviewed_by: number;
+};
+export type AgronomistFarm = {
+  id: number;
+  name: string;
+  region: { id: number; name: string; lat: number; lon: number; climate: string };
+  zone: string;
+  fields: FarmFieldReading[];
+  sensors: {
+    soil_moisture_pct: number;
+    temperature_c: number;
+    humidity_pct: number;
+    et0_mm: number;
+    rain_mm: number;
+    is_simulated: boolean;
+  };
+  analysis: { stress: number; action: string; heat_risk: number; drought_risk: number };
+  recommendation: { action: string; water_m3: number; net_mm: number; gross_mm: number };
+  stats: {
+    water_m3_day: number;
+    water_m3_7d: number;
+    pump_kwh_7d: number;
+    solar_kwh_7d: number;
+  };
+  review: RecommendationReview | null;
+};
+export type AgronomistDashboard = {
+  farms: AgronomistFarm[];
 };

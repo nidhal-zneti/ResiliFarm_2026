@@ -58,3 +58,13 @@ class ProfileInput(Input):
 class PasswordInput(Input):
     current_password: str = Field(min_length=1, max_length=128)
     new_password: str = Field(min_length=8, max_length=128)
+
+class RoleInput(Input):
+    role: str = Field(min_length=1, max_length=20)
+
+class AssignmentInput(Input):
+    user_id: int
+
+class ReviewInput(Input):
+    status: str = Field(min_length=1, max_length=20)
+    note: str = ''

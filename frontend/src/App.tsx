@@ -29,6 +29,9 @@ import {
   Home,
   Lock,
   UserRound,
+  ClipboardCheck,
+  UserCog,
+  Wheat,
 } from "lucide-react";
 import { api, download, getToken, setToken } from "./api";
 import {
@@ -41,6 +44,9 @@ import Studio from "./Studio";
 import { AuthScreen, ProfileView } from "./Auth";
 import { ExperienceMode, SectionGuide, StartHere } from "./Guide";
 import MapControls from "./MapControls";
+import FarmerDashboard from "./FarmerDashboard";
+import AgronomistDashboardView from "./AgronomistDashboard";
+import AdminView from "./Admin";
 import type {
   Region,
   Overview,
@@ -55,6 +61,7 @@ import type {
 const pages = [
   ["home", Home],
   ["overview", LayoutDashboard],
+  ["farmer", Wheat],
   ["comparison", MapPinned],
   ["twin", Map],
   ["agriculture", Sprout],
@@ -64,6 +71,8 @@ const pages = [
   ["insights", Sparkles],
   ["security", ShieldCheck],
   ["studio", CircuitBoard],
+  ["agronomist", ClipboardCheck],
+  ["admin", UserCog],
   ["settings", Settings],
   ["profile", UserRound],
 ] as const;
@@ -119,6 +128,19 @@ export default function App() {
   );
   const [user, setUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
+  const role = user?.role;
+  const isAdmin = role === "ADMIN";
+  const isAgronomist = role === "AGRONOMIST" || isAdmin;
+  const isFarmer = role === "FARMER";
+  const readOnly = isFarmer;
+  const canViewPage =
+    page === "agronomist" ? isAgronomist : page === "admin" ? isAdmin : true;
+  const locked =
+    (!user && !publicPages.has(page) && page !== "profile") ||
+    (!!user && !canViewPage);
+  const navPages = pages.filter(([key]) =>
+    key === "agronomist" ? isAgronomist : key === "admin" ? isAdmin : true,
+  );
   const selectedRegion = regions.find((r) => r.id === rid);
   const navigate = (p: string) => {
     location.hash = p;
@@ -136,6 +158,9 @@ export default function App() {
     setUser(null);
     navigate("home");
   };
+  useEffect(() => {
+    if (user && !canViewPage) navigate("home");
+  }, [user, page, canViewPage]);
   useEffect(() => {
     const handler = () => {
       const hash = location.hash.slice(1);
@@ -282,8 +307,10 @@ export default function App() {
     page !== "home" &&
     page !== "overview" &&
     page !== "studio" &&
-    page !== "profile";
-  const locked = !user && !publicPages.has(page) && page !== "profile";
+    page !== "profile" &&
+    page !== "farmer" &&
+    page !== "agronomist" &&
+    page !== "admin";
   const initials = user
     ? user.full_name
         .split(/\s+/)
@@ -317,9 +344,9 @@ export default function App() {
         </a>
         <div className="workspace-label">{t("workspace")}</div>
         <nav aria-label={t("workspace")}>
-          {pages.map(([key, Icon], i) => (
+          {navPages.map(([key, Icon]) => (
             <div key={key}>
-              {i === 6 && (
+              {key === "energy" && (
                 <div className="workspace-label">{t("engineering")}</div>
               )}
               <button
@@ -462,6 +489,11 @@ export default function App() {
             />
           ) : (
             <>
+          {readOnly && (
+            <p className="notice read-only-notice">
+              <Lock size={16} /> {t("readOnlyNotice")}
+            </p>
+          )}
           {showHeader && (
             <div className="section-intro">
               <div>
@@ -482,9 +514,23 @@ export default function App() {
             </div>
           )}
           {page === "home" && <StartHere mode={mode} onNavigate={navigate} />}
-          {page !== "home" && page !== "profile" && (
-            <SectionGuide section={page} mode={mode} />
+          {page === "farmer" && (
+            <FarmerDashboard
+              region={selectedRegion}
+              weather={weather}
+              calc={calc}
+              onNavigate={navigate}
+            />
           )}
+          {page === "agronomist" && <AgronomistDashboardView />}
+          {page === "admin" && <AdminView />}
+          {page !== "home" &&
+            page !== "profile" &&
+            page !== "farmer" &&
+            page !== "agronomist" &&
+            page !== "admin" && (
+              <SectionGuide section={page} mode={mode} />
+            )}
           {page === "overview" && weather && (
             <>
               <div className="section-intro">
@@ -616,19 +662,20 @@ export default function App() {
           {page === "agriculture" && !calc && (
             <Panel title={t("calculate")}>
               <p>{t("realFarmInputsOnly")}</p>
-              <button type="button" onClick={applyWeatherForecast} disabled={!weather}>{t("useWeatherForecastInputs")}</button>
-              <FarmForm value={farm} onChange={updateFarm} onSubmit={calculate} busy={busy} />
+              <button type="button" onClick={applyWeatherForecast} disabled={!weather || readOnly}>{t("useWeatherForecastInputs")}</button>
+              <FarmForm value={farm} onChange={updateFarm} onSubmit={calculate} busy={busy} readOnly={readOnly} />
             </Panel>
           )}
           {page === "agriculture" && calc && (
             <>
               <Panel title={t("calculate")}>
-                <button type="button" onClick={applyWeatherForecast} disabled={!weather}>{t("useWeatherForecastInputs")}</button>
+                <button type="button" onClick={applyWeatherForecast} disabled={!weather || readOnly}>{t("useWeatherForecastInputs")}</button>
                 <FarmForm
                   value={farm}
                   onChange={updateFarm}
                   onSubmit={calculate}
                   busy={busy}
+                  readOnly={readOnly}
                 />
               </Panel>
               <p className="caption">{t("inputNote")}</p>
@@ -693,6 +740,7 @@ export default function App() {
           {page === "studio" && (
             <Studio
               region={rid}
+              readOnly={readOnly}
               onDeploy={() =>
                 api<Overview>(`/regions/${rid}/overview`)
                   .then(setOverview)

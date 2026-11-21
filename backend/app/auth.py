@@ -30,7 +30,7 @@ def create_token(user_id):
     return jwt.encode({'sub': str(user_id), 'iat': issued, 'exp': issued + timedelta(hours=TTL_HOURS)}, SECRET, algorithm=ALGORITHM)
 
 def public_user(user):
-    return {'id': user['id'], 'email': user['email'], 'full_name': user['full_name'], 'created_at': user['created_at']}
+    return {'id': user['id'], 'email': user['email'], 'full_name': user['full_name'], 'role': user.get('role') or 'FARMER', 'created_at': user['created_at']}
 
 _bearer = HTTPBearer(auto_error=False)
 
@@ -46,3 +46,16 @@ def current_user(credentials: HTTPAuthorizationCredentials | None = Depends(_bea
     if not row:
         raise HTTPException(401, 'unauthenticated')
     return dict(row)
+
+def admin_emails():
+    """Accounts that should always hold the ADMIN role, from the environment."""
+    return {email.strip().lower() for email in os.getenv('ADMIN_EMAILS', '').split(',') if email.strip()}
+
+def require_roles(*roles):
+    def dependency(user=Depends(current_user)):
+        if (user.get('role') or 'FARMER') not in roles:
+            raise HTTPException(403, 'forbidden')
+        return user
+    return dependency
+
+require_admin = require_roles('ADMIN')

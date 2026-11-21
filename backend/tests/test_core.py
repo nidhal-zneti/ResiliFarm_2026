@@ -365,7 +365,7 @@ def test_account_signup_login_profile_and_password(client):
     assert created.status_code==201
     token=created.json()['token']
     assert created.json()['user']['email']=='farmer@example.com'
-    assert set(created.json()['user'])=={'id','email','full_name','created_at'}  # Never expose the password hash.
+    assert set(created.json()['user'])=={'id','email','full_name','role','created_at'}  # Never expose the password hash.
     assert client.post('/api/v1/auth/signup',json={'email':'farmer@example.com','password':'secret123','full_name':'Dup'}).status_code==409
     assert client.post('/api/v1/auth/login',json={'email':'farmer@example.com','password':'wrong'}).status_code==401
     headers={'Authorization':'Bearer '+token}
