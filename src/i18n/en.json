@@ -1,0 +1,117 @@
+{
+  "common": {
+    "appName": "ResiliFarm",
+    "demoData": "Demo data",
+    "demoBanner": "You are viewing demo data, not real measurements.",
+    "loading": "Loading…",
+    "retry": "Retry",
+    "error": "Something went wrong.",
+    "unavailable": "Unavailable",
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "comingSoon": "Coming soon"
+  },
+  "nav": {
+    "home": "Home",
+    "farm": "My Farm",
+    "schedule": "Schedule",
+    "profile": "Profile",
+    "notifications": "Notifications"
+  },
+  "home": {
+    "greeting": "Hello, {{name}}",
+    "todayAdvice": "Today's irrigation advice",
+    "irrigationNeeded": "Irrigation needed",
+    "irrigationNotNeeded": "No irrigation needed",
+    "irrigationUnavailable": "Monitoring unavailable",
+    "recommendedWater": "Suggested amount",
+    "adviceUnavailableHelp": "We don't have enough data to recommend irrigation today.",
+    "weather": "Weather",
+    "temperature": "Temperature",
+    "rain": "Rain",
+    "humidity": "Humidity",
+    "wind": "Wind",
+    "forecast": "Forecast",
+    "water": "Water available",
+    "waterLevel": "Tank level",
+    "tankCapacity": "of {{capacity}} m³",
+    "waterUnavailable": "No water data yet.",
+    "waterManual": "Level entered by you.",
+    "manualEntry": "Enter level",
+    "alerts": "Alerts",
+    "noAlerts": "No alerts right now.",
+    "seeAll": "See all"
+  },
+  "weather": {
+    "sunny": "Sunny",
+    "partlyCloudy": "Partly cloudy",
+    "cloudy": "Cloudy",
+    "lightRain": "Light rain",
+    "rain": "Rain",
+    "storm": "Storm",
+    "windy": "Windy"
+  },
+  "units": {
+    "m3": "m³",
+    "mm": "mm",
+    "celsius": "°C",
+    "percent": "%",
+    "kmh": "km/h",
+    "ha": "ha"
+  },
+  "farm": {
+    "title": "My Farm",
+    "name": "Farm name",
+    "location": "Location",
+    "crop": "Crop",
+    "area": "Cultivated area",
+    "irrigationMethod": "Irrigation method",
+    "soilType": "Soil type",
+    "previewNote": "Editing farm information will be available soon."
+  },
+  "schedule": {
+    "title": "Irrigation schedule",
+    "previewNote": "The irrigation schedule will be available soon.",
+    "planned": "Planned",
+    "done": "Done",
+    "skipped": "Skipped"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "You have no notifications."
+  },
+  "profile": {
+    "title": "Profile",
+    "personalInfo": "Personal information",
+    "farmInfo": "My Farm",
+    "language": "Language",
+    "notificationPrefs": "Notification preferences",
+    "signOut": "Sign out"
+  },
+  "auth": {
+    "welcomeTitle": "Welcome to ResiliFarm",
+    "welcomeSubtitle": "Clear irrigation decisions, every day.",
+    "signIn": "Sign in",
+    "signUp": "Create account",
+    "email": "Email address",
+    "password": "Password",
+    "fullName": "Full name",
+    "forgotPassword": "Forgot password?",
+    "noAccount": "Don't have an account yet?",
+    "haveAccount": "Already have an account?",
+    "resetTitle": "Forgot password",
+    "resetHelp": "Enter your email address to receive a reset link.",
+    "resetSent": "If an account exists for this address, an email has been sent.",
+    "backToSignIn": "Back to sign in",
+    "signOut": "Sign out"
+  },
+  "errors": {
+    "invalidCredentials": "Incorrect email or password.",
+    "emailTaken": "This email address is already in use.",
+    "unauthenticated": "Please sign in again.",
+    "network": "Can't connect. Check your network.",
+    "timeout": "The connection timed out. Please try again.",
+    "notAvailable": "This feature is not available yet."
+  }
+}

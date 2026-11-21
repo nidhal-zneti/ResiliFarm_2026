@@ -1,0 +1,117 @@
+{
+  "common": {
+    "appName": "ResiliFarm",
+    "demoData": "بيانات توضيحية",
+    "demoBanner": "أنت تشاهد بيانات توضيحية، وليست قياسات حقيقية.",
+    "loading": "جارٍ التحميل…",
+    "retry": "إعادة المحاولة",
+    "error": "حدث خطأ.",
+    "unavailable": "غير متوفر",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "close": "إغلاق",
+    "comingSoon": "قريبًا"
+  },
+  "nav": {
+    "home": "الرئيسية",
+    "farm": "مزرعتي",
+    "schedule": "التقويم",
+    "profile": "الملف الشخصي",
+    "notifications": "الإشعارات"
+  },
+  "home": {
+    "greeting": "مرحبًا، {{name}}",
+    "todayAdvice": "نصيحة الري اليوم",
+    "irrigationNeeded": "الري مطلوب",
+    "irrigationNotNeeded": "لا حاجة للري",
+    "irrigationUnavailable": "المتابعة غير متوفرة",
+    "recommendedWater": "الكمية المقترحة",
+    "adviceUnavailableHelp": "لا تتوفر لدينا بيانات كافية لتقديم نصيحة ري اليوم.",
+    "weather": "الطقس",
+    "temperature": "درجة الحرارة",
+    "rain": "الأمطار",
+    "humidity": "الرطوبة",
+    "wind": "الرياح",
+    "forecast": "التوقعات",
+    "water": "الماء المتوفر",
+    "waterLevel": "مستوى الخزان",
+    "tankCapacity": "من {{capacity}} م³",
+    "waterUnavailable": "لا توجد بيانات ماء حاليًا.",
+    "waterManual": "المستوى الذي أدخلته.",
+    "manualEntry": "إدخال المستوى",
+    "alerts": "التنبيهات",
+    "noAlerts": "لا توجد تنبيهات حاليًا.",
+    "seeAll": "عرض الكل"
+  },
+  "weather": {
+    "sunny": "مشمس",
+    "partlyCloudy": "غائم جزئيًا",
+    "cloudy": "غائم",
+    "lightRain": "مطر خفيف",
+    "rain": "مطر",
+    "storm": "عاصفة",
+    "windy": "عاصف"
+  },
+  "units": {
+    "m3": "م³",
+    "mm": "مم",
+    "celsius": "°م",
+    "percent": "%",
+    "kmh": "كم/س",
+    "ha": "هـ"
+  },
+  "farm": {
+    "title": "مزرعتي",
+    "name": "اسم المزرعة",
+    "location": "الموقع",
+    "crop": "المحصول",
+    "area": "المساحة المزروعة",
+    "irrigationMethod": "طريقة الري",
+    "soilType": "نوع التربة",
+    "previewNote": "سيتوفر تعديل معلومات المزرعة قريبًا."
+  },
+  "schedule": {
+    "title": "جدول الري",
+    "previewNote": "سيتوفر جدول الري قريبًا.",
+    "planned": "مُخطَّط",
+    "done": "مكتمل",
+    "skipped": "مؤجَّل"
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "empty": "لا توجد لديك إشعارات."
+  },
+  "profile": {
+    "title": "الملف الشخصي",
+    "personalInfo": "المعلومات الشخصية",
+    "farmInfo": "مزرعتي",
+    "language": "اللغة",
+    "notificationPrefs": "تفضيلات الإشعارات",
+    "signOut": "تسجيل الخروج"
+  },
+  "auth": {
+    "welcomeTitle": "مرحبًا بك في ResiliFarm",
+    "welcomeSubtitle": "قرارات ري واضحة كل يوم.",
+    "signIn": "تسجيل الدخول",
+    "signUp": "إنشاء حساب",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "fullName": "الاسم الكامل",
+    "forgotPassword": "هل نسيت كلمة المرور؟",
+    "noAccount": "ليس لديك حساب بعد؟",
+    "haveAccount": "هل لديك حساب بالفعل؟",
+    "resetTitle": "نسيت كلمة المرور",
+    "resetHelp": "أدخل بريدك الإلكتروني لاستلام رابط إعادة التعيين.",
+    "resetSent": "إذا كان الحساب موجودًا، فقد تم إرسال بريد إلكتروني.",
+    "backToSignIn": "العودة لتسجيل الدخول",
+    "signOut": "تسجيل الخروج"
+  },
+  "errors": {
+    "invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
+    "emailTaken": "هذا البريد الإلكتروني مستخدم بالفعل.",
+    "unauthenticated": "يرجى تسجيل الدخول من جديد.",
+    "network": "تعذّر الاتصال. تحقّق من شبكتك.",
+    "timeout": "انتهت مدة الاتصال. حاول مرة أخرى.",
+    "notAvailable": "هذه الميزة غير متوفرة بعد."
+  }
+}

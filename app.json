@@ -1,7 +1,8 @@
 {
   "expo": {
-    "name": "ResiliFarm_Mobile",
-    "slug": "ResiliFarm_Mobile",
+    "name": "ResiliFarm",
+    "slug": "resilifarm-mobile",
+    "scheme": "resilifarm",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -20,6 +21,15 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      "expo-secure-store",
+      "expo-localization"
+    ],
+    "experiments": {
+      "typedRoutes": true
     }
   }
 }
