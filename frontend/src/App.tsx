@@ -85,6 +85,8 @@ export default function App() {
   const [calculatedFarm, setCalculatedFarm] = useState<Farm | null>(null);
   const [calc, setCalc] = useState<Calculation | null>(null);
   const [comparison, setComparison] = useState<Overview[]>([]);
+  const [comparisonFailures, setComparisonFailures] = useState(0);
+  const [comparisonRetry, setComparisonRetry] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [contrast, setContrast] = useState(
@@ -187,12 +189,17 @@ export default function App() {
     if (page === "comparison" && regions.length)
       act(async () => {
         setComparison([]);
-        setComparison(await Promise.all(
+        setComparisonFailures(0);
+        const results = await Promise.allSettled(
           regions.filter((r) => r.country_id === country)
             .map((r) => api<Overview>(`/regions/${r.id}/overview`)),
+        );
+        setComparison(results.flatMap((result) =>
+          result.status === "fulfilled" ? [result.value] : [],
         ));
+        setComparisonFailures(results.filter((result) => result.status === "rejected").length);
       });
-  }, [page, country, regions]);
+  }, [page, country, regions, comparisonRetry]);
   const calculate = () =>
     act(async () => {
       const required: (keyof Omit<Farm, "region_id">)[] = [
@@ -449,9 +456,42 @@ export default function App() {
               </Panel>
             </>
           )}
+          {page === "overview" && !(overview && weather) && (
+            <Panel title={t("currentWeather")}>
+              <p role={error ? "alert" : "status"}>
+                {error
+                  ? t(error, { defaultValue: t("weatherUnavailable") })
+                  : busy
+                    ? t("loading")
+                    : t("weatherUnavailable")}
+              </p>
+              <button onClick={load}>{t("retry")}</button>
+            </Panel>
+          )}
           {page === "comparison" && (
             <>
-              <p className="notice">{t("regionalNote")}</p>
+              <p className="notice">
+                {comparisonFailures > 0
+                  ? t("comparisonPartial", {
+                      failed: comparisonFailures,
+                      total: comparison.length + comparisonFailures,
+                    })
+                  : t("regionalNote")}
+              </p>
+              {comparison.length === 0 && (
+                <Panel title={t("currentWeather")}>
+                  <p role={error ? "alert" : "status"}>
+                    {error
+                      ? t(error, { defaultValue: t("weatherUnavailable") })
+                      : busy
+                        ? t("loading")
+                        : t("weatherUnavailable")}
+                  </p>
+                  <button onClick={() => setComparisonRetry((value) => value + 1)}>
+                    {t("retry")}
+                  </button>
+                </Panel>
+              )}
               <div className="comparison-grid">
                 {comparison.map((o) => (
                   <Panel
@@ -492,6 +532,18 @@ export default function App() {
                 <p className="caption">{weather.source} · {weather.updated_at}</p>
               </Panel>
             </div>
+          )}
+          {page === "twin" && !(overview && selectedRegion && weather) && (
+            <Panel title={t("regionLocation")}>
+              <p role={error ? "alert" : "status"}>
+                {error
+                  ? t(error, { defaultValue: t("weatherUnavailable") })
+                  : busy
+                    ? t("loading")
+                    : t("weatherUnavailable")}
+              </p>
+              <button onClick={load}>{t("retry")}</button>
+            </Panel>
           )}
           {page === "agriculture" && !calc && (
             <Panel title={t("calculate")}>
@@ -681,7 +733,13 @@ export default function App() {
           <span>
             <Leaf size={14} /> {t("team")}
           </span>
-          <span><Activity size={13} /> {t(weather ? "weatherConnected" : "loading")}</span>
+          <span>
+            <Activity size={13} /> {weather
+              ? t("weatherConnected")
+              : error
+                ? t(error, { defaultValue: t("weatherUnavailable") })
+                : t("loading")}
+          </span>
         </footer>
       </div>
     </div>

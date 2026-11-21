@@ -232,7 +232,7 @@
   "liveWeather": "Open-Meteo current model weather",
   "refreshWeather": "Refresh weather",
   "weatherUnavailable": "Weather service unavailable; no weather values are shown.",
-  "loading": "Weather unavailable",
+  "loading": "Loading live weather…",
   "error": "The request failed. Check the backend and try again.",
   "retry": "Try again",
   "invalidInput": "Check the input values.",
@@ -478,5 +478,6 @@
   "useWeatherForecastInputs": "Use Open-Meteo forecast for weather inputs",
   "calculationEstimate": "Calculated estimate from your farm values, reference crop coefficients and the labeled weather model; it is not a direct observation.",
   "hardwareUnavailable": "Hardware connection unavailable",
-  "weatherUpdates": "The app refreshes weather every 10 minutes. The displayed time is the model-valid time."
+  "weatherUpdates": "The app refreshes weather every 10 minutes. The displayed time is the model-valid time.",
+  "comparisonPartial": "Weather is available for {{loaded}} of {{total}} regions; {{failed}} could not be loaded."
 }

@@ -232,7 +232,7 @@
   "liveWeather": "Modèle météo actuel Open-Meteo",
   "refreshWeather": "Actualiser la météo",
   "weatherUnavailable": "Service météo indisponible ; aucune valeur météo n’est affichée.",
-  "loading": "Météo indisponible",
+  "loading": "Chargement de la météo en direct…",
   "error": "Échec de la requête. Vérifiez le serveur et réessayez.",
   "retry": "Réessayer",
   "invalidInput": "Vérifiez les valeurs saisies.",
@@ -478,5 +478,6 @@
   "useWeatherForecastInputs": "Utiliser la prévision Open-Meteo pour les données météo",
   "calculationEstimate": "Estimation calculée à partir de vos valeurs agricoles, de coefficients culturaux de référence et du modèle météo indiqué ; ce n’est pas une observation directe.",
   "hardwareUnavailable": "Connexion au matériel indisponible",
-  "weatherUpdates": "L’application actualise la météo toutes les 10 minutes. L’heure affichée est celle de validité du modèle."
+  "weatherUpdates": "L’application actualise la météo toutes les 10 minutes. L’heure affichée est celle de validité du modèle.",
+  "comparisonPartial": "La météo est disponible pour {{loaded}} régions sur {{total}} ; {{failed}} n’ont pas pu être chargées."
 }
