@@ -1,6 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
 import {
   addEdge,
   Background,
@@ -24,7 +22,6 @@ import {
   ChevronRight,
   CircuitBoard,
   Cpu,
-  Download,
   Gauge,
   Info,
   Radio,
@@ -35,6 +32,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { Design } from "./types";
+import StudioAssembly from "./StudioAssembly";
 
 type BlueprintTab =
   "info" | "parts" | "architecture" | "wiring" | "mechanical" | "instructions";
@@ -343,161 +341,6 @@ function WiringView({
   );
 }
 
-type AssemblyBlock = {
-  id: string;
-  label: string;
-  key?: string;
-  position: [number, number, number];
-  size: [number, number, number];
-};
-
-function assemblyBlocks(design: Design): AssemblyBlock[] {
-  const columns = 5;
-  const rows = Math.max(1, Math.ceil(design.bom.length / columns));
-  const blocks: AssemblyBlock[] = [
-    {
-      id: "enclosure",
-      label: "enclosure",
-      position: [0, 0, 0],
-      size: [3.7, 0.18, Math.max(2.1, rows * 0.44 + 0.25)],
-    },
-  ];
-  design.bom.forEach((part, index) => {
-    const column = index % columns;
-    const row = Math.floor(index / columns);
-    const width = Math.min(0.65, 0.38 + Math.log2(part.quantity) * 0.035);
-    const depth = Math.min(0.52, 0.28 + Math.log2(part.quantity) * 0.025);
-    const height = categoryForPart(part.key) === "power" ? 0.28 : 0.18;
-    blocks.push({
-      id: `${part.key}:${index + 1}`,
-      label: part.key,
-      key: part.key,
-      position: [
-        (column - (columns - 1) / 2) * 0.68,
-        0.12 + height / 2,
-        (row - (rows - 1) / 2) * 0.42,
-      ],
-      size: [width, height, depth],
-    });
-  });
-  return blocks;
-}
-
-function AssemblyScene({
-  blocks,
-  exploded,
-  selected,
-  onSelect,
-}: {
-  blocks: AssemblyBlock[];
-  exploded: number;
-  selected: string;
-  onSelect: (key: string) => void;
-}) {
-  return (
-    <>
-      <ambientLight intensity={1.2} />
-      <directionalLight position={[5, 8, 5]} intensity={1.7} />
-      {blocks.map((block) => {
-        const [x, y, z] = block.position;
-        const selectedBlock = block.key === selected;
-        return (
-          <mesh
-            key={block.id}
-            position={[
-              x,
-              y + (block.key ? exploded * (0.25 + Math.abs(x) * 0.12) : 0),
-              z,
-            ]}
-            onClick={(event) => {
-              event.stopPropagation();
-              if (block.key) onSelect(block.key);
-            }}
-          >
-            <boxGeometry args={block.size} />
-            <meshStandardMaterial
-              color={block.key ? partColor(block.key) : "#d9e5d3"}
-              transparent={!block.key}
-              opacity={block.key ? 1 : 0.72}
-              emissive={selectedBlock ? "#6d9d64" : "#000000"}
-              emissiveIntensity={selectedBlock ? 0.3 : 0}
-              roughness={0.6}
-            />
-          </mesh>
-        );
-      })}
-      <OrbitControls enablePan minDistance={3} maxDistance={11} />
-    </>
-  );
-}
-
-function stlForBlocks(blocks: AssemblyBlock[]) {
-  const triangles: number[][][] = [];
-  for (const block of blocks) {
-    const [cx, cy, cz] = block.position;
-    const [sx, sy, sz] = block.size;
-    const vertices = [
-      [cx - sx / 2, cy - sy / 2, cz - sz / 2],
-      [cx + sx / 2, cy - sy / 2, cz - sz / 2],
-      [cx + sx / 2, cy + sy / 2, cz - sz / 2],
-      [cx - sx / 2, cy + sy / 2, cz - sz / 2],
-      [cx - sx / 2, cy - sy / 2, cz + sz / 2],
-      [cx + sx / 2, cy - sy / 2, cz + sz / 2],
-      [cx + sx / 2, cy + sy / 2, cz + sz / 2],
-      [cx - sx / 2, cy + sy / 2, cz + sz / 2],
-    ];
-    const faces = [
-      [0, 3, 2, 1],
-      [4, 5, 6, 7],
-      [0, 1, 5, 4],
-      [3, 7, 6, 2],
-      [0, 4, 7, 3],
-      [1, 2, 6, 5],
-    ];
-    for (const [a, b, c, d] of faces) {
-      triangles.push(
-        [vertices[a], vertices[b], vertices[c]],
-        [vertices[a], vertices[c], vertices[d]],
-      );
-    }
-  }
-  const facets = triangles.map((triangle) => {
-    const [a, b, c] = triangle;
-    const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
-    const v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
-    const normal = [
-      u[1] * v[2] - u[2] * v[1],
-      u[2] * v[0] - u[0] * v[2],
-      u[0] * v[1] - u[1] * v[0],
-    ];
-    const length = Math.hypot(...normal) || 1;
-    const n = normal.map((value) => value / length);
-    return ` facet normal ${n.join(" ")}\n  outer loop\n${triangle
-      .map((point) => `   vertex ${point.join(" ")}`)
-      .join("\n")}\n  endloop\n endfacet`;
-  });
-  return `solid resilifarm_massing_model\n${facets.join("\n")}\nendsolid resilifarm_massing_model\n`;
-}
-
-function downloadStl(
-  design: Design,
-  blocks: AssemblyBlock[],
-  partKey?: string,
-) {
-  const selectedBlocks = partKey
-    ? blocks.filter((block) => block.key === partKey)
-    : blocks;
-  const blob = new Blob([stlForBlocks(selectedBlocks)], {
-    type: "model/stl",
-  });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `resilifarm-${design.options.profile ?? "design"}-${partKey ?? "assembly"}.stl`;
-  link.click();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
 function TabTitle({ tab }: { tab: BlueprintTab }) {
   const { t } = useTranslation();
   const labels: Record<BlueprintTab, string> = {
@@ -534,13 +377,10 @@ export function BlueprintWorkspace({
   const [tab, setTab] = useState<BlueprintTab>("info");
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<PartCategory | "all">("all");
-  const [exploded, setExploded] = useState(0);
-  const blocks = useMemo(() => assemblyBlocks(design), [design]);
   useEffect(() => {
     setTab("info");
     setQuery("");
     setCategory("all");
-    setExploded(0);
   }, [projectId]);
   const filteredParts = design.bom.filter((part) => {
     const matchesText = `${part.key} ${t(part.key)} ${part.protocol}`
@@ -915,71 +755,11 @@ export function BlueprintWorkspace({
       )}
       {tab === "wiring" && <WiringView design={design} onSelect={onSelect} />}
       {tab === "mechanical" && (
-        <div className="mechanical-view">
-          <div className="assembly-toolbar">
-            <label>
-              {t("explodedView")}
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.05"
-                value={exploded}
-                onChange={(event) => setExploded(Number(event.target.value))}
-              />
-            </label>
-            <div className="assembly-export">
-              <button onClick={() => downloadStl(design, blocks)}>
-                <Download size={15} /> {t("exportAssemblyStl")}
-              </button>
-              <button
-                disabled={!design.bom.some((part) => part.key === selected)}
-                onClick={() => downloadStl(design, blocks, selected)}
-              >
-                <Download size={15} /> {t("exportSelectedStl")}
-              </button>
-            </div>
-          </div>
-          <div className="assembly-preview" aria-label={t("assemblyPreview")}>
-            <Canvas camera={{ position: [4, 3.5, 5], fov: 42 }}>
-              <AssemblyScene
-                blocks={blocks}
-                exploded={exploded}
-                selected={selected}
-                onSelect={onSelect}
-              />
-            </Canvas>
-          </div>
-          <p className="blueprint-caveat">{t("stlNote")}</p>
-          <div className="assembly-tree">
-            <h3>
-              <Box size={17} /> {t("assemblyTree")}
-            </h3>
-            <ul>
-              {CATEGORIES.filter((item) =>
-                design.bom.some((part) => categoryForPart(part.key) === item),
-              ).map((item) => (
-                <li key={item}>
-                  <span>{t(`category_${item}`)}</span>
-                  <ul>
-                    {design.bom
-                      .filter((part) => categoryForPart(part.key) === item)
-                      .map((part) => (
-                        <li key={part.key}>
-                          <button
-                            className={selected === part.key ? "selected" : ""}
-                            onClick={() => onSelect(part.key)}
-                          >
-                            {t(part.key)} ×{part.quantity}
-                          </button>
-                        </li>
-                      ))}
-                  </ul>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
+        <StudioAssembly
+          design={design}
+          selected={selected}
+          onSelect={onSelect}
+        />
       )}
       {tab === "instructions" && (
         <div className="build-instructions">

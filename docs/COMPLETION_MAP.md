@@ -26,7 +26,7 @@ Use the same local backend and SPA. Test EN/FR/JA and both guidance modes. Exist
 - [ ] Open every Start Here section link and check back/forward navigation, including a direct section hash.
 - [ ] On a fresh browser origin/profile, confirm Beginner and Start Here. Change mode, reload and confirm the preference; also check an invalid stored mode falls back to Beginner.
 - [ ] Visually inspect every section guide in both modes and all languages; check that guide disclosure controls work without changing page capabilities.
-- [ ] Compare Tunisia’s two regions, select Fukuoka and inspect Twin field/device markers.
+- [ ] Compare all 24 Tunisian governorates and 47 Japanese prefectures and inspect Twin field/device markers. Farms and fallback weather remain simulated examples.
 - [ ] Inspect Water after a calculation; change allocation, roof and storage. Inspect Energy and confirm it uses the calculated demand.
 - [ ] Run a leak without intervention, rerun with intervention and compare lost water and pump energy. Read Insights.
 - [ ] Analyze normal and anomalous security samples, read evidence and distinguish current analysis from the saved scenario-alert log.

@@ -7,7 +7,17 @@ import httpx
 _cache={}
 
 def sample_weather(region):
-    base={1:(5.8,31,.2,19.8),2:(3.7,25,2.4,16.5),3:(3.2,24,3.2,14.4)}.get(region['id'],(4.5,27,1,18))
+    seeded={1:(5.8,31,.2,19.8),2:(3.7,25,2.4,16.5),3:(3.2,24,3.2,14.4)}
+    if region['id'] in seeded:
+        base=seeded[region['id']]
+    elif region.get('country_id') == 2:
+        # A clearly simulated June profile across Japan's north-to-south range.
+        southness=min(1,max(0,(43-region['lat'])/17))
+        base=(3.1+1.5*southness,18+11*southness,1.2+2*southness,17.5-southness)
+    else:
+        # A clearly simulated north-to-south profile for newly supported Tunisian governorates.
+        northness=min(1,max(0,(region['lat']-33)/4))
+        base=(5.2-.9*northness,29-4*northness,.4+1.5*northness,19-2.5*northness)
     days=[]
     for i in range(14):
         days.append({'date':(datetime(2026,6,1)+timedelta(days=i)).date().isoformat(), 'et0_mm':round(base[0]+.35*math.sin(i),2),'temperature_c':round(base[1]+2*math.sin(i),1),'rain_mm':round(base[2]*(1+i%3),2),'radiation_mj_m2':base[3], 'humidity_pct':round(55-10*math.sin(i)), 'wind_kmh':round(10+3*math.cos(i),1)})

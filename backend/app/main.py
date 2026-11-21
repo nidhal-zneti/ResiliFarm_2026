@@ -58,7 +58,7 @@ def health():
 @app.get('/api/v1/regions')
 def regions():
     with db.engine.connect() as c:
-        return {'regions':[dict(r) for r in c.execute(select(db.regions)).mappings()], 'countries':[dict(r) for r in c.execute(select(db.countries)).mappings()]}
+        return {'regions':[dict(r) for r in c.execute(select(db.regions).order_by(db.regions.c.country_id, db.regions.c.name)).mappings()], 'countries':[dict(r) for r in c.execute(select(db.countries)).mappings()]}
 @app.get('/api/v1/regions/{rid}/weather')
 def get_weather(rid:int, live:bool=False, historical:bool=False): return weather(region(rid),live,historical)
 
@@ -67,7 +67,10 @@ def overview(rid:int):
     r=region(rid); w=weather(r); d=w['days'][-1]
     calc=irrigation(FarmInput(region_id=rid,et0=d['et0_mm'],rainfall=d['rain_mm']))
     with db.engine.connect() as c:
-        fs=[dict(f) for f in c.execute(select(db.fields).where(db.fields.c.farm_id==rid)).mappings()]
+        field_query=(select(db.fields).join(db.farms,db.fields.c.farm_id==db.farms.c.id)
+                     .join(db.zones,db.farms.c.zone_id==db.zones.c.id)
+                     .where(db.zones.c.region_id==rid))
+        fs=[dict(f) for f in c.execute(field_query).mappings()]
         devices=[dict(p) for p in c.execute(select(db.projects).where(db.projects.c.region_id==rid,db.projects.c.deployed==True)).mappings()]
     return {'region':r,'weather':w,'calculation':calc,'fields':fs,'devices':devices,'network':network(calc['water_m3']),'risks':{'heat':min(100,max(0,round((d['temperature_c']-25)*6))),'drought':calc['stress']},'is_simulated':True}
 

@@ -50,7 +50,7 @@ For pretrained-model planning in Studio, follow the local AI setup below. The or
 
 Open **Start Here** for a suggested path and links to all 11 sections. An empty or unknown URL hash opens this home page; **Overview** remains the regional baseline dashboard. First visits use **Beginner** guidance. The **Pro** switch adds methods, units, assumptions and data provenance without changing features or calculations. The choice is saved in this browser. Every section has an expandable EN/FR/JA guide covering its purpose, inputs, steps, result interpretation and demo limits.
 
-1. Compare Kairouan and Jendouba; Japan/Fukuoka demonstrates the country-independent hierarchy.
+1. Choose any of Tunisia’s 24 governorates or Japan’s 47 prefectures.
 2. Open Agricultural Intelligence, choose crop, stage, area, efficiency and weather inputs, then calculate.
 3. Inspect water allocation, pipe pressure, rainwater collection and pump/solar energy.
 4. Run a leak scenario, then apply intervention and compare lost water and pumping demand. Try restriction, drought, heatwave, pump outage, solar shortage and sensor tampering.
