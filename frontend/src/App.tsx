@@ -154,9 +154,10 @@ export default function App() {
     await act(async () => {
       const r = await api<{ regions: Region[] }>("/regions");
       setRegions(r.regions);
-      const o = await api<Overview>(`/regions/${rid}/overview`);
-      setOverview(o);
-      setWeather(o.weather);
+      const region = r.regions.find((item) => item.id === rid);
+      const current = await api<Weather>(`/regions/${rid}/weather`);
+      setOverview(region ? weatherOnlyOverview(region, current) : null);
+      setWeather(current);
       setCalc(null);
       setFarm({ region_id: rid });
       setCalculatedFarm(null);
@@ -417,7 +418,7 @@ export default function App() {
           )}
           {page === "home" && <StartHere mode={mode} onNavigate={navigate} />}
           {page !== "home" && <SectionGuide section={page} mode={mode} />}
-          {page === "overview" && overview && weather && (
+          {page === "overview" && weather && (
             <>
               <div className="section-intro">
                 <div>
@@ -456,7 +457,7 @@ export default function App() {
               </Panel>
             </>
           )}
-          {page === "overview" && !(overview && weather) && (
+          {page === "overview" && !weather && (
             <Panel title={t("currentWeather")}>
               <p role={error ? "alert" : "status"}>
                 {error
@@ -514,7 +515,7 @@ export default function App() {
               </div>
             </>
           )}
-          {page === "twin" && overview && selectedRegion && weather && (
+          {page === "twin" && selectedRegion && weather && (
             <div className="twin-layout">
               <Panel className="map-panel" title={t("regionLocation")}>
                 <MapContainer key={rid} center={[selectedRegion.lat, selectedRegion.lon]} zoom={8} zoomControl={false} scrollWheelZoom={false} style={{height:460,width:"100%"}}>
@@ -533,7 +534,7 @@ export default function App() {
               </Panel>
             </div>
           )}
-          {page === "twin" && !(overview && selectedRegion && weather) && (
+          {page === "twin" && !(selectedRegion && weather) && (
             <Panel title={t("regionLocation")}>
               <p role={error ? "alert" : "status"}>
                 {error
