@@ -6,6 +6,7 @@ import {
   ChevronRight,
   CircuitBoard,
   Download,
+  Lock,
   Plus,
   Send,
 } from "lucide-react";
@@ -74,9 +75,11 @@ function estimateItemPrice(
 
 export default function Studio({
   region,
+  readOnly = false,
 }: {
   region: number;
   onDeploy: () => void;
+  readOnly?: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const [step, setStep] = useState<StudioStep>("describe");
@@ -327,7 +330,7 @@ export default function Studio({
             <option value="">{t("studioOpenDesign")}</option>
             {saved.map((item) => <option key={item.id} value={item.id}>#{item.id} · {item.name}</option>)}
           </select>
-          <button type="button" disabled={busy} onClick={newDesign}>
+          <button type="button" disabled={busy || readOnly} onClick={newDesign}>
             <Plus size={16} /> {t("newProject")}
           </button>
           <span className="studio-context-chip" title={`${i18n.language.toUpperCase()} · ${currentRegion?.name ?? ""}`}>
@@ -358,6 +361,12 @@ export default function Studio({
           </div>
         </div>
       </header>
+
+      {readOnly && (
+        <p className="notice read-only-notice">
+          <Lock size={16} /> {t("readOnlyNotice")}
+        </p>
+      )}
 
       <nav className="studio-stepper" aria-label={t("studioSteps")}>
         {STEPS.map((item, index) => (
@@ -414,7 +423,7 @@ export default function Studio({
             {!project && !conversation && (
               <div className="studio-quick-starts" aria-label={t("studioQuickStarts")}>
                 {QUICK_STARTS.map((key) => (
-                  <button type="button" key={key} disabled={busy} onClick={() => void send(QUICK_PROMPTS[key])}>
+                  <button type="button" key={key} disabled={busy || readOnly} onClick={() => void send(QUICK_PROMPTS[key])}>
                     {t(key)}
                   </button>
                 ))}
@@ -425,12 +434,13 @@ export default function Studio({
               <textarea
                 id="studio-prompt"
                 maxLength={4000}
+                disabled={readOnly}
                 value={text}
                 onChange={(event) => setText(event.target.value)}
                 placeholder={t("assistantPrompt")}
                 rows={4}
               />
-              <button className="primary" disabled={busy || !text.trim()}>
+              <button className="primary" disabled={busy || readOnly || !text.trim()}>
                 <Send size={16} /> {t(busy ? "loading" : "assistantSend")}
               </button>
             </form>

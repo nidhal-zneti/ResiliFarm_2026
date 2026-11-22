@@ -159,12 +159,14 @@ export function FarmForm({
   onSubmit,
   busy,
   compact = false,
+  readOnly = false,
 }: {
   value: FarmDraft;
   onChange: (v: FarmDraft) => void;
   onSubmit: () => void;
   busy: boolean;
   compact?: boolean;
+  readOnly?: boolean;
 }) {
   const { t } = useTranslation();
   const nums: [keyof Omit<Farm, "region_id">, string, number, number, number][] = [
@@ -189,6 +191,7 @@ export function FarmForm({
           {t("crop")}
           <select
             required
+            disabled={readOnly}
             value={value.crop ?? ""}
             onChange={(e) => onChange({ ...value, crop: e.target.value })}
           >
@@ -204,6 +207,7 @@ export function FarmForm({
           {t("stage")}
           <select
             required
+            disabled={readOnly}
             value={value.stage ?? ""}
             onChange={(e) => onChange({ ...value, stage: e.target.value })}
           >
@@ -221,6 +225,7 @@ export function FarmForm({
             <input
               required
               type="number"
+              disabled={readOnly}
               min={min}
               max={max}
               step={step}
@@ -235,7 +240,7 @@ export function FarmForm({
           </label>
         ))}
       </div>
-      <button className="primary" disabled={busy} type="submit">
+      <button className="primary" disabled={busy || readOnly} type="submit">
         <Droplets size={16} />
         {t(busy ? "loading" : "calculate")}
       </button>

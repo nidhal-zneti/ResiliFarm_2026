@@ -142,6 +142,11 @@ export function AuthScreen({
               {t(mode === "signin" ? "signUp" : "signIn")}
             </button>
           </div>
+          {mode === "signup" && (
+            <button type="button" className="text-button" onClick={() => setMode("signin")}>
+              Sign in instead
+            </button>
+          )}
         </div>
       </section>
     </div>
@@ -218,6 +223,12 @@ export function ProfileView({
     <div className="profile-grid">
       <Panel title={t("accountInfo")}>
         <dl className="readings">
+          <div>
+            <dt>{t("role")}</dt>
+            <dd>
+              <span className="badge">{t(user.role)}</span>
+            </dd>
+          </div>
           <div>
             <dt>{t("memberSince")}</dt>
             <dd>

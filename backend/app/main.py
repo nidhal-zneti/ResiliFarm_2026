@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
 from . import auth, db
-from .schemas import FarmInput, ScenarioInput, MessageInput, ProjectInput, TelemetryInput, ValidateInput, SignupInput, LoginInput, ProfileInput, PasswordInput, AssistantMessageInput, FirmwareInput
+from .schemas import FarmInput, ScenarioInput, MessageInput, ProjectInput, TelemetryInput, ValidateInput, SignupInput, LoginInput, ProfileInput, PasswordInput, RoleInput, AssignmentInput, ReviewInput, FarmCreateInput, FarmUpdateInput, AdminUserCreateInput, AdminUserUpdateInput, AccountStatusInput, IoTDeviceInput, AssistantMessageInput, FirmwareInput
 from .services import irrigation, anomalies
 from .integrations import weather, WeatherUnavailable
 from .studio import CATALOG, generate, validate, UnsupportedRequest, ProviderUnavailable, provider_status
@@ -28,7 +28,7 @@ async def lifespan(app):
     yield
 
 app=FastAPI(title='ResiliFarm AI',version='1.0.0',lifespan=lifespan)
-app.add_middleware(CORSMiddleware,allow_origins=os.getenv('CORS_ORIGINS','http://localhost:5173,http://127.0.0.1:5173').split(','),allow_methods=['GET','POST'],allow_headers=['Content-Type','Authorization'])
+app.add_middleware(CORSMiddleware,allow_origins=os.getenv('CORS_ORIGINS','http://localhost:5173,http://127.0.0.1:5173').split(','),allow_origin_regex=os.getenv('CORS_ORIGIN_REGEX',r'https?://(localhost|127\.0\.0\.1)(:\d+)?'),allow_methods=['GET','POST','PATCH'],allow_headers=['Content-Type','Authorization'])
 
 @app.exception_handler(RequestValidationError)
 async def invalid(_, exc):
@@ -78,19 +78,15 @@ def health():
     with db.engine.connect() as c: c.execute(select(1))
     return {'status':'ok','database':db.engine.dialect.name}
 
-@app.post('/api/v1/auth/signup',status_code=201)
-def signup(x:SignupInput):
-    email=x.email.strip().lower()
-    with db.engine.begin() as c:
-        if c.execute(select(db.users.c.id).where(db.users.c.email==email)).scalar_one_or_none(): raise HTTPException(409,'emailTaken')
-        uid=c.execute(db.users.insert().values(email=email,full_name=x.full_name.strip(),password_hash=auth.hash_password(x.password))).inserted_primary_key[0]
-        row=c.execute(select(db.users).where(db.users.c.id==uid)).mappings().first()
-    return {'token':auth.create_token(uid),'user':auth.public_user(dict(row))}
+@app.post('/api/v1/auth/signup',status_code=403)
+def signup():
+    raise HTTPException(403,'publicRegistrationDisabled')
 
 @app.post('/api/v1/auth/login')
 def login(x:LoginInput):
     with db.engine.connect() as c: row=c.execute(select(db.users).where(db.users.c.email==x.email.strip().lower())).mappings().first()
     if not row or not auth.verify_password(x.password,row['password_hash']): raise HTTPException(401,'invalidCredentials')
+    if not row.get('is_active',True): raise HTTPException(403,'accountInactive')
     return {'token':auth.create_token(row['id']),'user':auth.public_user(dict(row))}
 
 @app.get('/api/v1/auth/me')
@@ -110,6 +106,214 @@ def change_password(x:PasswordInput,user=Depends(auth.current_user)):
     if not auth.verify_password(x.current_password,user['password_hash']): raise HTTPException(401,'invalidCredentials')
     with db.engine.begin() as c: c.execute(db.users.update().where(db.users.c.id==user['id']).values(password_hash=auth.hash_password(x.new_password)))
     return {'updated':True}
+
+ROLES={'FARMER','AGRONOMIST','ADMIN'}
+FIELD_CROPS=('olive','wheat','tomato')
+
+def _number(value,fallback=0.0):
+    try: return float(value)
+    except (TypeError,ValueError): return fallback
+
+def _visible_farms(c,user):
+    cols=[db.farms.c.id,db.farms.c.name,db.zones.c.name.label('zone'),db.regions.c.id.label('region_id'),db.regions.c.name.label('region_name'),db.regions.c.lat.label('lat'),db.regions.c.lon.label('lon'),db.regions.c.climate.label('climate'),db.farms.c.owner_id,db.users.c.full_name.label('owner_name')]
+    role=user.get('role') or 'FARMER'
+    base=db.farms.join(db.zones,db.farms.c.zone_id==db.zones.c.id).join(db.regions,db.zones.c.region_id==db.regions.c.id).outerjoin(db.users,db.farms.c.owner_id==db.users.c.id)
+    stmt=select(*cols).select_from(base)
+    if role=='AGRONOMIST':
+        stmt=stmt.join(db.farm_assignments,db.farms.c.id==db.farm_assignments.c.farm_id).where(db.farm_assignments.c.user_id==user['id'])
+    elif role!='ADMIN':
+        # A farmer only ever sees the farm that was assigned to them.
+        stmt=stmt.where(db.farms.c.owner_id==user['id'])
+    return c.execute(stmt.order_by(db.farms.c.id)).mappings().all()
+
+def _farm_fields(c,fid):
+    stmt=select(db.fields.c.id,db.fields.c.name,db.fields.c.area_ha,db.fields.c.lat,db.fields.c.lon,db.crops.c.name.label('crop')).select_from(db.fields.join(db.crops,db.fields.c.crop_id==db.crops.c.id)).where(db.fields.c.farm_id==fid).order_by(db.fields.c.id)
+    return c.execute(stmt).mappings().all()
+
+def _simulated_sensors(w):
+    # Deterministic values derived from the regional weather model; never claimed as measured.
+    current=w.get('current') or {}
+    days=w.get('days') or []
+    day0=days[0] if days else {}
+    temperature=_number(current.get('temperature_2m'))
+    humidity=_number(current.get('relative_humidity_2m'))
+    et0=_number(day0.get('et0_mm'))
+    rain=_number(day0.get('rain_mm'))
+    recent=sum(_number(day.get('rain_mm')) for day in days[:3])
+    soil=min(100.0,max(0.0,25.0+recent*2.0))
+    sensors={'soil_moisture_pct':round(soil,1),'temperature_c':round(temperature,1),'humidity_pct':round(humidity,1),'et0_mm':round(et0,2),'rain_mm':round(rain,2),'is_simulated':True}
+    return sensors,et0,rain,temperature
+
+def _farm_input(fields_rows,et0,rain):
+    first=fields_rows[0] if fields_rows else {}
+    area=_number(first.get('area_ha'),1.0)
+    if not area>0: area=1.0
+    crop=first.get('crop')
+    if crop not in FIELD_CROPS: crop='olive'
+    return FarmInput(area_ha=min(area,10000),crop=crop,et0=min(max(et0,0),30),rainfall=min(max(rain,0),500))
+
+@app.get('/api/v1/users')
+def list_users(user=Depends(auth.require_admin)):
+    with db.engine.connect() as c:
+        return [auth.public_user(dict(r)) for r in c.execute(select(db.users).order_by(db.users.c.id)).mappings()]
+
+@app.post('/api/v1/users/{uid}/role')
+def set_role(uid:int,x:RoleInput,user=Depends(auth.require_admin)):
+    if x.role not in ROLES: raise HTTPException(422,'invalidRole')
+    with db.engine.begin() as c:
+        if not c.execute(select(db.users.c.id).where(db.users.c.id==uid)).scalar_one_or_none(): raise HTTPException(404,'userNotFound')
+        c.execute(db.users.update().where(db.users.c.id==uid).values(role=x.role))
+        row=c.execute(select(db.users).where(db.users.c.id==uid)).mappings().first()
+    return auth.public_user(dict(row))
+
+@app.get('/api/v1/farms')
+def list_farms(user=Depends(auth.current_user)):
+    with db.engine.connect() as c:
+        return [{'id':r['id'],'name':r['name'],'region_id':r['region_id'],'region':r['region_name'],'owner_id':r['owner_id'],'owner':r['owner_name']} for r in _visible_farms(c,user)]
+
+@app.post('/api/v1/farms',status_code=201)
+def create_farm(x:FarmCreateInput,user=Depends(auth.require_admin)):
+    with db.engine.begin() as c:
+        region_row=c.execute(select(db.regions).where(db.regions.c.id==x.region_id)).mappings().first()
+        if not region_row: raise HTTPException(404,'regionNotFound')
+        if x.owner_id is not None and not c.execute(select(db.users.c.id).where(db.users.c.id==x.owner_id)).scalar_one_or_none():
+            raise HTTPException(404,'userNotFound')
+        zone_id=c.execute(select(db.zones.c.id).where(db.zones.c.region_id==x.region_id).order_by(db.zones.c.id)).scalar_one_or_none()
+        if zone_id is None:
+            zone_id=c.execute(db.zones.insert().values(region_id=x.region_id,name=f"{region_row['name']} zone")).inserted_primary_key[0]
+        name=x.name.strip()
+        fid=c.execute(db.farms.insert().values(zone_id=zone_id,name=name,owner_id=x.owner_id)).inserted_primary_key[0]
+        crop_id=c.execute(select(db.crops.c.id).where(db.crops.c.name==x.crop)).scalar_one_or_none()
+        if crop_id is not None:
+            c.execute(db.fields.insert().values(farm_id=fid,crop_id=crop_id,name=f'{name} · field',area_ha=x.area_ha,lat=region_row['lat'],lon=region_row['lon']))
+    return {'id':fid,'name':name,'region_id':x.region_id,'owner_id':x.owner_id}
+
+@app.patch('/api/v1/farms/{fid}')
+def update_farm(fid:int,x:FarmUpdateInput,user=Depends(auth.require_admin)):
+    with db.engine.begin() as c:
+        farm=c.execute(select(db.farms).where(db.farms.c.id==fid)).mappings().first()
+        if not farm: raise HTTPException(404,'farmNotFound')
+        region=c.execute(select(db.regions).where(db.regions.c.id==x.region_id)).mappings().first()
+        if not region: raise HTTPException(404,'regionNotFound')
+        if x.owner_id is not None:
+            owner=c.execute(select(db.users.c.id).where(db.users.c.id==x.owner_id)).scalar_one_or_none()
+            if not owner: raise HTTPException(404,'userNotFound')
+        zone_id=c.execute(select(db.zones.c.id).where(db.zones.c.region_id==x.region_id).order_by(db.zones.c.id)).scalar_one_or_none()
+        if zone_id is None:
+            zone_id=c.execute(db.zones.insert().values(region_id=x.region_id,name=f'{region["name"]} zone')).inserted_primary_key[0]
+        c.execute(db.farms.update().where(db.farms.c.id==fid).values(zone_id=zone_id,name=x.name.strip(),owner_id=x.owner_id,governorate=x.governorate or None,address=x.address or None,latitude=x.latitude,longitude=x.longitude,cultivated_area_ha=x.cultivated_area_ha,crop_type=x.crop_type or None,soil_type=x.soil_type or None,irrigation_method=x.irrigation_method or None,water_source=x.water_source or None))
+    return {'id':fid,'updated':True}
+
+@app.post('/api/v1/farms/{fid}/archive')
+def archive_farm(fid:int,user=Depends(auth.require_admin)):
+    with db.engine.begin() as c:
+        if c.execute(select(db.farms.c.id).where(db.farms.c.id==fid)).scalar_one_or_none() is None:
+            raise HTTPException(404,'farmNotFound')
+        c.execute(db.farms.update().where(db.farms.c.id==fid).values(archived=True))
+    return {'archived':True}
+
+@app.get('/api/v1/admin/devices')
+def list_devices(user=Depends(auth.require_admin)):
+    with db.engine.connect() as c:
+        stmt=select(db.iot_devices).order_by(db.iot_devices.c.created_at.desc())
+        return [dict(r) for r in c.execute(stmt).mappings()]
+
+@app.post('/api/v1/admin/devices',status_code=201)
+def create_device(x:IoTDeviceInput,user=Depends(auth.require_admin)):
+    with db.engine.begin() as c:
+        if c.execute(select(db.iot_devices.c.id).where(db.iot_devices.c.device_id==x.device_id.strip())).scalar_one_or_none():
+            raise HTTPException(409,'deviceIdTaken')
+        if x.farm_id is not None and c.execute(select(db.farms.c.id).where(db.farms.c.id==x.farm_id)).scalar_one_or_none() is None:
+            raise HTTPException(404,'farmNotFound')
+        rid=c.execute(db.iot_devices.insert().values(device_id=x.device_id.strip(),name=x.name.strip(),device_type=x.device_type.strip(),sensor_type=x.sensor_type.strip(),farm_id=x.farm_id,installation_status=x.installation_status,is_active=x.is_active)).inserted_primary_key[0]
+        row=c.execute(select(db.iot_devices).where(db.iot_devices.c.id==rid)).mappings().first()
+    return dict(row)
+
+@app.patch('/api/v1/admin/devices/{did}')
+def update_device(did:int,x:IoTDeviceInput,user=Depends(auth.require_admin)):
+    with db.engine.begin() as c:
+        if c.execute(select(db.iot_devices.c.id).where(db.iot_devices.c.id==did)).scalar_one_or_none() is None:
+            raise HTTPException(404,'deviceNotFound')
+        duplicate=c.execute(select(db.iot_devices.c.id).where(db.iot_devices.c.device_id==x.device_id.strip(),db.iot_devices.c.id!=did)).scalar_one_or_none()
+        if duplicate: raise HTTPException(409,'deviceIdTaken')
+        if x.farm_id is not None and c.execute(select(db.farms.c.id).where(db.farms.c.id==x.farm_id)).scalar_one_or_none() is None:
+            raise HTTPException(404,'farmNotFound')
+        c.execute(db.iot_devices.update().where(db.iot_devices.c.id==did).values(device_id=x.device_id.strip(),name=x.name.strip(),device_type=x.device_type.strip(),sensor_type=x.sensor_type.strip(),farm_id=x.farm_id,installation_status=x.installation_status,is_active=x.is_active))
+        row=c.execute(select(db.iot_devices).where(db.iot_devices.c.id==did)).mappings().first()
+    return dict(row)
+
+@app.post('/api/v1/admin/devices/{did}/communication')
+def record_device_communication(did:int,user=Depends(auth.require_admin)):
+    from datetime import datetime, timezone
+    with db.engine.begin() as c:
+        if c.execute(select(db.iot_devices.c.id).where(db.iot_devices.c.id==did)).scalar_one_or_none() is None:
+            raise HTTPException(404,'deviceNotFound')
+        c.execute(db.iot_devices.update().where(db.iot_devices.c.id==did).values(last_communication_at=datetime.now(timezone.utc)))
+    return {'updated':True}
+
+@app.post('/api/v1/farms/{fid}/owner')
+def set_farm_owner(fid:int,x:AssignmentInput,user=Depends(auth.require_admin)):
+    with db.engine.begin() as c:
+        if not c.execute(select(db.farms.c.id).where(db.farms.c.id==fid)).scalar_one_or_none(): raise HTTPException(404,'farmNotFound')
+        if not c.execute(select(db.users.c.id).where(db.users.c.id==x.user_id)).scalar_one_or_none(): raise HTTPException(404,'userNotFound')
+        c.execute(db.farms.update().where(db.farms.c.id==fid).values(owner_id=x.user_id))
+    return {'assigned':True,'owner_id':x.user_id}
+
+@app.get('/api/v1/farms/{fid}/agronomists')
+def farm_agronomists(fid:int,user=Depends(auth.require_admin)):
+    with db.engine.connect() as c:
+        if not c.execute(select(db.farms.c.id).where(db.farms.c.id==fid)).scalar_one_or_none(): raise HTTPException(404,'farmNotFound')
+        stmt=select(db.users).select_from(db.users.join(db.farm_assignments,db.users.c.id==db.farm_assignments.c.user_id)).where(db.farm_assignments.c.farm_id==fid).order_by(db.users.c.id)
+        return [auth.public_user(dict(r)) for r in c.execute(stmt).mappings()]
+
+@app.post('/api/v1/farms/{fid}/agronomists')
+def assign_agronomist(fid:int,x:AssignmentInput,user=Depends(auth.require_admin)):
+    with db.engine.begin() as c:
+        if not c.execute(select(db.farms.c.id).where(db.farms.c.id==fid)).scalar_one_or_none(): raise HTTPException(404,'farmNotFound')
+        assignee=c.execute(select(db.users).where(db.users.c.id==x.user_id)).mappings().first()
+        if not assignee: raise HTTPException(404,'userNotFound')
+        if (assignee.get('role') or 'FARMER')!='AGRONOMIST': raise HTTPException(422,'assigneeNotAgronomist')
+        existing=c.execute(select(db.farm_assignments.c.id).where(db.farm_assignments.c.farm_id==fid,db.farm_assignments.c.user_id==x.user_id)).scalar_one_or_none()
+        if not existing: c.execute(db.farm_assignments.insert().values(farm_id=fid,user_id=x.user_id))
+    return {'assigned':True}
+
+@app.post('/api/v1/farms/{fid}/agronomists/remove')
+def remove_agronomist(fid:int,x:AssignmentInput,user=Depends(auth.require_admin)):
+    with db.engine.begin() as c:
+        c.execute(db.farm_assignments.delete().where(db.farm_assignments.c.farm_id==fid,db.farm_assignments.c.user_id==x.user_id))
+    return {'removed':True}
+
+@app.get('/api/v1/agronomist/dashboard')
+def agronomist_dashboard(user=Depends(auth.require_roles('AGRONOMIST','ADMIN'))):
+    with db.engine.connect() as c:
+        output=[]
+        for farm in _visible_farms(c,user):
+            w=weather({'id':farm['region_id'],'lat':farm['lat'],'lon':farm['lon']},live=True)
+            sensors,et0,rain,temperature=_simulated_sensors(w)
+            fields_rows=_farm_fields(c,farm['id'])
+            result=irrigation(_farm_input(fields_rows,et0,rain))
+            fields=[{'id':f['id'],'name':f['name'],'area_ha':_number(f['area_ha']),'lat':_number(f['lat']),'lon':_number(f['lon']),'crop':f['crop'],'moisture_pct':sensors['soil_moisture_pct']} for f in fields_rows]
+            water=result['water_m3']
+            output.append({
+                'id':farm['id'],'name':farm['name'],
+                'region':{'id':farm['region_id'],'name':farm['region_name'],'lat':farm['lat'],'lon':farm['lon'],'climate':farm['climate']},
+                'zone':farm['zone'],
+                'fields':fields,
+                'sensors':sensors,
+                'analysis':{'stress':float(result['stress']),'action':result['action'],'heat_risk':round(min(100.0,max(0.0,(temperature-25.0)*8.0)),1),'drought_risk':round(min(100.0,max(0.0,(et0-rain)*12.0)),1)},
+                'recommendation':{'action':result['action'],'water_m3':water,'net_mm':result['net_mm'],'gross_mm':result['gross_mm']},
+                'stats':{'water_m3_day':water,'water_m3_7d':round(water*7,2),'pump_kwh_7d':round(result['pump_kwh']*7,2),'solar_kwh_7d':round(result['solar_kwh']*7,2)},
+                'review':None,
+            })
+    return {'farms':output}
+
+@app.post('/api/v1/farms/{fid}/recommendation/review')
+def review_recommendation(fid:int,x:ReviewInput,user=Depends(auth.require_roles('AGRONOMIST','ADMIN'))):
+    with db.engine.connect() as c:
+        region_id=c.execute(select(db.zones.c.region_id).select_from(db.farms.join(db.zones,db.farms.c.zone_id==db.zones.c.id)).where(db.farms.c.id==fid)).scalar_one_or_none()
+    if region_id is None: raise HTTPException(404,'farmNotFound')
+    db.save_record('irrigation_recommendations',region_id,{'farm_id':fid,'status':x.status,'note':x.note,'reviewed_by':user['id']},source='agronomist-review',simulated=False)
+    return {'status':x.status,'note':x.note,'reviewed_by':user['id']}
 
 @app.get('/api/v1/regions')
 def regions():
@@ -399,3 +603,49 @@ def export(pid:int,language:str=Query('en',pattern='^(en|fr|ja|ar)$'),version:in
         wire_writer.writerows([[w[k] for k in ['source','target','signal']] for w in p['design']['connections']])
         z.writestr('connections.csv',wires.getvalue())
     return Response(data.getvalue(),media_type='application/zip',headers={'Content-Disposition':f'attachment; filename="resilifarm-{pid}.zip"'})
+
+@app.post('/api/v1/admin/users', status_code=201)
+def admin_create_user(x:AdminUserCreateInput, user=Depends(auth.require_admin)):
+    email=x.email.strip().lower()
+    with db.engine.begin() as c:
+        if c.execute(select(db.users.c.id).where(db.users.c.email==email)).scalar_one_or_none():
+            raise HTTPException(409,'emailTaken')
+        uid=c.execute(db.users.insert().values(email=email,full_name=x.full_name.strip(),phone=x.phone.strip() if x.phone else None,password_hash=auth.hash_password(x.password),role=x.role,is_active=True)).inserted_primary_key[0]
+        row=c.execute(select(db.users).where(db.users.c.id==uid)).mappings().first()
+    return auth.public_user(dict(row))
+
+@app.patch('/api/v1/admin/users/{uid}')
+def admin_update_user(uid:int,x:AdminUserUpdateInput,user=Depends(auth.require_admin)):
+    email=x.email.strip().lower()
+    with db.engine.begin() as c:
+        if c.execute(select(db.users.c.id).where(db.users.c.id==uid)).scalar_one_or_none() is None:
+            raise HTTPException(404,'userNotFound')
+        duplicate=c.execute(select(db.users.c.id).where(db.users.c.email==email,db.users.c.id!=uid)).scalar_one_or_none()
+        if duplicate: raise HTTPException(409,'emailTaken')
+        c.execute(db.users.update().where(db.users.c.id==uid).values(email=email,full_name=x.full_name.strip(),phone=x.phone.strip() if x.phone else None))
+        row=c.execute(select(db.users).where(db.users.c.id==uid)).mappings().first()
+    return auth.public_user(dict(row))
+
+@app.post('/api/v1/admin/users/{uid}/status')
+def set_account_status(uid:int,x:AccountStatusInput,user=Depends(auth.require_admin)):
+    with db.engine.begin() as c:
+        if uid==user['id'] and not x.is_active:
+            raise HTTPException(422,'cannotDeactivateSelf')
+        if c.execute(select(db.users.c.id).where(db.users.c.id==uid)).scalar_one_or_none() is None:
+            raise HTTPException(404,'userNotFound')
+        c.execute(db.users.update().where(db.users.c.id==uid).values(is_active=x.is_active))
+        row=c.execute(select(db.users).where(db.users.c.id==uid)).mappings().first()
+    return auth.public_user(dict(row))
+
+@app.get('/api/v1/admin/overview')
+def admin_overview(user=Depends(auth.require_admin)):
+    with db.engine.connect() as c:
+        total_farmers=c.execute(select(func.count()).select_from(db.users).where(db.users.c.role=='FARMER')).scalar() or 0
+        total_agronomists=c.execute(select(func.count()).select_from(db.users).where(db.users.c.role=='AGRONOMIST')).scalar() or 0
+        total_farms=c.execute(select(func.count()).select_from(db.farms).where(db.farms.c.archived==False)).scalar() or 0
+        assigned_farms=c.execute(select(func.count()).select_from(db.farms).where(db.farms.c.archived==False,db.farms.c.owner_id.is_not(None))).scalar() or 0
+        iot_count=c.execute(select(func.count()).select_from(db.iot_devices)).scalar() or 0
+        recent_users=c.execute(select(db.users).where(db.users.c.role=='FARMER').order_by(db.users.c.created_at.desc()).limit(5)).mappings().all()
+        recent_farms=c.execute(select(db.farms).where(db.farms.c.archived==False).order_by(db.farms.c.created_at.desc()).limit(5)).mappings().all()
+        unassigned_farms=c.execute(select(db.farms).where(db.farms.c.archived==False,db.farms.c.owner_id.is_(None)).order_by(db.farms.c.created_at.desc()).limit(10)).mappings().all()
+    return {'total_farmers':total_farmers,'total_agronomists':total_agronomists,'total_farms':total_farms,'assigned_farms':assigned_farms,'unassigned_farms':total_farms-assigned_farms,'iot_devices':iot_count,'recent_farmers':[auth.public_user(dict(r)) for r in recent_users],'recent_farms':[{'id':r['id'],'name':r['name'],'created_at':r['created_at']} for r in recent_farms],'farms_without_owner':[{'id':r['id'],'name':r['name']} for r in unassigned_farms]}
