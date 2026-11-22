@@ -47,6 +47,12 @@ export async function signUp(input: {
   fullName: string;
   email: string;
   password: string;
+  farm?: {
+    name: string;
+    regionId: number;
+    crop: 'olive' | 'wheat' | 'tomato';
+    areaHa: number;
+  };
 }): Promise<User> {
   if (USE_MOCK) {
     await mockDelay();
@@ -56,7 +62,19 @@ export async function signUp(input: {
   // The server always assigns the FARMER role on sign-up; the client never sends a role.
   const data = await apiRequest<ApiAuthResponse>('/auth/signup', {
     method: 'POST',
-    body: { full_name: input.fullName, email: input.email, password: input.password },
+    body: {
+      full_name: input.fullName,
+      email: input.email,
+      password: input.password,
+      ...(input.farm
+        ? {
+            farm_name: input.farm.name,
+            region_id: input.farm.regionId,
+            crop: input.farm.crop,
+            area_ha: input.farm.areaHa,
+          }
+        : {}),
+    },
     auth: false,
   });
   await setToken(data.token);

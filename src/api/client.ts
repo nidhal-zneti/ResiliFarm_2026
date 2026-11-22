@@ -41,7 +41,9 @@ export async function apiRequest<T>(
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const headers: Record<string, string> = {};
+    const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+    if (!isFormData) headers['Content-Type'] = 'application/json';
 
     if (auth) {
       const token = await getToken();
@@ -51,18 +53,22 @@ export async function apiRequest<T>(
     const response = await fetch(`${API_BASE_URL}${path}`, {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? undefined : isFormData ? (body as FormData) : JSON.stringify(body),
       signal: controller.signal,
     });
 
-    // Expired / invalid session: drop the token so the UI can redirect to login.
-    if (response.status === 401) {
-      await clearToken();
-      throw new ApiError('unauthenticated', 401);
-    }
-
     const text = await response.text();
     const data = text ? JSON.parse(text) : null;
+
+    // An expired/invalid session is only one kind of 401; preserve login and
+    // password errors such as invalidCredentials for the UI.
+    if (response.status === 401) {
+      const code = data?.error?.code ?? 'unauthenticated';
+      if (code === 'unauthenticated' || code === 'invalidToken') {
+        await clearToken();
+      }
+      throw new ApiError(code, 401);
+    }
 
     if (!response.ok) {
       const code = data?.error?.code ?? `http_${response.status}`;

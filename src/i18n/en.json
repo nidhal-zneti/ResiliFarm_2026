@@ -9,6 +9,7 @@
     "unavailable": "Unavailable",
     "save": "Save",
     "cancel": "Cancel",
+    "remove": "Remove",
     "close": "Close",
     "comingSoon": "Coming soon"
   },
@@ -21,6 +22,8 @@
   },
   "home": {
     "greeting": "Hello, {{name}}",
+    "farmLocation": "Farm region",
+    "openMap": "Open map",
     "todayAdvice": "Today's irrigation advice",
     "irrigationNeeded": "Irrigation needed",
     "irrigationNotNeeded": "No irrigation needed",
@@ -71,10 +74,45 @@
     "irrigationMethod": "Irrigation method",
     "soilType": "Soil type",
     "previewNote": "Editing farm information will be available soon."
+    ,"reportProblem": "Report a problem"
+    ,"reportProblemHelp": "Tell us what is happening on your farm."
+    ,"reportDescriptionPlaceholder": "Describe the problem briefly..."
+    ,"attachPhoto": "Attach a photo"
+    ,"submitReport": "Send report"
+    ,"recentReports": "Recent reports"
+    ,"reportPermissionTitle": "Photo access required"
+    ,"reportPermissionMessage": "Allow photo access to attach an image to your report."
+    ,"reportSubmittedTitle": "Report sent"
+    ,"reportSubmitted": "Your report was sent for review."
+    ,"reportCategory": {
+      "irrigation": "Irrigation not working",
+      "leak": "Water leak",
+      "cropHealth": "Unhealthy crops",
+      "waterTank": "Water tank empty",
+      "sensor": "Sensor malfunction",
+      "other": "Other problem"
+    }
+    ,"reportStatus": {
+      "open": "Open",
+      "reviewing": "In review",
+      "resolved": "Resolved"
+    }
   },
   "schedule": {
     "title": "Irrigation schedule",
     "previewNote": "The irrigation schedule will be available soon.",
+    "nextIrrigation": "Next irrigation",
+    "noIrrigationNeeded": "No irrigation predicted",
+    "nextSevenDays": "7-day forecast",
+    "rain": "Rain",
+    "evaporation": "Evapotranspiration",
+    "water": "Water",
+    "none": "None",
+    "reason": {
+      "forecastDeficit": "Water deficit reached",
+      "rainCoversNeeds": "Rain covers crop needs",
+      "deficitTooLow": "Deficit is still too low"
+    },
     "planned": "Planned",
     "done": "Done",
     "skipped": "Skipped"
@@ -100,6 +138,19 @@
     "password": "Password",
     "passwordHint": "At least 8 characters.",
     "fullName": "Full name",
+    "farmDetails": "Farm details",
+    "farmName": "Farm name",
+    "farmNamePlaceholder": "For example, Green Valley Farm",
+    "areaHa": "Farm area (hectares)",
+    "areaHaHint": "Enter the usable farm area.",
+    "region": "Region",
+    "regionPlaceholder": "Select a region",
+    "regionSearch": "Search region",
+    "regionSearchPlaceholder": "Type a governorate or region",
+    "crop": "Main crop",
+    "crop.olive": "Olive",
+    "crop.wheat": "Wheat",
+    "crop.tomato": "Tomato",
     "forgotPassword": "Forgot password?",
     "noAccount": "Don't have an account yet?",
     "haveAccount": "Already have an account?",

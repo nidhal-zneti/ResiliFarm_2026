@@ -25,6 +25,8 @@ export type Farm = {
   regionId: number;
   /** Human-readable place, e.g. "Sidi Bouzid". */
   location: string;
+  latitude?: number;
+  longitude?: number;
   crop: string;
   areaHa: number;
   irrigationMethod: string;

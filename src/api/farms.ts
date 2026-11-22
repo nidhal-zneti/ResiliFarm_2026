@@ -12,6 +12,10 @@ export type ApiFarmSummary = {
   name: string;
   region_id: number;
   region: string;
+  lat?: number;
+  lon?: number;
+  crop?: string;
+  area_ha?: number;
 };
 
 export async function getFarms(): Promise<ApiFarmSummary[]> {
@@ -37,8 +41,10 @@ export async function getMyFarm(): Promise<Farm> {
     name: first.name,
     regionId: first.region_id,
     location: first.region,
-    crop: '',
-    areaHa: 0,
+    latitude: first.lat,
+    longitude: first.lon,
+    crop: first.crop ?? '',
+    areaHa: first.area_ha ?? 0,
     irrigationMethod: '',
   };
 }
