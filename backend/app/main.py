@@ -78,9 +78,23 @@ def health():
     with db.engine.connect() as c: c.execute(select(1))
     return {'status':'ok','database':db.engine.dialect.name}
 
-@app.post('/api/v1/auth/signup',status_code=403)
-def signup():
-    raise HTTPException(403,'publicRegistrationDisabled')
+@app.post('/api/v1/auth/signup',status_code=201)
+def signup(x:SignupInput):
+    email=x.email.strip().lower()
+    try:
+        with db.engine.begin() as c:
+            uid=c.execute(db.users.insert().values(
+                email=email,
+                full_name=x.full_name.strip(),
+                password_hash=auth.hash_password(x.password),
+                role='FARMER',
+                is_active=True,
+            )).inserted_primary_key[0]
+            row=c.execute(select(db.users).where(db.users.c.id==uid)).mappings().first()
+    except IntegrityError:
+        raise HTTPException(409,'emailTaken')
+    public=auth.public_user(dict(row))
+    return {'token':auth.create_token(uid),'user':public}
 
 @app.post('/api/v1/auth/login')
 def login(x:LoginInput):

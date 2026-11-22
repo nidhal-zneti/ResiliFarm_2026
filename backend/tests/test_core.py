@@ -398,18 +398,22 @@ def test_ai_status_reports_actual_model_availability(client,monkeypatch):
     assert client.get('/api/v1/aiot/provider').json()['available']
 
 def test_account_signup_login_profile_and_password(client):
-    disabled = client.post('/api/v1/auth/signup', json={
+    signup = client.post('/api/v1/auth/signup', json={
         'email': 'Farmer@Example.com', 'password': 'secret123', 'full_name': 'Amina Farmer',
     })
-    assert disabled.status_code == 403
-    assert disabled.json()['error']['code'] == 'publicRegistrationDisabled'
+    assert signup.status_code == 201
+    assert signup.json()['user']['email'] == 'farmer@example.com'
+    assert signup.json()['user']['role'] == 'FARMER'
+    assert client.get('/api/v1/auth/me', headers={
+        'Authorization': 'Bearer ' + signup.json()['token'],
+    }).json()['id'] == signup.json()['user']['id']
+    duplicate = client.post('/api/v1/auth/signup', json={
+        'email': 'farmer@example.com', 'password': 'secret123', 'full_name': 'Duplicate',
+    })
+    assert duplicate.status_code == 409
+    assert duplicate.json()['error']['code'] == 'emailTaken'
 
     from backend.app import auth, db
-    with db.engine.begin() as connection:
-        connection.execute(db.users.insert().values(
-            email='farmer@example.com', full_name='Amina Farmer',
-            password_hash=auth.hash_password('secret123'), role='FARMER', is_active=True,
-        ))
     assert client.post('/api/v1/auth/login', json={
         'email': 'farmer@example.com', 'password': 'wrong',
     }).status_code == 401
@@ -439,4 +443,4 @@ def test_account_signup_login_profile_and_password(client):
     }).status_code == 200
     assert client.post('/api/v1/auth/signup', json={
         'email': 'not-an-email', 'password': 'short', 'full_name': 'x',
-    }).status_code == 403
+    }).status_code == 422
