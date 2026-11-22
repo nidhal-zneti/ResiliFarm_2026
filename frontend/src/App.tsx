@@ -310,12 +310,12 @@ export default function App() {
     page !== "admin";
   const initials = user
     ? user.full_name
-        .split(/\s+/)
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((w) => w[0])
-        .join("")
-        .toUpperCase()
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase()
     : "";
   if (page === "admin" && isAdmin) {
     return <AdminView />;
@@ -490,101 +490,79 @@ export default function App() {
             />
           ) : (
             <>
-          {readOnly && (
-            <p className="notice read-only-notice">
-              <Lock size={16} /> {t("readOnlyNotice")}
-            </p>
-          )}
-          {showHeader && (
-            <div className="section-intro">
-              <div>
-                <span className="eyebrow">{t("intelligence")}</span>
-                <h1>{sectionTitle}</h1>
-                <p>
-                  {t(
-                    page === "simulator"
-                      ? "scenarioHelp"
-                      : page === "security"
-                        ? "securityText"
-                        : page === "insights"
-                          ? "insightsText"
-                          : "sampleNote",
-                  )}
+              {readOnly && (
+                <p className="notice read-only-notice">
+                  <Lock size={16} /> {t("readOnlyNotice")}
                 </p>
-              </div>
-            </div>
-          )}
-          {page === "home" && <StartHere mode={mode} onNavigate={navigate} />}
-          {page === "agronomist" && <AgronomistDashboardView />}
-          {page === "admin" && <AdminView />}
-          {page !== "home" &&
-            page !== "profile" &&
-            page !== "agronomist" &&
-            page !== "admin" && (
-              <SectionGuide section={page} mode={mode} />
-            )}
-          {page === "overview" && weather && (
-            <>
-              <div className="section-intro">
-                <div>
-                  <span className="eyebrow">
-                    {t("workspace")} / {selectedRegion?.name.toUpperCase()}
-                  </span>
-                  <h1>{t("welcome")}</h1>
-                  <p>{t("overviewSub")}</p>
+              )}
+              {showHeader && (
+                <div className="section-intro">
+                  <div>
+                    <span className="eyebrow">{t("intelligence")}</span>
+                    <h1>{sectionTitle}</h1>
+                    <p>
+                      {t(
+                        page === "simulator"
+                          ? "scenarioHelp"
+                          : page === "security"
+                            ? "securityText"
+                            : page === "insights"
+                              ? "insightsText"
+                              : "sampleNote",
+                      )}
+                    </p>
+                  </div>
                 </div>
-                <button className="primary" onClick={() => navigate("settings")}>
-                  <Activity size={17} />
-                  {t("refreshWeather")}
-                  <ArrowUpRight size={16} />
-                </button>
-              </div>
-              <Panel title={t("currentWeather")} aside={<span className="badge">{t("modelWeather")}</span>}>
-                <div className="weather-stats">
-                  {[
-                    ["temperatureLabel", weather.current.temperature_2m, "°C"],
-                    ["humidity", weather.current.relative_humidity_2m, "%"],
-                    ["rain", weather.current.precipitation, `mm / ${Math.round(weather.current.interval_seconds / 60)} min`],
-                    ["wind", weather.current.wind_speed_10m, "km/h"],
-                  ].map(([key, value, unit]) => (
-                    <div key={String(key)}><small>{t(String(key))}</small><strong>{value} {unit}</strong></div>
-                  ))}
-                </div>
-                <p className="caption">{weather.source} · {t("weatherValidAt")}: {weather.updated_at}</p>
-                <p className="caption">{t("weatherGridNote")}</p>
-                <p className="caption">{t("weatherUpdates")}</p>
-              </Panel>
-              <Panel title={t("forecast")} aside={<span className="badge">{t("forecast")}</span>}>
-                <WeatherChart weather={weather} />
-              </Panel>
-              <Panel title={t("farmDataStatus")}>
-                <p>{t("noFarmTelemetry")}</p>
-              </Panel>
-            </>
-          )}
-          {page === "overview" && !weather && (
-            <Panel title={t("currentWeather")}>
-              <p role={error ? "alert" : "status"}>
-                {error
-                  ? t(error, { defaultValue: t("weatherUnavailable") })
-                  : busy
-                    ? t("loading")
-                    : t("weatherUnavailable")}
-              </p>
-              <button onClick={load}>{t("retry")}</button>
-            </Panel>
-          )}
-          {page === "comparison" && (
-            <>
-              <p className="notice">
-                {comparisonFailures > 0
-                  ? t("comparisonPartial", {
-                      failed: comparisonFailures,
-                      total: comparison.length + comparisonFailures,
-                    })
-                  : t("regionalNote")}
-              </p>
-              {comparison.length === 0 && (
+              )}
+              {page === "home" && <StartHere mode={mode} onNavigate={navigate} />}
+              {page === "agronomist" && <AgronomistDashboardView />}
+              {page === "admin" && <AdminView />}
+              {page !== "home" &&
+                page !== "profile" &&
+                page !== "agronomist" &&
+                page !== "admin" && (
+                  <SectionGuide section={page} mode={mode} />
+                )}
+              {page === "overview" && weather && (
+                <>
+                  <div className="section-intro">
+                    <div>
+                      <span className="eyebrow">
+                        {t("workspace")} / {selectedRegion?.name.toUpperCase()}
+                      </span>
+                      <h1>{t("welcome")}</h1>
+                      <p>{t("overviewSub")}</p>
+                    </div>
+                    <button className="primary" onClick={() => navigate("settings")}>
+                      <Activity size={17} />
+                      {t("refreshWeather")}
+                      <ArrowUpRight size={16} />
+                    </button>
+                  </div>
+                  <Panel title={t("currentWeather")} aside={<span className="badge">{t("modelWeather")}</span>}>
+                    <div className="weather-stats">
+                      {[
+                        ["temperatureLabel", weather.current.temperature_2m, "°C"],
+                        ["humidity", weather.current.relative_humidity_2m, "%"],
+                        ["rain", weather.current.precipitation, `mm / ${Math.round(weather.current.interval_seconds / 60)} min`],
+                        ["wind", weather.current.wind_speed_10m, "km/h"],
+                      ].map(([key, value, unit]) => (
+                        <div key={String(key)}><small>{t(String(key))}</small><strong>{value} {unit}</strong></div>
+                      ))}
+                    </div>
+                    <p className="caption">{weather.source} · {t("weatherValidAt")}: {weather.updated_at}</p>
+                    <p className="caption">{t("weatherGridNote")}</p>
+                    <p className="caption">{t("weatherUpdates")}</p>
+                  </Panel>
+                  <Panel title={t("forecast")} aside={<span className="badge">{t("forecast")}</span>}>
+                    <WeatherChart weather={weather} />
+                  </Panel>
+                  <Panel title={t("farmDataStatus")}>
+                    <p>{t("noFarmTelemetry")}</p>
+                  </Panel>
+                </>
+              )}
+              {page === "overview" && !weather && (
                 <Panel title={t("currentWeather")}>
                   <p role={error ? "alert" : "status"}>
                     {error
@@ -593,262 +571,284 @@ export default function App() {
                         ? t("loading")
                         : t("weatherUnavailable")}
                   </p>
-                  <button onClick={() => setComparisonRetry((value) => value + 1)}>
-                    {t("retry")}
-                  </button>
+                  <button onClick={load}>{t("retry")}</button>
                 </Panel>
               )}
-              <div className="comparison-grid">
-                {comparison.map((o) => (
-                  <Panel
-                    key={o.region.id}
-                    title={o.region.name}
-                    aside={<span className="badge">{t("modelWeather")}</span>}
-                  >
-                    <WeatherChart weather={o.weather} />
-                    <button
-                      onClick={() => {
-                        setRid(o.region.id);
-                        navigate("agriculture");
-                      }}
-                    >
-                      {t("inspect")}
-                      <ArrowRight size={16} />
-                    </button>
+              {page === "comparison" && (
+                <>
+                  <p className="notice">
+                    {comparisonFailures > 0
+                      ? t("comparisonPartial", {
+                        failed: comparisonFailures,
+                        total: comparison.length + comparisonFailures,
+                      })
+                      : t("regionalNote")}
+                  </p>
+                  {comparison.length === 0 && (
+                    <Panel title={t("currentWeather")}>
+                      <p role={error ? "alert" : "status"}>
+                        {error
+                          ? t(error, { defaultValue: t("weatherUnavailable") })
+                          : busy
+                            ? t("loading")
+                            : t("weatherUnavailable")}
+                      </p>
+                      <button onClick={() => setComparisonRetry((value) => value + 1)}>
+                        {t("retry")}
+                      </button>
+                    </Panel>
+                  )}
+                  <div className="comparison-grid">
+                    {comparison.map((o) => (
+                      <Panel
+                        key={o.region.id}
+                        title={o.region.name}
+                        aside={<span className="badge">{t("modelWeather")}</span>}
+                      >
+                        <WeatherChart weather={o.weather} />
+                        <button
+                          onClick={() => {
+                            setRid(o.region.id);
+                            navigate("agriculture");
+                          }}
+                        >
+                          {t("inspect")}
+                          <ArrowRight size={16} />
+                        </button>
+                      </Panel>
+                    ))}
+                  </div>
+                </>
+              )}
+              {page === "twin" && selectedRegion && weather && (
+                <div className="twin-layout">
+                  <Panel className="map-panel" title={t("regionLocation")}>
+                    <MapContainer key={rid} center={[selectedRegion.lat, selectedRegion.lon]} zoom={8} zoomControl={false} scrollWheelZoom={false} style={{ height: 460, width: "100%" }}>
+                      <MapControls />
+                      <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                      <CircleMarker center={[selectedRegion.lat, selectedRegion.lon]} radius={8} pathOptions={{ color: "#fff", fillColor: "#21735a", fillOpacity: 0.9, weight: 3 }} />
+                    </MapContainer>
+                    <p className="caption">{t("regionCoordinatesOnly")}</p>
                   </Panel>
-                ))}
-              </div>
-            </>
-          )}
-          {page === "twin" && selectedRegion && weather && (
-            <div className="twin-layout">
-              <Panel className="map-panel" title={t("regionLocation")}>
-                <MapContainer key={rid} center={[selectedRegion.lat, selectedRegion.lon]} zoom={8} zoomControl={false} scrollWheelZoom={false} style={{height:460,width:"100%"}}>
-                  <MapControls />
-                  <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                  <CircleMarker center={[selectedRegion.lat, selectedRegion.lon]} radius={8} pathOptions={{color:"#fff",fillColor:"#21735a",fillOpacity:0.9,weight:3}} />
-                </MapContainer>
-                <p className="caption">{t("regionCoordinatesOnly")}</p>
-              </Panel>
-              <Panel title={t("currentWeather")} aside={<span className="badge">{t("modelWeather")}</span>}>
-                <div className="weather-stats">
-                  {[["temperatureLabel",weather.current.temperature_2m,"°C"],["humidity",weather.current.relative_humidity_2m,"%"],["rain",weather.current.precipitation,"mm"],["wind",weather.current.wind_speed_10m,"km/h"]].map(([key,value,unit]) => <div key={String(key)}><small>{t(String(key))}</small><strong>{value} {unit}</strong></div>)}
-                </div>
-                <p>{t("noFarmTelemetry")}</p>
-                <p className="caption">{weather.source} · {weather.updated_at}</p>
-              </Panel>
-            </div>
-          )}
-          {page === "twin" && !(selectedRegion && weather) && (
-            <Panel title={t("regionLocation")}>
-              <p role={error ? "alert" : "status"}>
-                {error
-                  ? t(error, { defaultValue: t("weatherUnavailable") })
-                  : busy
-                    ? t("loading")
-                    : t("weatherUnavailable")}
-              </p>
-              <button onClick={load}>{t("retry")}</button>
-            </Panel>
-          )}
-          {page === "agriculture" && !calc && (
-            <Panel title={t("calculate")}>
-              <p>{t("realFarmInputsOnly")}</p>
-              <button type="button" onClick={applyWeatherForecast} disabled={!weather || readOnly}>{t("useWeatherForecastInputs")}</button>
-              <FarmForm value={farm} onChange={updateFarm} onSubmit={calculate} busy={busy} readOnly={readOnly} />
-            </Panel>
-          )}
-          {page === "agriculture" && calc && (
-            <>
-              <Panel title={t("calculate")}>
-                <button type="button" onClick={applyWeatherForecast} disabled={!weather || readOnly}>{t("useWeatherForecastInputs")}</button>
-                <FarmForm
-                  value={farm}
-                  onChange={updateFarm}
-                  onSubmit={calculate}
-                  busy={busy}
-                  readOnly={readOnly}
-                />
-              </Panel>
-              <p className="caption">{t("inputNote")}</p>
-              <p className="caption">{t("calculationEstimate")}</p>
-              <Metrics data={calc} />
-              {page === "agriculture" && (
-                <div className="two-col">
-                  <Panel title={t("result")}>
-                    <dl className="readings">
-                      {[
-                        ["Kc", calc.kc, ""],
-                        ["ETc", calc.etc_mm, "mm"],
-                        ["effectiveRain", calc.effective_rain_mm, "mm"],
-                        ["net", calc.net_mm, "mm"],
-                        ["gross", calc.gross_mm, "mm"],
-                      ].map(([k, v, u]) => (
-                        <div key={k}>
-                          <dt>{t(String(k))}</dt>
-                          <dd>
-                            {v} {u}
-                          </dd>
-                        </div>
-                      ))}
-                    </dl>
-                    <p className="caption">{t("formula")}</p>
-                    <p className="caption">{t("riskNote")}</p>
-                    <button
-                      onClick={() =>
-                        download(
-                          "resilifarm-calculation.json",
-                          JSON.stringify(
-                            {
-                              input: calculatedFarm,
-                              result: calc,
-                              source:
-                                "Engineering estimate from user-supplied inputs",
-                            },
-                            null,
-                            2,
-                          ),
-                        )
-                      }
-                    >
-                      <Download size={16} />
-                      {t("exportReport")}
-                    </button>
-                  </Panel>
-                  <Panel title={t("recommendations")}>
-                    <p className="notice">{t(calc.action)}</p>
-                    <p>{t("fao56")}</p>
-                    {weather && <WeatherChart weather={weather} />}
+                  <Panel title={t("currentWeather")} aside={<span className="badge">{t("modelWeather")}</span>}>
+                    <div className="weather-stats">
+                      {[["temperatureLabel", weather.current.temperature_2m, "°C"], ["humidity", weather.current.relative_humidity_2m, "%"], ["rain", weather.current.precipitation, "mm"], ["wind", weather.current.wind_speed_10m, "km/h"]].map(([key, value, unit]) => <div key={String(key)}><small>{t(String(key))}</small><strong>{value} {unit}</strong></div>)}
+                    </div>
+                    <p>{t("noFarmTelemetry")}</p>
+                    <p className="caption">{weather.source} · {weather.updated_at}</p>
                   </Panel>
                 </div>
               )}
-            </>
-          )}
-          {page === "water" && <Panel title={t("network")}><p>{t("noWaterTelemetry")}</p></Panel>}
-          {page === "energy" && <Panel title={t("energy")}><p>{t("noEnergyTelemetry")}</p></Panel>}
-          {page === "simulator" && <Panel title={t("scenario")}><p>{t("scenarioLiveUnavailable")}</p></Panel>}
-          {page === "insights" && <Panel title={t("insightsText")}><p>{t("noFarmTelemetry")}</p></Panel>}
-          {page === "security" && <Panel title={t("securityText")}><p>{t("securityLiveUnavailable")}</p></Panel>}
-          {page === "studio" && (
-            <Studio
-              region={rid}
-              readOnly={readOnly}
-              onDeploy={() =>
-                api<Overview>(`/regions/${rid}/overview`)
-                  .then(setOverview)
-                  .catch(() => setError("error"))
-              }
-            />
-          )}
-          {page === "profile" && (
-            <>
-              {user ? (
-                <ProfileView
-                  user={user}
-                  onUpdate={setUser}
-                  onSignOut={signOut}
-                />
-              ) : authReady ? (
-                <AuthScreen onAuthenticated={handleAuthenticated} />
-              ) : null}
-            </>
-          )}
-          {page === "settings" && (
-            <div className="two-col">
-              <Panel title={t("settings")}>
-                <div className="settings-controls">
-                  <label className="check">
-                    <input
-                      type="checkbox"
-                      checked={contrast}
-                      onChange={(e) => setContrast(e.target.checked)}
+              {page === "twin" && !(selectedRegion && weather) && (
+                <Panel title={t("regionLocation")}>
+                  <p role={error ? "alert" : "status"}>
+                    {error
+                      ? t(error, { defaultValue: t("weatherUnavailable") })
+                      : busy
+                        ? t("loading")
+                        : t("weatherUnavailable")}
+                  </p>
+                  <button onClick={load}>{t("retry")}</button>
+                </Panel>
+              )}
+              {page === "agriculture" && !calc && (
+                <Panel title={t("calculate")}>
+                  <p>{t("realFarmInputsOnly")}</p>
+                  <button type="button" onClick={applyWeatherForecast} disabled={!weather || readOnly}>{t("useWeatherForecastInputs")}</button>
+                  <FarmForm value={farm} onChange={updateFarm} onSubmit={calculate} busy={busy} readOnly={readOnly} />
+                </Panel>
+              )}
+              {page === "agriculture" && calc && (
+                <>
+                  <Panel title={t("calculate")}>
+                    <button type="button" onClick={applyWeatherForecast} disabled={!weather || readOnly}>{t("useWeatherForecastInputs")}</button>
+                    <FarmForm
+                      value={farm}
+                      onChange={updateFarm}
+                      onSubmit={calculate}
+                      busy={busy}
+                      readOnly={readOnly}
                     />
-                    {t("highContrast")}
-                  </label>
-                  <label>
-                    {t("textSize")} · {font}%
-                    <input
-                      type="range"
-                      min="90"
-                      max="125"
-                      step="5"
-                      value={font}
-                      onChange={(e) => setFont(Number(e.target.value))}
-                    />
-                  </label>
-                  <label className="check">
-                    <input
-                      type="checkbox"
-                      checked={motion}
-                      onChange={(e) => setMotion(e.target.checked)}
-                    />
-                    {t("reducedMotion")}
-                  </label>
-                </div>
-                <p>{t("accessibilityHelp")}</p>
-              </Panel>
-              <Panel title={t("dataMode")}>
-                <p>{t("modelWeatherPolicy")}</p>
-                <button
-                  disabled={busy}
-                  onClick={() =>
-                    act(async () => {
-                      setWeather(null);
-                      setCalc(null);
-                      setCalculatedFarm(null);
-                      const w = requireCurrentWeather(
-                        await api<Weather>(`/regions/${rid}/weather`),
-                      );
-                      setWeather(w);
-                      setOverview((o) => o ? { ...o, weather: w } : selectedRegion ? weatherOnlyOverview(selectedRegion, w) : null);
-                      setCalc(null);
-                      setCalculatedFarm(null);
-                    })
+                  </Panel>
+                  <p className="caption">{t("inputNote")}</p>
+                  <p className="caption">{t("calculationEstimate")}</p>
+                  <Metrics data={calc} />
+                  {page === "agriculture" && (
+                    <div className="two-col">
+                      <Panel title={t("result")}>
+                        <dl className="readings">
+                          {[
+                            ["Kc", calc.kc, ""],
+                            ["ETc", calc.etc_mm, "mm"],
+                            ["effectiveRain", calc.effective_rain_mm, "mm"],
+                            ["net", calc.net_mm, "mm"],
+                            ["gross", calc.gross_mm, "mm"],
+                          ].map(([k, v, u]) => (
+                            <div key={k}>
+                              <dt>{t(String(k))}</dt>
+                              <dd>
+                                {v} {u}
+                              </dd>
+                            </div>
+                          ))}
+                        </dl>
+                        <p className="caption">{t("formula")}</p>
+                        <p className="caption">{t("riskNote")}</p>
+                        <button
+                          onClick={() =>
+                            download(
+                              "resilifarm-calculation.json",
+                              JSON.stringify(
+                                {
+                                  input: calculatedFarm,
+                                  result: calc,
+                                  source:
+                                    "Engineering estimate from user-supplied inputs",
+                                },
+                                null,
+                                2,
+                              ),
+                            )
+                          }
+                        >
+                          <Download size={16} />
+                          {t("exportReport")}
+                        </button>
+                      </Panel>
+                      <Panel title={t("recommendations")}>
+                        <p className="notice">{t(calc.action)}</p>
+                        <p>{t("fao56")}</p>
+                        {weather && <WeatherChart weather={weather} />}
+                      </Panel>
+                    </div>
+                  )}
+                </>
+              )}
+              {page === "water" && <Panel title={t("network")}><p>{t("noWaterTelemetry")}</p></Panel>}
+              {page === "energy" && <Panel title={t("energy")}><p>{t("noEnergyTelemetry")}</p></Panel>}
+              {page === "simulator" && <Panel title={t("scenario")}><p>{t("scenarioLiveUnavailable")}</p></Panel>}
+              {page === "insights" && <Panel title={t("insightsText")}><p>{t("noFarmTelemetry")}</p></Panel>}
+              {page === "security" && <Panel title={t("securityText")}><p>{t("securityLiveUnavailable")}</p></Panel>}
+              {page === "studio" && (
+                <Studio
+                  region={rid}
+                  readOnly={readOnly}
+                  onDeploy={() =>
+                    api<Overview>(`/regions/${rid}/overview`)
+                      .then(setOverview)
+                      .catch(() => setError("error"))
                   }
-                >
-                  {t("refreshWeather")}
-                </button>
-                {weather && (
-                  <>
-                    <p>
-                      {t("source")}: {weather.source}
-                    </p>
-                    <span className="badge">
-                      {t(weather.is_measured ? "measured" : "modelWeather")}
-                    </span>
-                    <p className="caption">
-                      {t("updated")}: {weather.updated_at}
-                    </p>
-                    <WeatherChart weather={weather} />
-                  </>
-                )}
-              </Panel>
-            </div>
-          )}
-          {day && page === "agriculture" && (
-            <Panel title={t("forecastDays")}>
-              <div className="weather-stats">
-                {[
-                  ["temperatureLabel", day.temperature_c, "°C"],
-                  ["rain", day.rain_mm, "mm"],
-                  ["humidity", day.humidity_pct, "%"],
-                  ["wind", day.wind_kmh, "km/h"],
-                ].map(([key, val, unit]) => (
-                  <div key={key}>
-                    <small>{t(String(key))}</small>
-                    <strong>
-                      {val} {unit}
-                    </strong>
+                />
+              )}
+              {page === "profile" && (
+                <>
+                  {user ? (
+                    <ProfileView
+                      user={user}
+                      onUpdate={setUser}
+                      onSignOut={signOut}
+                    />
+                  ) : authReady ? (
+                    <AuthScreen onAuthenticated={handleAuthenticated} />
+                  ) : null}
+                </>
+              )}
+              {page === "settings" && (
+                <div className="two-col">
+                  <Panel title={t("settings")}>
+                    <div className="settings-controls">
+                      <label className="check">
+                        <input
+                          type="checkbox"
+                          checked={contrast}
+                          onChange={(e) => setContrast(e.target.checked)}
+                        />
+                        {t("highContrast")}
+                      </label>
+                      <label>
+                        {t("textSize")} · {font}%
+                        <input
+                          type="range"
+                          min="90"
+                          max="125"
+                          step="5"
+                          value={font}
+                          onChange={(e) => setFont(Number(e.target.value))}
+                        />
+                      </label>
+                      <label className="check">
+                        <input
+                          type="checkbox"
+                          checked={motion}
+                          onChange={(e) => setMotion(e.target.checked)}
+                        />
+                        {t("reducedMotion")}
+                      </label>
+                    </div>
+                    <p>{t("accessibilityHelp")}</p>
+                  </Panel>
+                  <Panel title={t("dataMode")}>
+                    <p>{t("modelWeatherPolicy")}</p>
+                    <button
+                      disabled={busy}
+                      onClick={() =>
+                        act(async () => {
+                          setWeather(null);
+                          setCalc(null);
+                          setCalculatedFarm(null);
+                          const w = requireCurrentWeather(
+                            await api<Weather>(`/regions/${rid}/weather`),
+                          );
+                          setWeather(w);
+                          setOverview((o) => o ? { ...o, weather: w } : selectedRegion ? weatherOnlyOverview(selectedRegion, w) : null);
+                          setCalc(null);
+                          setCalculatedFarm(null);
+                        })
+                      }
+                    >
+                      {t("refreshWeather")}
+                    </button>
+                    {weather && (
+                      <>
+                        <p>
+                          {t("source")}: {weather.source}
+                        </p>
+                        <span className="badge">
+                          {t(weather.is_measured ? "measured" : "modelWeather")}
+                        </span>
+                        <p className="caption">
+                          {t("updated")}: {weather.updated_at}
+                        </p>
+                        <WeatherChart weather={weather} />
+                      </>
+                    )}
+                  </Panel>
+                </div>
+              )}
+              {day && page === "agriculture" && (
+                <Panel title={t("forecastDays")}>
+                  <div className="weather-stats">
+                    {[
+                      ["temperatureLabel", day.temperature_c, "°C"],
+                      ["rain", day.rain_mm, "mm"],
+                      ["humidity", day.humidity_pct, "%"],
+                      ["wind", day.wind_kmh, "km/h"],
+                    ].map(([key, val, unit]) => (
+                      <div key={key}>
+                        <small>{t(String(key))}</small>
+                        <strong>
+                          {val} {unit}
+                        </strong>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <p className="caption">
-                {weather?.source} ·{" "}
-                {t("modelWeather")} ·{" "}
-                {weather?.updated_at}
-              </p>
-            </Panel>
-          )}
+                  <p className="caption">
+                    {weather?.source} ·{" "}
+                    {t("modelWeather")} ·{" "}
+                    {weather?.updated_at}
+                  </p>
+                </Panel>
+              )}
             </>
           )}
         </main>
