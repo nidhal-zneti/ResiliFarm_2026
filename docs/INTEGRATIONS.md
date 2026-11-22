@@ -33,7 +33,7 @@ Inspected 2026-11-17. Status describes actual use, not an integration claim base
 | [Japan MAFF](https://www.maff.go.jp/e/) | REFERENCE ONLY: statistics/publications | Public statistics entry points reviewed; no Japan farm or observation sample is generated. |
 | [Japan Meteorological Agency](https://www.jma.go.jp/jma/en/) | REFERENCE ONLY: official portal | Requested page was inaccessible through research tooling. No undocumented API or JMA observations claimed. |
 
-ResiliFarm does not depend on IoT devices. Open-Meteo provides live regional weather-model data, and the optional Tavily connector retrieves cited agriculture-source passages and supplier listings for Studio. No online farm-boundary, soil, water-network, pump-energy or solar-generation feed is integrated. The app does not present those values as live. Generated farm/network/simulation records are removed at initialization; calculation outputs require user-entered farm parameters and are labeled estimates. The backend owns weather requests; frontend code does not call the provider directly. Cache entries are process-local.
+ResiliFarm does not depend on IoT devices. Open-Meteo provides live regional and saved farm-coordinate weather-model data, plus soil moisture and temperature model variables displayed in the Digital Twin. These are model outputs, not farm or station measurements. ISRIC currently reports its SoilGrids REST service paused; no soil survey connector is active. Farm-specific flow, pressure, boundaries, pump-energy and solar-generation feeds remain unintegrated. The app does not present those values as live. Generated farm/network/simulation records are removed at initialization; calculation outputs require user-entered farm parameters and are labeled estimates. The backend owns Open-Meteo requests; frontend code does not call the provider directly. Successful responses use a process-local five-minute cache.
 
 ## Pretrained Studio model (2026-11-21)
 
@@ -53,7 +53,13 @@ Runtime libraries are installed through package managers, not copied source tree
 
 ## Verification limits
 
-No WNTR, pvlib, DiTEC-trained model, NASA/FAO portal or proprietary engineering API is integrated. The simplified implementations are deliberately independent and their assumptions appear in the UI and README. No benchmark accuracy or real-world cybersecurity protection is claimed. PostgreSQL DDL compiles, but Docker/PostgreSQL execution was unavailable locally; SQLite is the tested persistence runtime.
+No WNTR, pvlib, DiTEC-trained model, NASA/FAO portal or proprietary engineering API is integrated. The simplified implementations are deliberately independent and their assumptions appear in the UI and README. No benchmark accuracy or validated field performance is claimed. PostgreSQL DDL compiles, but Docker/PostgreSQL execution was unavailable locally; SQLite is the tested persistence runtime.
+
+## Fruit ripeness
+
+The former Cybersecurity navigation section now provides a single-photo Fruit Ripeness flow based on the FruitVision project's AB colour-and-shape classifier concept (upstream: [ligitpizza/FruitVision](https://github.com/ligitpizza/FruitVision)). ResiliFarm reuses its own FastAPI authentication and SQL database; it does not run FruitVision's separate Flask app or database. The API accepts JPEG, PNG and WebP uploads up to 10 MB, discards photo bytes after inference, and records only the user, predicted fruit/ripeness, confidence, recommendation, model version and timestamp. Users see their own history; administrators can see all results.
+
+FruitVision does not publish trained ripeness weights. The referenced Kaggle dataset metadata identifies the source dataset as CC BY-SA 4.0 (creator `leftin`); the download and prepared apple/banana/orange images are local under ignored `.local/fruitvision/` and are not committed. Attribution and license are written to `.local/fruitvision/DATASET_ATTRIBUTION.txt` and into each model manifest. Five upstream AB preprocessing/feature modules are included under `backend/app/fruitvision_ab/` with per-file source links and a NOTICE; reuse was confirmed by the user. The model is the FruitVision Member 1 AB SVC over its actual color and contour-shape features. A held-out Kaggle test split is evaluated after the upstream single-fruit shape check; the manifest records held-out coverage, accuracy, and per-class report. The API enables only fruits with all three tested labels and uses no generated fallback. Keep the dataset and trained weight files local unless redistribution is confirmed under the dataset license.
 
 ## Supplier price access
 

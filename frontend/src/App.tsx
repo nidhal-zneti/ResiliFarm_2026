@@ -14,10 +14,8 @@ import {
   MapPinned,
   Sprout,
   Droplets,
-  Sun,
   FlaskConical,
-  Sparkles,
-  ShieldCheck,
+  ScanSearch,
   CircuitBoard,
   Settings,
   ArrowUpRight,
@@ -45,6 +43,7 @@ import { ExperienceMode, SectionGuide, StartHere } from "./Guide";
 import MapControls from "./MapControls";
 import AgronomistDashboardView from "./AgronomistDashboard";
 import AdminView from "./AdminComplete";
+import FruitRipeness from "./FruitRipeness";
 import type {
   Region,
   Overview,
@@ -52,6 +51,7 @@ import type {
   FarmDraft,
   Calculation,
   Weather,
+  SoilModel,
   User,
   AuthResponse,
 } from "./types";
@@ -59,14 +59,11 @@ import type {
 const pages = [
   ["home", Home],
   ["overview", LayoutDashboard],
-  ["comparison", MapPinned],
   ["twin", Map],
   ["agriculture", Sprout],
   ["water", Droplets],
-  ["energy", Sun],
   ["simulator", FlaskConical],
-  ["insights", Sparkles],
-  ["security", ShieldCheck],
+  ["fruitRipeness", ScanSearch],
   ["studio", CircuitBoard],
   ["agronomist", ClipboardCheck],
   ["admin", UserCog],
@@ -101,12 +98,10 @@ export default function App() {
   const [rid, setRid] = useState(1);
   const [overview, setOverview] = useState<Overview | null>(null);
   const [weather, setWeather] = useState<Weather | null>(null);
+  const [soilModel, setSoilModel] = useState<SoilModel | null>(null);
   const [farm, setFarm] = useState<FarmDraft>(initialFarm);
   const [calculatedFarm, setCalculatedFarm] = useState<Farm | null>(null);
   const [calc, setCalc] = useState<Calculation | null>(null);
-  const [comparison, setComparison] = useState<Overview[]>([]);
-  const [comparisonFailures, setComparisonFailures] = useState(0);
-  const [comparisonRetry, setComparisonRetry] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [contrast, setContrast] = useState(
@@ -208,6 +203,7 @@ export default function App() {
   const load = useCallback(async () => {
     setOverview(null);
     setWeather(null);
+    setSoilModel(null);
     setCalc(null);
     await act(async () => {
       const r = await api<{ regions: Region[] }>("/regions");
@@ -218,6 +214,7 @@ export default function App() {
       );
       setOverview(region ? weatherOnlyOverview(region, current) : null);
       setWeather(current);
+      setSoilModel(await api<SoilModel>(`/regions/${rid}/soil`).catch(() => null));
       setCalc(null);
       setFarm({ region_id: rid });
       setCalculatedFarm(null);
@@ -233,6 +230,7 @@ export default function App() {
           await api<Weather>(`/regions/${rid}/weather`),
         );
         setWeather(current);
+        setSoilModel(await api<SoilModel>(`/regions/${rid}/soil`).catch(() => null));
         setOverview((value) => value ? { ...value, weather: current } : selectedRegion ? weatherOnlyOverview(selectedRegion, current) : null);
         setCalc(null);
         setCalculatedFarm(null);
@@ -248,21 +246,6 @@ export default function App() {
     const timer = window.setInterval(refresh, 10 * 60 * 1000);
     return () => window.clearInterval(timer);
   }, [rid, selectedRegion]);
-  useEffect(() => {
-    if (page === "comparison" && regions.length)
-      act(async () => {
-        setComparison([]);
-        setComparisonFailures(0);
-        const results = await Promise.allSettled(
-          regions.filter((r) => r.country_id === country)
-            .map((r) => api<Overview>(`/regions/${r.id}/overview`)),
-        );
-        setComparison(results.flatMap((result) =>
-          result.status === "fulfilled" ? [result.value] : [],
-        ));
-        setComparisonFailures(results.filter((result) => result.status === "rejected").length);
-      });
-  }, [page, country, regions, comparisonRetry]);
   const calculate = () =>
     act(async () => {
       const required: (keyof Omit<Farm, "region_id">)[] = [
@@ -346,7 +329,7 @@ export default function App() {
         <nav aria-label={t("workspace")}>
           {navPages.map(([key, Icon]) => (
             <div key={key}>
-              {key === "energy" && (
+              {key === "simulator" && (
                 <div className="workspace-label">{t("engineering")}</div>
               )}
               <button
@@ -498,11 +481,9 @@ export default function App() {
                       {t(
                         page === "simulator"
                           ? "scenarioHelp"
-                          : page === "security"
-                            ? "securityText"
-                            : page === "insights"
-                              ? "insightsText"
-                              : "sampleNote",
+                          : page === "fruitRipeness"
+                            ? "fruitIntro"
+                            : "sampleNote",
                       )}
                     </p>
                   </div>
@@ -568,52 +549,6 @@ export default function App() {
                   <button onClick={load}>{t("retry")}</button>
                 </Panel>
               )}
-              {page === "comparison" && (
-                <>
-                  <p className="notice">
-                    {comparisonFailures > 0
-                      ? t("comparisonPartial", {
-                        failed: comparisonFailures,
-                        total: comparison.length + comparisonFailures,
-                      })
-                      : t("regionalNote")}
-                  </p>
-                  {comparison.length === 0 && (
-                    <Panel title={t("currentWeather")}>
-                      <p role={error ? "alert" : "status"}>
-                        {error
-                          ? t(error, { defaultValue: t("weatherUnavailable") })
-                          : busy
-                            ? t("loading")
-                            : t("weatherUnavailable")}
-                      </p>
-                      <button onClick={() => setComparisonRetry((value) => value + 1)}>
-                        {t("retry")}
-                      </button>
-                    </Panel>
-                  )}
-                  <div className="comparison-grid">
-                    {comparison.map((o) => (
-                      <Panel
-                        key={o.region.id}
-                        title={o.region.name}
-                        aside={<span className="badge">{t("modelWeather")}</span>}
-                      >
-                        <WeatherChart weather={o.weather} />
-                        <button
-                          onClick={() => {
-                            setRid(o.region.id);
-                            navigate("agriculture");
-                          }}
-                        >
-                          {t("inspect")}
-                          <ArrowRight size={16} />
-                        </button>
-                      </Panel>
-                    ))}
-                  </div>
-                </>
-              )}
               {page === "twin" && selectedRegion && weather && (
                 <div className="twin-layout">
                   <Panel className="map-panel" title={t("regionLocation")}>
@@ -630,6 +565,18 @@ export default function App() {
                     </div>
                     <p>{t("noFarmTelemetry")}</p>
                     <p className="caption">{weather.source} · {weather.updated_at}</p>
+                  </Panel>
+                  <Panel title={t("soilModelTitle")} aside={<span className="badge">{t("modeledValue")}</span>}>
+                    {soilModel ? <>
+                      <div className="weather-stats">
+                        {[["soilSurface", "soil_moisture_0_to_1cm", "%"], ["soilRootZone", "soil_moisture_9_to_27cm", "%"], ["soilTemperature", "soil_temperature_6cm", "°C"]].map(([label, key, unit]) => {
+                          const raw = soilModel.current[key];
+                          const value = raw == null ? null : key.startsWith("soil_moisture_") ? Math.round(raw * 1000) / 10 : Math.round(raw * 10) / 10;
+                          return <div key={key}><small>{t(label)}</small><strong>{value == null ? "—" : `${value} ${unit}`}</strong></div>;
+                        })}
+                      </div>
+                      <p className="caption">{t("soilModelNote")} · {soilModel.updated_at}</p>
+                    </> : <p role="status">{t("soilModelUnavailable")}</p>}
                   </Panel>
                 </div>
               )}
@@ -718,10 +665,8 @@ export default function App() {
                 </>
               )}
               {page === "water" && <Panel title={t("network")}><p>{t("noWaterTelemetry")}</p></Panel>}
-              {page === "energy" && <Panel title={t("energy")}><p>{t("noEnergyTelemetry")}</p></Panel>}
               {page === "simulator" && <Panel title={t("scenario")}><p>{t("scenarioLiveUnavailable")}</p></Panel>}
-              {page === "insights" && <Panel title={t("insightsText")}><p>{t("noFarmTelemetry")}</p></Panel>}
-              {page === "security" && <Panel title={t("securityText")}><p>{t("securityLiveUnavailable")}</p></Panel>}
+              {page === "fruitRipeness" && <FruitRipeness />}
               {page === "studio" && (
                 <Studio
                   region={rid}

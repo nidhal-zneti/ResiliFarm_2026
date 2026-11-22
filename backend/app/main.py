@@ -2,22 +2,24 @@ import csv
 import io
 import json
 import os
+import re
 import zipfile
 from copy import deepcopy
 from contextlib import asynccontextmanager
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, UploadFile, File, Form
 from fastapi.responses import Response, JSONResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
 from . import auth, db
-from .schemas import FarmInput, ScenarioInput, MessageInput, ProjectInput, TelemetryInput, ValidateInput, SignupInput, LoginInput, ProfileInput, PasswordInput, RoleInput, AssignmentInput, ReviewInput, FarmCreateInput, FarmUpdateInput, AdminUserCreateInput, AdminUserUpdateInput, AccountStatusInput, IoTDeviceInput, AssistantMessageInput, FirmwareInput
-from .services import irrigation, anomalies
-from .integrations import weather, WeatherUnavailable
+from .schemas import FarmInput, ScenarioInput, MessageInput, ProjectInput, ValidateInput, SignupInput, LoginInput, ProfileInput, PasswordInput, RoleInput, AssignmentInput, AgronomistFarmerAssignmentInput, ReviewInput, FarmCreateInput, FarmUpdateInput, AdminUserCreateInput, AdminUserUpdateInput, AccountStatusInput, IoTDeviceInput, AssistantMessageInput, FirmwareInput
+from .services import irrigation
+from .integrations import weather, soil_model, WeatherUnavailable
 from .studio import CATALOG, generate, validate, UnsupportedRequest, ProviderUnavailable, provider_status
 from .studio_assistant import AssistantUnavailable, is_design_request, is_design_edit, update_profile, question_turn, answer_agriculture
 from .firmware_generation import generate_firmware, FirmwareUnavailable, FirmwareConfigurationError
+from . import fruitvision
 
 @asynccontextmanager
 async def lifespan(app):
@@ -28,7 +30,7 @@ async def lifespan(app):
     yield
 
 app=FastAPI(title='ResiliFarm AI',version='1.0.0',lifespan=lifespan)
-app.add_middleware(CORSMiddleware,allow_origins=os.getenv('CORS_ORIGINS','http://localhost:5173,http://127.0.0.1:5173').split(','),allow_origin_regex=os.getenv('CORS_ORIGIN_REGEX',r'https?://(localhost|127\.0\.0\.1)(:\d+)?'),allow_methods=['GET','POST','PATCH'],allow_headers=['Content-Type','Authorization'])
+app.add_middleware(CORSMiddleware,allow_origins=os.getenv('CORS_ORIGINS','http://localhost:5173,http://127.0.0.1:5173').split(','),allow_origin_regex=os.getenv('CORS_ORIGIN_REGEX',r'https?://(localhost|127\.0\.0\.1)(:\d+)?'),allow_methods=['GET','POST','PATCH','DELETE'],allow_headers=['Content-Type','Authorization'])
 
 @app.exception_handler(RequestValidationError)
 async def invalid(_, exc):
@@ -60,6 +62,14 @@ async def firmware_unavailable(_, exc):
 @app.exception_handler(FirmwareConfigurationError)
 async def firmware_configuration_error(_, exc):
     return JSONResponse(status_code=422,content={'error':{'code':str(exc)}})
+
+@app.exception_handler(fruitvision.FruitModelUnavailable)
+async def fruit_model_unavailable(_, exc):
+    return JSONResponse(status_code=503,content={'error':{'code':'fruitModelUnavailable'}})
+
+@app.exception_handler(fruitvision.FruitNotRecognized)
+async def fruit_not_recognized(_, exc):
+    return JSONResponse(status_code=422,content={'error':{'code':'fruitNotRecognized'}})
 
 @app.get('/api/v1/aiot/provider')
 def studio_provider(): return provider_status()
@@ -129,12 +139,12 @@ def _number(value,fallback=0.0):
     except (TypeError,ValueError): return fallback
 
 def _visible_farms(c,user):
-    cols=[db.farms.c.id,db.farms.c.name,db.zones.c.name.label('zone'),db.regions.c.id.label('region_id'),db.regions.c.name.label('region_name'),db.regions.c.lat.label('lat'),db.regions.c.lon.label('lon'),db.regions.c.climate.label('climate'),db.farms.c.owner_id,db.users.c.full_name.label('owner_name')]
+    cols=[db.farms.c.id,db.farms.c.name,db.zones.c.name.label('zone'),db.regions.c.id.label('region_id'),db.regions.c.name.label('region_name'),func.coalesce(db.farms.c.latitude,db.regions.c.lat).label('lat'),func.coalesce(db.farms.c.longitude,db.regions.c.lon).label('lon'),db.farms.c.latitude.is_not(None).label('has_farm_coordinates'),db.regions.c.climate.label('climate'),db.farms.c.owner_id,db.users.c.full_name.label('owner_name')]
     role=user.get('role') or 'FARMER'
     base=db.farms.join(db.zones,db.farms.c.zone_id==db.zones.c.id).join(db.regions,db.zones.c.region_id==db.regions.c.id).outerjoin(db.users,db.farms.c.owner_id==db.users.c.id)
     stmt=select(*cols).select_from(base)
     if role=='AGRONOMIST':
-        stmt=stmt.join(db.farm_assignments,db.farms.c.id==db.farm_assignments.c.farm_id).where(db.farm_assignments.c.user_id==user['id'])
+        stmt=stmt.join(db.agronomist_farmer_assignments,db.farms.c.owner_id==db.agronomist_farmer_assignments.c.farmer_id).where(db.agronomist_farmer_assignments.c.agronomist_id==user['id'])
     elif role!='ADMIN':
         # A farmer only ever sees the farm that was assigned to them.
         stmt=stmt.where(db.farms.c.owner_id==user['id'])
@@ -171,6 +181,47 @@ def list_users(user=Depends(auth.require_admin)):
     with db.engine.connect() as c:
         return [auth.public_user(dict(r)) for r in c.execute(select(db.users).order_by(db.users.c.id)).mappings()]
 
+@app.get('/api/v1/admin/agronomist-assignments')
+def list_agronomist_farmer_assignments(user=Depends(auth.require_admin)):
+    agronomist=db.users.alias('assigned_agronomist')
+    farmer=db.users.alias('assigned_farmer')
+    stmt=select(
+        db.agronomist_farmer_assignments.c.id,
+        agronomist.c.id.label('agronomist_id'),agronomist.c.full_name.label('agronomist_name'),
+        farmer.c.id.label('farmer_id'),farmer.c.full_name.label('farmer_name'),farmer.c.email.label('farmer_email'),
+    ).select_from(db.agronomist_farmer_assignments
+        .join(agronomist,agronomist.c.id==db.agronomist_farmer_assignments.c.agronomist_id)
+        .join(farmer,farmer.c.id==db.agronomist_farmer_assignments.c.farmer_id)
+    ).order_by(agronomist.c.full_name,farmer.c.full_name)
+    with db.engine.connect() as c:
+        return [dict(row) for row in c.execute(stmt).mappings()]
+
+@app.post('/api/v1/admin/agronomists/{aid}/farmers',status_code=201)
+def assign_farmer_to_agronomist(aid:int,x:AgronomistFarmerAssignmentInput,user=Depends(auth.require_admin)):
+    with db.engine.begin() as c:
+        agronomist=c.execute(select(db.users).where(db.users.c.id==aid)).mappings().first()
+        farmer=c.execute(select(db.users).where(db.users.c.id==x.farmer_id)).mappings().first()
+        if not agronomist: raise HTTPException(404,'agronomistNotFound')
+        if agronomist['role']!='AGRONOMIST': raise HTTPException(422,'assigneeNotAgronomist')
+        if not farmer: raise HTTPException(404,'farmerNotFound')
+        if farmer['role']!='FARMER': raise HTTPException(422,'assigneeNotFarmer')
+        existing=c.execute(select(db.agronomist_farmer_assignments.c.id).where(
+            db.agronomist_farmer_assignments.c.agronomist_id==aid,
+            db.agronomist_farmer_assignments.c.farmer_id==x.farmer_id,
+        )).scalar_one_or_none()
+        if existing: return {'assigned':True,'already_assigned':True}
+        c.execute(db.agronomist_farmer_assignments.insert().values(agronomist_id=aid,farmer_id=x.farmer_id))
+    return {'assigned':True,'already_assigned':False}
+
+@app.delete('/api/v1/admin/agronomists/{aid}/farmers/{farmer_id}')
+def unassign_farmer_from_agronomist(aid:int,farmer_id:int,user=Depends(auth.require_admin)):
+    with db.engine.begin() as c:
+        c.execute(db.agronomist_farmer_assignments.delete().where(
+            db.agronomist_farmer_assignments.c.agronomist_id==aid,
+            db.agronomist_farmer_assignments.c.farmer_id==farmer_id,
+        ))
+    return {'removed':True}
+
 @app.post('/api/v1/users/{uid}/role')
 def set_role(uid:int,x:RoleInput,user=Depends(auth.require_admin)):
     if x.role not in ROLES: raise HTTPException(422,'invalidRole')
@@ -187,6 +238,7 @@ def list_farms(user=Depends(auth.current_user)):
 
 @app.post('/api/v1/farms',status_code=201)
 def create_farm(x:FarmCreateInput,user=Depends(auth.require_admin)):
+    if (x.latitude is None) != (x.longitude is None): raise HTTPException(422,'farmCoordinatesMustBePaired')
     with db.engine.begin() as c:
         region_row=c.execute(select(db.regions).where(db.regions.c.id==x.region_id)).mappings().first()
         if not region_row: raise HTTPException(404,'regionNotFound')
@@ -196,14 +248,17 @@ def create_farm(x:FarmCreateInput,user=Depends(auth.require_admin)):
         if zone_id is None:
             zone_id=c.execute(db.zones.insert().values(region_id=x.region_id,name=f"{region_row['name']} zone")).inserted_primary_key[0]
         name=x.name.strip()
-        fid=c.execute(db.farms.insert().values(zone_id=zone_id,name=name,owner_id=x.owner_id)).inserted_primary_key[0]
+        latitude=x.latitude if x.latitude is not None else region_row['lat']
+        longitude=x.longitude if x.longitude is not None else region_row['lon']
+        fid=c.execute(db.farms.insert().values(zone_id=zone_id,name=name,owner_id=x.owner_id,latitude=x.latitude,longitude=x.longitude)).inserted_primary_key[0]
         crop_id=c.execute(select(db.crops.c.id).where(db.crops.c.name==x.crop)).scalar_one_or_none()
         if crop_id is not None:
-            c.execute(db.fields.insert().values(farm_id=fid,crop_id=crop_id,name=f'{name} · field',area_ha=x.area_ha,lat=region_row['lat'],lon=region_row['lon']))
+            c.execute(db.fields.insert().values(farm_id=fid,crop_id=crop_id,name=f'{name} · field',area_ha=x.area_ha,lat=latitude,lon=longitude))
     return {'id':fid,'name':name,'region_id':x.region_id,'owner_id':x.owner_id}
 
 @app.patch('/api/v1/farms/{fid}')
 def update_farm(fid:int,x:FarmUpdateInput,user=Depends(auth.require_admin)):
+    if (x.latitude is None) != (x.longitude is None): raise HTTPException(422,'farmCoordinatesMustBePaired')
     with db.engine.begin() as c:
         farm=c.execute(select(db.farms).where(db.farms.c.id==fid)).mappings().first()
         if not farm: raise HTTPException(404,'farmNotFound')
@@ -280,6 +335,24 @@ def farm_agronomists(fid:int,user=Depends(auth.require_admin)):
         stmt=select(db.users).select_from(db.users.join(db.farm_assignments,db.users.c.id==db.farm_assignments.c.user_id)).where(db.farm_assignments.c.farm_id==fid).order_by(db.users.c.id)
         return [auth.public_user(dict(r)) for r in c.execute(stmt).mappings()]
 
+def _accessible_farm(fid,user):
+    with db.engine.connect() as c:
+        farm=next((dict(row) for row in _visible_farms(c,user) if row['id']==fid),None)
+    if farm is None: raise HTTPException(404,'farmNotFound')
+    return farm
+
+@app.get('/api/v1/farms/{fid}/weather')
+def farm_weather(fid:int,user=Depends(auth.current_user)):
+    farm=_accessible_farm(fid,user)
+    scope='farm-coordinate model grid' if farm['has_farm_coordinates'] else 'regional model grid'
+    return weather({'id':farm['id'],'lat':farm['lat'],'lon':farm['lon'],'scope':scope})
+
+@app.get('/api/v1/farms/{fid}/soil')
+def farm_soil(fid:int,user=Depends(auth.current_user)):
+    farm=_accessible_farm(fid,user)
+    scope='farm-coordinate model grid' if farm['has_farm_coordinates'] else 'regional model grid'
+    return soil_model({'id':farm['id'],'lat':farm['lat'],'lon':farm['lon'],'scope':scope})
+
 @app.post('/api/v1/farms/{fid}/agronomists')
 def assign_agronomist(fid:int,x:AssignmentInput,user=Depends(auth.require_admin)):
     with db.engine.begin() as c:
@@ -298,18 +371,50 @@ def remove_agronomist(fid:int,x:AssignmentInput,user=Depends(auth.require_admin)
     return {'removed':True}
 
 @app.get('/api/v1/agronomist/dashboard')
-def agronomist_dashboard(user=Depends(auth.require_roles('AGRONOMIST','ADMIN'))):
+def agronomist_dashboard(farmer_id:int|None=Query(None,ge=1),user=Depends(auth.require_roles('AGRONOMIST','ADMIN'))):
     with db.engine.connect() as c:
+        if user.get('role')=='ADMIN':
+            farmer_rows=c.execute(select(db.users.c.id,db.users.c.full_name,db.users.c.email).where(db.users.c.role=='FARMER').order_by(db.users.c.full_name)).mappings().all()
+        else:
+            farmer_rows=c.execute(
+                select(db.users.c.id,db.users.c.full_name,db.users.c.email)
+                .select_from(db.users.join(db.agronomist_farmer_assignments,db.users.c.id==db.agronomist_farmer_assignments.c.farmer_id))
+                .where(db.agronomist_farmer_assignments.c.agronomist_id==user['id'])
+                .order_by(db.users.c.full_name)
+            ).mappings().all()
+        assigned_farmers=[{'id':r['id'],'name':r['full_name'],'email':r['email']} for r in farmer_rows]
+        selected_farmer=next((farmer for farmer in assigned_farmers if farmer['id']==farmer_id),None)
+        if farmer_id is not None and selected_farmer is None:
+            raise HTTPException(404,'farmerNotAssigned')
+        selected_farms=[farm for farm in _visible_farms(c,user) if selected_farmer and farm['owner_id']==selected_farmer['id']]
+        farm_ids={farm['id'] for farm in selected_farms}
+        review_rows=[]
+        reviewer_names={}
+        reviews_by_farm={farm_id:[] for farm_id in farm_ids}
+        if farm_ids:
+            records=db.records['irrigation_recommendations']
+            candidates=c.execute(select(records.c.id,records.c.payload,records.c.created_at)
+                .where(records.c.is_simulated==False,records.c.source=='agronomist-review')
+                .order_by(records.c.created_at.desc(),records.c.id.desc())).mappings().all()
+            review_rows=[row for row in candidates if isinstance(row['payload'],dict)
+                         and row['payload'].get('farm_id') in farm_ids]
+            reviewer_ids={row['payload'].get('reviewed_by') for row in review_rows if row['payload'].get('reviewed_by') is not None}
+            if reviewer_ids:
+                reviewer_names={r['id']:r['full_name'] for r in c.execute(select(db.users.c.id,db.users.c.full_name).where(db.users.c.id.in_(reviewer_ids))).mappings()}
+            for row in review_rows:
+                payload=row['payload']; fid=payload['farm_id']
+                reviews_by_farm[fid].append({'id':row['id'],'status':payload.get('status','validated'),'note':payload.get('note',''),'reviewed_by':payload.get('reviewed_by'),'reviewer_name':reviewer_names.get(payload.get('reviewed_by')),'created_at':row['created_at'],'can_manage':user.get('role')=='ADMIN' or payload.get('reviewed_by')==user['id']})
         output=[]
-        for farm in _visible_farms(c,user):
-            w=weather({'id':farm['region_id'],'lat':farm['lat'],'lon':farm['lon']},live=True)
+        for farm in selected_farms:
+            scope='farm-coordinate model grid' if farm['has_farm_coordinates'] else 'regional model grid'
+            w=weather({'id':farm['id'],'lat':farm['lat'],'lon':farm['lon'],'scope':scope},live=True)
             sensors,et0,rain,temperature=_simulated_sensors(w)
             fields_rows=_farm_fields(c,farm['id'])
             result=irrigation(_farm_input(fields_rows,et0,rain))
             fields=[{'id':f['id'],'name':f['name'],'area_ha':_number(f['area_ha']),'lat':_number(f['lat']),'lon':_number(f['lon']),'crop':f['crop'],'moisture_pct':sensors['soil_moisture_pct']} for f in fields_rows]
             water=result['water_m3']
             output.append({
-                'id':farm['id'],'name':farm['name'],
+                'id':farm['id'],'name':farm['name'],'farmer_id':farm['owner_id'],'farmer_name':farm['owner_name'],
                 'region':{'id':farm['region_id'],'name':farm['region_name'],'lat':farm['lat'],'lon':farm['lon'],'climate':farm['climate']},
                 'zone':farm['zone'],
                 'fields':fields,
@@ -317,17 +422,56 @@ def agronomist_dashboard(user=Depends(auth.require_roles('AGRONOMIST','ADMIN')))
                 'analysis':{'stress':float(result['stress']),'action':result['action'],'heat_risk':round(min(100.0,max(0.0,(temperature-25.0)*8.0)),1),'drought_risk':round(min(100.0,max(0.0,(et0-rain)*12.0)),1)},
                 'recommendation':{'action':result['action'],'water_m3':water,'net_mm':result['net_mm'],'gross_mm':result['gross_mm']},
                 'stats':{'water_m3_day':water,'water_m3_7d':round(water*7,2),'pump_kwh_7d':round(result['pump_kwh']*7,2),'solar_kwh_7d':round(result['solar_kwh']*7,2)},
-                'review':None,
+                'review':reviews_by_farm[farm['id']][0] if reviews_by_farm[farm['id']] else None,
+                'reviews':reviews_by_farm[farm['id']],
             })
-    return {'farms':output}
+    return {'farmers':assigned_farmers,'selected_farmer':selected_farmer,'farms':output}
+
+def _review_farm_region(c, fid, user):
+    query=select(db.zones.c.region_id).select_from(db.farms.join(db.zones,db.farms.c.zone_id==db.zones.c.id)).where(db.farms.c.id==fid)
+    if user.get('role')=='AGRONOMIST':
+        query=query.join(db.agronomist_farmer_assignments,db.farms.c.owner_id==db.agronomist_farmer_assignments.c.farmer_id).where(db.agronomist_farmer_assignments.c.agronomist_id==user['id'])
+    region_id=c.execute(query).scalar_one_or_none()
+    if region_id is None: raise HTTPException(404,'farmNotFound')
+    return region_id
+
+
+def _manageable_review(c, fid, review_id, user):
+    _review_farm_region(c, fid, user)
+    records=db.records['irrigation_recommendations']
+    row=c.execute(select(records).where(records.c.id==review_id,records.c.source=='agronomist-review',records.c.is_simulated==False)).mappings().first()
+    if not row or not isinstance(row['payload'],dict) or row['payload'].get('farm_id')!=fid:
+        raise HTTPException(404,'reviewNotFound')
+    if user.get('role')!='ADMIN' and row['payload'].get('reviewed_by')!=user['id']:
+        raise HTTPException(403,'reviewManageForbidden')
+    return row
+
 
 @app.post('/api/v1/farms/{fid}/recommendation/review')
 def review_recommendation(fid:int,x:ReviewInput,user=Depends(auth.require_roles('AGRONOMIST','ADMIN'))):
     with db.engine.connect() as c:
-        region_id=c.execute(select(db.zones.c.region_id).select_from(db.farms.join(db.zones,db.farms.c.zone_id==db.zones.c.id)).where(db.farms.c.id==fid)).scalar_one_or_none()
-    if region_id is None: raise HTTPException(404,'farmNotFound')
+        region_id=_review_farm_region(c, fid, user)
     db.save_record('irrigation_recommendations',region_id,{'farm_id':fid,'status':x.status,'note':x.note,'reviewed_by':user['id']},source='agronomist-review',simulated=False)
     return {'status':x.status,'note':x.note,'reviewed_by':user['id']}
+
+
+@app.patch('/api/v1/farms/{fid}/recommendation/reviews/{review_id}')
+def update_recommendation_review(fid:int,review_id:int,x:ReviewInput,user=Depends(auth.require_roles('AGRONOMIST','ADMIN'))):
+    records=db.records['irrigation_recommendations']
+    with db.engine.begin() as c:
+        row=_manageable_review(c,fid,review_id,user)
+        payload={**row['payload'],'status':x.status,'note':x.note}
+        c.execute(records.update().where(records.c.id==review_id).values(payload=payload))
+    return {'id':review_id,'status':x.status,'note':x.note}
+
+
+@app.delete('/api/v1/farms/{fid}/recommendation/reviews/{review_id}')
+def delete_recommendation_review(fid:int,review_id:int,user=Depends(auth.require_roles('AGRONOMIST','ADMIN'))):
+    records=db.records['irrigation_recommendations']
+    with db.engine.begin() as c:
+        _manageable_review(c,fid,review_id,user)
+        c.execute(records.delete().where(records.c.id==review_id))
+    return {'deleted':True,'id':review_id}
 
 @app.get('/api/v1/regions')
 def regions():
@@ -335,6 +479,11 @@ def regions():
         return {'regions':[dict(r) for r in c.execute(select(db.regions).order_by(db.regions.c.country_id, db.regions.c.name)).mappings()], 'countries':[dict(r) for r in c.execute(select(db.countries)).mappings()]}
 @app.get('/api/v1/regions/{rid}/weather')
 def get_weather(rid:int, live:bool=True, historical:bool=False): return weather(region(rid),live,historical)
+
+@app.get('/api/v1/regions/{rid}/soil')
+def get_soil_model(rid:int):
+    r=region(rid)
+    return soil_model({'id':r['id'],'lat':r['lat'],'lon':r['lon'],'scope':'regional model grid'})
 
 @app.get('/api/v1/regions/{rid}/overview')
 def overview(rid:int):
@@ -381,10 +530,54 @@ def alerts(region_id:int=1):
     region(region_id); t=db.records['alerts']
     with db.engine.connect() as c: return [dict(r) for r in c.execute(select(t).where(t.c.region_id==region_id,t.c.is_simulated==False).order_by(t.c.id.desc()).limit(30)).mappings()]
 
-@app.post('/api/v1/security/analyze')
-def analyze(x:TelemetryInput):
-    if len({len(x.flow),len(x.pressure),len(x.moisture)})!=1: raise HTTPException(422,'lengthMismatch')
-    return anomalies(x.flow,x.pressure,x.moisture)
+@app.get('/api/v1/fruit/status')
+def fruit_status(user=Depends(auth.current_user)):
+    return {'model': 'FruitVision AB', 'available_fruits': fruitvision.available_fruits(),
+            'max_image_bytes': 10 * 1024 * 1024, 'stores_images': False}
+
+@app.post('/api/v1/fruit/analyze', status_code=201)
+async def analyze_fruit(fruit: str = Form(...), image: UploadFile = File(...), user=Depends(auth.current_user)):
+    fruit = fruit.strip().lower()
+    if not re.fullmatch(r'[a-z][a-z0-9_-]{0,39}', fruit):
+        raise HTTPException(422, 'invalidFruit')
+    if image.content_type not in {'image/jpeg', 'image/png', 'image/webp'}:
+        raise HTTPException(415, 'unsupportedImageType')
+    contents = await image.read(10 * 1024 * 1024 + 1)
+    await image.close()
+    if len(contents) > 10 * 1024 * 1024:
+        raise HTTPException(413, 'imageTooLarge')
+    signatures = {'image/jpeg': contents.startswith(b'\xff\xd8\xff'),
+                  'image/png': contents.startswith(b'\x89PNG\r\n\x1a\n'),
+                  'image/webp': len(contents) >= 12 and contents[:4] == b'RIFF' and contents[8:12] == b'WEBP'}
+    if not signatures[image.content_type]:
+        raise HTTPException(415, 'invalidImage')
+    try:
+        from PIL import Image, UnidentifiedImageError
+        from io import BytesIO
+        with Image.open(BytesIO(contents)) as decoded:
+            if decoded.width * decoded.height > 25_000_000:
+                raise HTTPException(413, 'imageDimensionsTooLarge')
+            decoded.verify()
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(415, 'invalidImage')
+    result = fruitvision.predict(fruit, contents)
+    with db.engine.begin() as c:
+        result_id = c.execute(db.fruit_ripeness_results.insert().values(
+            user_id=user['id'], **result)).inserted_primary_key[0]
+        saved = c.execute(select(db.fruit_ripeness_results).where(
+            db.fruit_ripeness_results.c.id == result_id)).mappings().one()
+    return dict(saved)
+
+@app.get('/api/v1/fruit/results')
+def fruit_results(user=Depends(auth.current_user)):
+    table = db.fruit_ripeness_results
+    stmt = select(table).order_by(table.c.created_at.desc(), table.c.id.desc()).limit(100)
+    if user.get('role') != 'ADMIN':
+        stmt = stmt.where(table.c.user_id == user['id'])
+    with db.engine.connect() as c:
+        return [dict(row) for row in c.execute(stmt).mappings()]
 
 @app.get('/api/v1/aiot/catalogue')
 def catalogue(): return list(CATALOG.values())
@@ -583,8 +776,21 @@ def export(pid:int,language:str=Query('en',pattern='^(en|fr|ja|ar)$'),version:in
         if not selected: raise HTTPException(404,'versionNotFound')
         p['design']=selected['design']
         p['exported_version']=version
-    writer.writerow(['component','quantity','unit_USD','voltage_V','power_W'])
-    for b in p['design']['bom']: writer.writerow([b['key'],b['quantity'],b['price_usd'],b['voltage_v'],b['power_w']])
+    # Export the same local lower-bound estimates shown in the blueprint.
+    # The legacy USD catalogue is not a fallback for missing local prices.
+    from decimal import Decimal, ROUND_HALF_UP
+    import math
+    estimate=p['design'].get('material_estimate') or {}
+    currency=estimate.get('currency')
+    material_keys={'esp32':'controller','soil':'soil_sensor','pump':'pump','valve':'valve'}
+    writer.writerow(['component','quantity','currency','minimum_unit_estimate','minimum_line_estimate','price_status','voltage_V','power_W'])
+    for b in p['design']['bom']:
+        item=next((item for item in estimate.get('items',[]) if item['key']==material_keys.get(b['key'])),{})
+        unit=item.get('unit_price_low')
+        if unit is None: unit=item.get('unit_price')
+        available=currency in ('TND','JPY') and item.get('currency')==currency and isinstance(unit,(int,float)) and math.isfinite(unit) and unit>=0
+        line=(Decimal(str(unit))*Decimal(str(b['quantity']))).quantize(Decimal('0.01'),rounding=ROUND_HALF_UP) if available else ''
+        writer.writerow([b['key'],b['quantity'],currency if currency in ('TND','JPY') else '',unit if available else '',line,'estimated' if available else 'unavailable',b['voltage_v'],b['power_w']])
     # Same translation resources serve the application and exported instructions.
     from pathlib import Path
     translations=Path(__file__).resolve().parents[2]/'frontend'/'src'/'i18n'/f'{language}.json'

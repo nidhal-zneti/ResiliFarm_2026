@@ -31,7 +31,8 @@ import {
   Zap,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import type { Design, MaterialEstimate, Part } from "./types";
+import type { Design } from "./types";
+import { minimumPartPrice, sumLocalPrices, formatLocalPrice } from "./studioPricing";
 import StudioAssembly from "./StudioAssembly";
 
 type BlueprintTab =
@@ -124,32 +125,6 @@ function iconForPart(key: string) {
   if (category === "actuation") return Wind;
   if (category === "power") return key === "solar" ? Sun : Zap;
   return CircuitBoard;
-}
-
-const sourcedMaterialKey: Record<string, string> = {
-  esp32: "controller",
-  soil: "soil_sensor",
-  pump: "pump",
-  valve: "valve",
-};
-
-function sourcedPartTotal(part: Part, estimate: MaterialEstimate | undefined) {
-  const key = sourcedMaterialKey[part.key];
-  const price = estimate?.items.find((item) => item.key === key);
-  if (!price || price.unit_price == null) return null;
-  return {
-    currency: price.currency,
-    low: (price.unit_price_low ?? price.unit_price) * part.quantity,
-    high: (price.unit_price_high ?? price.unit_price) * part.quantity,
-  };
-}
-
-function sourcedPartPrice(part: Part, estimate: MaterialEstimate | undefined, locale: string) {
-  const total = sourcedPartTotal(part, estimate);
-  if (!total) return null;
-  const format = (amount: number) => amount.toLocaleString(locale, { maximumFractionDigits: 2 });
-  const range = total.low !== total.high ? `${format(total.low)}–${format(total.high)}` : format(total.low);
-  return `${total.currency} ${range}`;
 }
 
 function endpointKey(value: string) {
@@ -436,24 +411,18 @@ export function BlueprintWorkspace({
     const parts = design.bom.filter(
       (part) => categoryForPart(part.key) === item,
     );
-    const sourcedPrices = parts.map((part) => sourcedPartTotal(part, design.material_estimate));
-    const sourcedSubtotal = parts.length && sourcedPrices.every((price) => price != null)
-      ? {
-          currency: sourcedPrices[0]!.currency,
-          low: sourcedPrices.reduce((sum, price) => sum + price!.low, 0),
-          high: sourcedPrices.reduce((sum, price) => sum + price!.high, 0),
-        }
-      : null;
     return {
       category: item,
       parts,
-      sourcedSubtotal,
-      subtotal: parts.reduce(
-        (sum, part) => sum + part.price_usd * part.quantity,
-        0,
-      ),
+      budget: sumLocalPrices(parts.map((part) => minimumPartPrice(part, design.material_estimate)), design.material_estimate?.currency),
     };
   }).filter((group) => group.parts.length > 0);
+  const blueprintBudget = sumLocalPrices(design.bom.map((part) => minimumPartPrice(part, design.material_estimate)), design.material_estimate?.currency);
+  const blueprintTotal = blueprintBudget.price ? formatLocalPrice(blueprintBudget.price, i18n.language) : t("priceUnavailable");
+  const partPrice = (part: Design["bom"][number]) => {
+    const price = minimumPartPrice(part, design.material_estimate);
+    return price ? formatLocalPrice(price, i18n.language) : t("priceUnavailable");
+  };
   const powerPath = [
     "solar",
     "charger",
@@ -557,8 +526,8 @@ export function BlueprintWorkspace({
               <span>{t("connectionCount")}</span>
             </div>
             <div>
-              <strong>${design.cost_usd.toFixed(2)}</strong>
-              <span>{t("estimatedCost")}</span>
+              <strong>{blueprintTotal}</strong>
+              <span>{t(blueprintBudget.complete ? "minimumBlueprintCost" : "partialMinimumBlueprintCost")}</span>
             </div>
           </div>
           <section>
@@ -584,9 +553,7 @@ export function BlueprintWorkspace({
                     </span>
                     <strong>{t(part.key)}</strong>
                     <small>×{part.quantity}</small>
-                    {sourcedPartPrice(part, design.material_estimate, i18n.language) && (
-                      <small>{sourcedPartPrice(part, design.material_estimate, i18n.language)}</small>
-                    )}
+                    <small>{partPrice(part)}</small>
                   </button>
                 );
               })}
@@ -598,9 +565,9 @@ export function BlueprintWorkspace({
               <details key={group.category}>
                 <summary>
                   <span>{t(`category_${group.category}`)}</span>
-                  <strong>{group.sourcedSubtotal != null
-                    ? `${group.sourcedSubtotal.currency} ${group.sourcedSubtotal.low.toLocaleString(i18n.language, { maximumFractionDigits: 2 })}–${group.sourcedSubtotal.high.toLocaleString(i18n.language, { maximumFractionDigits: 2 })}`
-                    : `$${group.subtotal.toFixed(2)}`}</strong>
+                  <strong>{group.budget.price ? formatLocalPrice(group.budget.price, i18n.language) : t("priceUnavailable")}
+                    {!group.budget.complete && group.budget.price && <small> · {t("partialPrice")}</small>}
+                  </strong>
                 </summary>
                 <ul>
                   {group.parts.map((part) => (
@@ -609,7 +576,7 @@ export function BlueprintWorkspace({
                         {t(part.key)} ×{part.quantity}
                       </button>
                       <span>
-                        {sourcedPartPrice(part, design.material_estimate, i18n.language) ?? `$${(part.price_usd * part.quantity).toFixed(2)}`}
+                        {partPrice(part)}
                       </span>
                     </li>
                   ))}
@@ -617,13 +584,13 @@ export function BlueprintWorkspace({
               </details>
             ))}
             <strong className="bom-grand-total">
-              {t("grandTotal")} · ${design.cost_usd.toFixed(2)}
+              {t(blueprintBudget.complete ? "minimumBlueprintCost" : "partialMinimumBlueprintCost")} · {blueprintTotal}
             </strong>
           </section>
           <div className="blueprint-notes">
             <h3>{t("designAssumptions")}</h3>
             <p>{t("qualifiedReview")}</p>
-            <p>{t("supplyNote")}</p>
+            <p>{t("minimumBlueprintNote")}</p>
             <small>{t("blueprintProjectId", { id: projectId })}</small>
           </div>
           <div className="blueprint-tools">
@@ -701,7 +668,7 @@ export function BlueprintWorkspace({
                     <span className="part-card-cost">
                       ×{part.quantity}
                       <strong>
-                        {sourcedPartPrice(part, design.material_estimate, i18n.language) ?? `$${(part.price_usd * part.quantity).toFixed(2)}`}
+                        {partPrice(part)}
                       </strong>
                     </span>
                     <span className="part-card-spec">

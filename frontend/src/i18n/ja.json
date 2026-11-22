@@ -1,13 +1,29 @@
 {
+  "minimumBlueprintCost": "部品の最低見積費用",
+  "partialMinimumBlueprintCost": "部品の最低見積小計（一部）",
+  "minimumMaterialCost": "資材の最低見積予算",
+  "minimumLineCost": "最低見積費用",
+  "partialPrice": "一部の見積もり",
+  "minimumBlueprintNote": "利用可能な現地単価見積もりの下限に設計図の数量を掛けて計算します。不明な価格は除外します。制御部品は農場資材予算の一部であり、数量が異なる場合があります。送料・設置費・税金は含みません。",
+  "minimumMaterialNote": "利用可能な現地価格見積もりの下限を使用します。数量や価格が不明な項目は除外します。計画用の見積もりであり、価格を保証するものではありません。",
+  "category_controller": "コントローラー",
+  "category_sensing": "センサー",
+  "category_communication": "通信",
+  "category_actuation": "駆動装置",
+  "category_power": "電源",
+  "category_protection": "保護",
+  "editReview": "レビューを編集",
+  "deleteReview": "レビューを削除",
+  "cancelReviewAction": "キャンセル",
+  "deleteReviewConfirm": "このレビューを完全に削除しますか？この操作は取り消せません。",
+  "reviewDecision": "レビューのステータス",
+  "reviewNotFound": "このレビューは存在しません。ページを更新してください。",
+  "reviewManageForbidden": "編集・削除できるのは自分のレビューのみです。",
   "overview": "概要",
-  "comparison": "地域比較",
   "twin": "デジタルツイン",
   "agriculture": "農業インテリジェンス",
   "water": "水管理",
-  "energy": "エネルギー管理",
   "simulator": "シナリオシミュレーター",
-  "insights": "AI分析",
-  "security": "サイバーセキュリティ",
   "studio": "ResiliFarm Studio",
   "settings": "設定とアクセシビリティ",
   "profile": "プロフィール",
@@ -114,7 +130,6 @@
   "deficit": "エネルギー不足",
   "heatRisk": "高温リスク指標",
   "droughtRisk": "干ばつ指標",
-  "regionalNote": "地域比較に表示されるのはOpen-Meteo気象モデルの出力であり、農場の測定値ではありません。",
   "inspect": "詳細",
   "mapNote": "圃場位置は説明用です。地図タイルには通信が必要ですが、圃場操作はオフラインでも利用できます。",
   "devices": "仮想デバイス",
@@ -140,8 +155,6 @@
   "run": "シミュレーション実行",
   "savedRun": "保存済みシミュレーション",
   "rules": "説明可能なルール · 学習済みモデル不使用",
-  "insightsText": "計算は入力された農場値と気象モデルの値を使用します。圃場で測定された結果ではなく推定値です。",
-  "securityText": "模擬データの範囲外水分、固定値、急変、流量増加と圧力低下を検出します。実運用のセキュリティサービスではありません。",
   "analyze": "テレメトリを分析",
   "normal": "正常",
   "leakDetected": "漏水の疑い：流量が基準の130％超、圧力が80％未満です。",
@@ -322,7 +335,7 @@
   "homeJourneySteps": [
     "国と行政地域を選び、現在のモデル気象と7日間予報を確認します。",
     "農業ページで実際の農場条件を入力します。必要なら気象モデルの値を使い、計算結果のラベルを確認します。",
-    "水、エネルギー、シミュレーション、分析、セキュリティには適切なオンライン農業データが必要です。まだ統合されていないため、値を捏造せず利用不可と表示します。",
+    "????????????????????????????????????????????????????????????????????????????????????",
     "Studioでは機器の設計案を作成できます。実機には接続・展開されません。"
   ],
   "homeDataNote": "区域を変更するとその区域の気象モデルデータを読み込みます。農場値は事前入力されません。",
@@ -353,18 +366,6 @@
       "results": "行政中心地グリッドの気象モデル値です。農場の測定値はありません。",
       "beginner": "Open-Meteoの現在値は15分単位の気象モデルであり、現地観測所の測定値ではありません。",
       "professional": "事前作成の農場、合成テレメトリ、計算済み基準値は含みません。座標ベースのモデル気象は圃場と異なる場合があります。"
-    },
-    "comparison": {
-      "purpose": "行政区域間で気象モデル出力を比較します。",
-      "inputs": "国。チュニジアの24県と日本の47都道府県を選べます。",
-      "steps": [
-        "国を選びます。",
-        "地域の気象予報を比較します。",
-        "区域を選ぶと現在気象を表示します。"
-      ],
-      "results": "地域気象モデルの比較であり農場の測定値ではありません。",
-      "beginner": "農場やセンサーの測定値は含まれません。",
-      "professional": "各区域の行政中心座標でモデルを取得します。観測所データではありません。"
     },
     "twin": {
       "purpose": "行政中心地の地図と地域モデル気象を表示します。",
@@ -401,17 +402,6 @@
       "beginner": "水路網のオンライン情報源は未統合です。機器接続は必要ありません。",
       "professional": "合成Darcyネットワーク値はライブ画面に表示しません。"
     },
-    "energy": {
-      "purpose": "農場ごとの太陽光発電やポンプ電力には、オンライン情報源または実際の設備仕様が必要です。",
-      "inputs": "農場の必要水量、揚程（m）、ポンプ効率、太陽光容量（kWp）、等価日照時間。",
-      "steps": [
-        "信頼できるオンライン情報源を利用するか、対応後に実際の設備仕様を入力します。",
-        "仮定の発電量やポンプ使用量は表示しません。"
-      ],
-      "results": "農場エネルギーのオンライン情報源が未統合のため利用できません。",
-      "beginner": "農場エネルギーのオンライン情報源は未統合です。機器接続は必要ありません。",
-      "professional": "kWhの計算には実際の設備仕様が必要です。結果は推定値であり、測定値ではありません。"
-    },
     "simulator": {
       "purpose": "シナリオ結果はシミュレーションであり、ライブ農場データではありません。",
       "inputs": "シナリオ、強度、対策の切替、計算欄内の農場条件。",
@@ -422,28 +412,6 @@
       "results": "シミュレーション結果は表示しません。",
       "beginner": "適切な実データと計算方法が統合されるまで利用できません。",
       "professional": "信頼できるデータ源と検証済みの方法が統合されるまでシミュレーションAPIは要求を拒否します。"
-    },
-    "insights": {
-      "purpose": "運用分析には実際の農場入力と関連するオンラインデータが必要です。",
-      "inputs": "農業セクションでの計算、または地域の初期見積もり。",
-      "steps": [
-        "農業ページに実際の農場条件を入力します。",
-        "利用可能な地域気象モデルを使い、各計算のラベルを確認します。"
-      ],
-      "results": "農業データ情報源と検証済みの推奨方法が統合されるまで利用できません。",
-      "beginner": "デモ値や欠損データから推奨を生成しません。",
-      "professional": "ライブインサイトはサンプルデータにしきい値ルールを適用しません。"
-    },
-    "security": {
-      "purpose": "ライブ異常分析には、実際の事象や測定値を提供する信頼できるオンライン情報源が必要です。",
-      "inputs": "正常、漏水、改ざん、センサー停止、急変の例。",
-      "steps": [
-        "統合されたら、信頼できる公開情報源または農業データ源を選びます。",
-        "タイムスタンプと出所を確認して値を分析します。"
-      ],
-      "results": "農場事象やセキュリティに関する適切なオンライン情報源が未統合のため利用できません。",
-      "beginner": "サンプル配列をライブデータとして表示しません。",
-      "professional": "機器データの取り込みも外部セキュリティ情報源も未統合です。IoTは前提ではありません。"
     },
     "studio": {
       "purpose": "カタログに基づく灌漑機器の構想を作成・変更します。",
@@ -468,6 +436,17 @@
       "results": "現在のOpen-Meteoモデル値と7日予報。",
       "beginner": "サービス障害時にサンプル気象へ置き換えません。",
       "professional": "現在気象は15分単位のモデル出力で、観測所テレメトリではありません。"
+    },
+    "fruitRipeness": {
+      "purpose": "????FruitVision???????1??????????????????????",
+      "inputs": "?????1???10 MB???JPEG?PNG?WebP???",
+      "steps": [
+        "??????????????????????????",
+        "???????????????????????"
+      ],
+      "results": "?????????????????????????",
+      "beginner": "?????????????????????????????????????????",
+      "professional": "FruitVision AB??????????????????????????????"
     }
   },
   "studioAiStatusUnknown": "Studioの生成モードを確認中…",
@@ -482,17 +461,22 @@
   "currentWeather": "現在の気象状況",
   "modelWeather": "現在の気象モデル（観測所ではありません）",
   "weatherValidAt": "モデル時刻",
-  "weatherGridNote": "Open-Meteoの現在値は地域グリッドの15分単位気象モデルによるもので、現地観測所の測定値ではありません。",
+  "weatherGridNote": "Open-Meteoはこの地域の気象モデル値を提供します。現地観測所の測定値ではありません。",
   "farmDataStatus": "農場の測定値",
-  "noFarmTelemetry": "現在統合されている農業関連のライブインターネット情報源はOpen-Meteoのみです。土壌、流量、圧力、農場内気象のオンライン情報源はまだ統合されていません。",
+  "noFarmTelemetry": "Open-Meteoでこの地域の気象と土壌水分・温度のモデル値を利用できます。現地の測定値ではありません。流量と圧力の測定値には地域のセンサー情報源が必要です。SoilGrids REST APIは提供元により一時停止中です。",
+  "soilModelTitle": "土壌モデルの状態",
+  "modeledValue": "モデル推定値",
+  "soilSurface": "表層土壌水分（0～1 cm）",
+  "soilRootZone": "根域の土壌水分（9～27 cm）",
+  "soilTemperature": "土壌温度（6 cm）",
+  "soilModelNote": "Open-Meteoのモデル値。圃場センサーの測定値ではありません",
+  "soilModelUnavailable": "この地域の土壌モデル値は現在利用できません。",
   "regionLocation": "行政区域の位置",
   "regionCoordinatesOnly": "この地点は行政中心地であり、測量済み農場の位置ではありません。",
   "realFarmInputsOnly": "実際の農場の値を入力してください。例の農場データは初期入力されません。結果は測定値ではなく計算値です。",
   "farmInputsRequired": "計算前に実際の農場の必須項目をすべて入力してください。",
   "noWaterTelemetry": "この農場の水路網、流量、圧力に関する公開インターネット情報源はまだ統合されていません。IoT機器の接続は前提としていません。",
-  "noEnergyTelemetry": "この農場の太陽光発電やポンプ電力に関する公開インターネット情報源はまだ統合されていません。IoT機器の接続は前提としていません。",
   "scenarioLiveUnavailable": "シナリオ結果はシミュレーションのため、ライブ画面では無効です。",
-  "securityLiveUnavailable": "セキュリティ分析には実際の事象や測定値を提供する信頼できるオンライン情報源が必要ですが、まだ統合されていません。IoT接続は不要です。",
   "weatherConnected": "気象モデル接続済み",
   "modelWeatherPolicy": "現在の状況と予報はOpen-Meteoの気象モデルによるもので、現地観測所の測定値ではありません。",
   "forecastDays": "7日間のモデル予報",
@@ -501,7 +485,6 @@
   "calculationEstimate": "入力した農場値、作物係数の参考値、明記された気象モデルに基づく計算推定値であり、直接観測した値ではありません。",
   "hardwareUnavailable": "ハードウェア接続は利用できません",
   "weatherUpdates": "アプリは10分ごとに気象データを更新します。表示時刻はモデルの有効時刻です。",
-  "comparisonPartial": "{{total}}地域中{{loaded}}地域の気象を取得しました。{{failed}}地域は読み込めませんでした。",
   "assistantIntro": "作物、土壌、病害虫、灌漑、農業計画について質問できます。情報が不完全でも、予備的な助言や予算の目安を提示します。出典、モデルの推定、仮定を区別して表示します。",
   "assistantPrompt": "Ask an agriculture question or describe an irrigation design you need...",
   "assistantSend": "Send",
@@ -683,7 +666,17 @@
   "climate": "気候",
   "agronomist": "アグロノミストダッシュボード",
   "noAssignedFarms": "まだ農場が割り当てられていません。",
-  "assignedFarmsHelp": "管理者が農場をアグロノミストに割り当てます。自分に割り当てられた農場のみ表示されます。",
+  "noFarmerFarms": "担当する農家のアカウントに農場がまだ登録されていません。",
+  "noAssignedFarmers": "担当する農家がまだ割り当てられていません。管理者に担当農家の追加を依頼してください。",
+  "assignedFarmersHelp": "管理者が農家をアグロノミストに割り当てます。このページには担当農家と登録済み農場が表示されます。",
+  "assignedFarmers": "担当農家",
+  "selectFarmer": "農家を選択して記録を表示",
+  "selectFarmerPlaceholder": "農家を選択",
+  "farmerLabel": "農家",
+  "consultingEstimateNotice": "気象や灌漑の状態は参考推定値です。農場センサーは接続されていません。",
+  "reviewHistory": "過去の相談記録",
+  "noReviewHistory": "この農場の過去のレビューはありません。",
+  "farms": "登録済み農場",
   "conditionAnalysis": "条件分析",
   "fieldReadings": "圃場の計測値",
   "aiRecommendation": "AI灌漑レコメンド",
@@ -729,5 +722,24 @@
   "ownerUpdated": "所有者を更新しました。",
   "create": "作成",
   "assignTo": "農家に割り当て",
-  "noFarms": "まだ農場がありません。上で作成してください。"
+  "noFarms": "まだ農場がありません。上で作成してください。",
+  "fruitRipeness": "?????",
+  "fruitIntro": "??1????????????????FruitVision AB????????????????????????????????????",
+  "fruitModelUnavailable": "FruitVision????????????????????????????????????????",
+  "fruitType": "??",
+  "fruitPhoto": "?????",
+  "fruitPhotoLimit": "JPEG?PNG?WebP???{{size}} MB?",
+  "analyzeFruit": "?????",
+  "fruitHistory": "????",
+  "fruitNoResults": "??????????????",
+  "fruitPrivacy": "???????????????????????????????????????????????",
+  "fruitConfidence": "???",
+  "unripe": "??",
+  "ripe": "?????",
+  "rotten": "?????",
+  "unsupportedImageType": "JPEG?PNG?WebP????????????",
+  "invalidImage": "????????????????????????",
+  "imageTooLarge": "???10 MB??????????",
+  "imageDimensionsTooLarge": "??????????????",
+  "fruitNotRecognized": "?????FruitVision????????????????????????1?????????????????????"
 }

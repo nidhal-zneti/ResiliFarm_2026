@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "test:studio-pricing": "node tests/run-studio-pricing.mjs",
     "test:firmware": "node tests/run-firmware.mjs",
     "test:onboarding": "node tests/run-onboarding.mjs",
     "dev": "vite --host 127.0.0.1",

@@ -61,6 +61,17 @@ export type Weather = {
     radiation_mj_m2: number;
   }[];
 };
+export type SoilModel = {
+  source: string;
+  kind: "soil_model";
+  is_simulated: false;
+  is_measured: false;
+  coverage: { lat: number; lon: number; scope: string };
+  units: { soil_moisture: string; soil_temperature: string };
+  updated_at: string;
+  current: Record<string, number | null>;
+  hourly: ({ time: string } & Record<string, number | null>)[];
+};
 export type Field = {
   id: number;
   name: string;
@@ -300,9 +311,17 @@ export type RecommendationReview = {
   note: string;
   reviewed_by: number;
 };
+export type SavedRecommendationReview = RecommendationReview & {
+  id: number;
+  reviewer_name: string | null;
+  created_at: string;
+  can_manage: boolean;
+};
 export type AgronomistFarm = {
   id: number;
   name: string;
+  farmer_id: number | null;
+  farmer_name: string | null;
   region: { id: number; name: string; lat: number; lon: number; climate: string };
   zone: string;
   fields: FarmFieldReading[];
@@ -322,8 +341,11 @@ export type AgronomistFarm = {
     pump_kwh_7d: number;
     solar_kwh_7d: number;
   };
-  review: RecommendationReview | null;
+  review: SavedRecommendationReview | null;
+  reviews: SavedRecommendationReview[];
 };
 export type AgronomistDashboard = {
+  farmers: { id: number; name: string; email: string }[];
+  selected_farmer: { id: number; name: string; email: string } | null;
   farms: AgronomistFarm[];
 };

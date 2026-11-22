@@ -80,16 +80,21 @@ class RoleInput(Input):
 class AssignmentInput(Input):
     user_id: int
 
+class AgronomistFarmerAssignmentInput(Input):
+    farmer_id: int = Field(ge=1)
+
 class FarmCreateInput(Input):
     name: str = Field(min_length=1, max_length=80, pattern=r'.*\S.*')
     region_id: int = Field(ge=1)
     owner_id: int | None = None
     crop: Literal['olive','wheat','tomato'] = 'olive'
     area_ha: float = Field(1, gt=0, le=10000)
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
 
 class ReviewInput(Input):
-    status: str = Field(min_length=1, max_length=20)
-    note: str = ''
+    status: Literal['validated', 'rejected', 'modified']
+    note: str = Field(default='', max_length=500)
 
 class AdminUserCreateInput(Input):
     email: str = Field(min_length=3, max_length=255, pattern=EMAIL)

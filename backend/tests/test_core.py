@@ -24,6 +24,114 @@ def isolated_studio_provider(monkeypatch):
 def client():
     with TestClient(app) as c: yield c
 
+@pytest.fixture
+def review_case(client, monkeypatch, tmp_path):
+    from sqlalchemy import create_engine
+    from backend.app import auth, db, main
+    engine=create_engine('sqlite:///'+str(tmp_path/'reviews.db'),connect_args={'check_same_thread':False})
+    monkeypatch.setattr(db,'engine',engine)
+    db.initialize()
+    with engine.begin() as c:
+        ids=[]
+        for name,role in [('farmer','FARMER'),('author','AGRONOMIST'),('colleague','AGRONOMIST'),('admin','ADMIN')]:
+            ids.append(c.execute(db.users.insert().values(email=f'{name}@reviews.test',full_name=name,password_hash='unused',role=role)).inserted_primary_key[0])
+        owner,author,colleague,admin=ids
+        zone=c.execute(db.zones.insert().values(region_id=1,name='Review test zone')).inserted_primary_key[0]
+        farm=c.execute(db.farms.insert().values(zone_id=zone,name='Review test farm',owner_id=owner)).inserted_primary_key[0]
+        other_farm=c.execute(db.farms.insert().values(zone_id=zone,name='Other review farm',owner_id=owner)).inserted_primary_key[0]
+        for agronomist in [author,colleague]:
+            c.execute(db.agronomist_farmer_assignments.insert().values(agronomist_id=agronomist,farmer_id=owner))
+    actor={'id':author,'role':'AGRONOMIST'}
+    app.dependency_overrides[auth.current_user]=lambda:actor
+    monkeypatch.setattr(main,'weather',lambda *args,**kwargs:{'current':{'temperature_2m':20},'days':[]})
+    base=f'/api/v1/farms/{farm}/recommendation/review'
+    def history():
+        response=client.get(f'/api/v1/agronomist/dashboard?farmer_id={owner}')
+        assert response.status_code==200
+        return next(item for item in response.json()['farms'] if item['id']==farm)
+    try:
+        yield client,actor,ids,farm,other_farm,base,history
+    finally:
+        app.dependency_overrides.pop(auth.current_user,None)
+        engine.dispose()
+
+
+def test_review_edit_delete_persistence(review_case):
+    from sqlalchemy import select
+    from backend.app import db
+    client,actor,ids,farm,other_farm,base,history=review_case
+    for note in ['First review','Second review']:
+        assert client.post(base,json={'status':'validated','note':note}).status_code==200
+    before=history()
+    latest=before['reviews'][0]
+    assert latest['can_manage'] is True
+    path=f'{base}s/{latest["id"]}'
+    assert client.patch(path,json={'status':'modified','note':'Updated irrigation advice'}).status_code==200
+    updated=history()
+    assert len(updated['reviews'])==2
+    assert updated['review']['note']=='Updated irrigation advice'
+    assert updated['review']['status']=='modified'
+    assert updated['review']['created_at']==latest['created_at']
+    assert updated['review']['reviewed_by']==latest['reviewed_by']
+    assert client.delete(path).status_code==200
+    remaining=history()
+    assert len(remaining['reviews'])==1
+    assert remaining['review']['note']=='First review'
+    assert client.delete(path).status_code==404
+    assert client.patch(path,json={'status':'rejected'}).status_code==404
+    assert client.delete(f'{base}s/{remaining["review"]["id"]}').status_code==200
+    assert history()['review'] is None
+    assert history()['reviews']==[]
+    with db.engine.connect() as c:
+        assert not c.execute(select(db.records['irrigation_recommendations'])).first()
+
+
+@pytest.mark.parametrize('method',['patch','delete'])
+def test_review_mutation_permissions_and_scope(review_case,method):
+    from sqlalchemy import select
+    from backend.app import auth, db
+    client,actor,ids,farm,other_farm,base,history=review_case
+    owner,author,colleague,admin=ids
+    assert client.post(base,json={'status':'validated','note':'Original'}).status_code==200
+    review=history()['review']
+    path=f'{base}s/{review["id"]}'
+    def mutate(target=path):
+        return getattr(client,method)(target,**({'json':{'status':'rejected','note':'Changed'}} if method=='patch' else {}))
+    actor.update(id=owner,role='FARMER')
+    assert mutate().status_code==403
+    actor.update(id=colleague,role='AGRONOMIST')
+    assert history()['review']['can_manage'] is False
+    assert mutate().status_code==403
+    actor.update(id=author)
+    assert mutate(f'/api/v1/farms/{other_farm}/recommendation/reviews/{review["id"]}').status_code==404
+    invalid_record=db.save_record('irrigation_recommendations',1,{'farm_id':farm,'reviewed_by':author},source='user-input',simulated=False)
+    assert mutate(f'{base}s/{invalid_record}').status_code==404
+    simulated=db.save_record('irrigation_recommendations',1,{'farm_id':farm,'reviewed_by':author},source='agronomist-review',simulated=True)
+    assert mutate(f'{base}s/{simulated}').status_code==404
+    with db.engine.begin() as c:
+        c.execute(db.agronomist_farmer_assignments.delete().where(db.agronomist_farmer_assignments.c.agronomist_id==author))
+    assert mutate().status_code==404
+    with db.engine.connect() as c:
+        records=db.records['irrigation_recommendations']
+        assert c.execute(select(records.c.payload).where(records.c.id==review['id'])).scalar_one()['note']=='Original'
+    app.dependency_overrides.pop(auth.current_user)
+    assert mutate().status_code==401
+    app.dependency_overrides[auth.current_user]=lambda:actor
+    actor.update(id=admin,role='ADMIN')
+    assert history()['review']['can_manage'] is True
+    assert mutate().status_code==200
+
+
+@pytest.mark.parametrize('payload',[{'status':'unknown'},{'status':'validated','note':'x'*501}])
+def test_review_input_limits(review_case,payload):
+    client,actor,ids,farm,other_farm,base,history=review_case
+    assert client.post(base,json={'status':'validated'}).status_code==200
+    review_id=history()['review']['id']
+    assert client.post(base,json=payload).status_code==422
+    assert client.patch(f'{base}s/{review_id}',json=payload).status_code==422
+    assert len(history()['reviews'])==1
+    assert history()['review']['status']=='validated'
+
 def test_fao_units_efficiency_and_energy():
     r=irrigation(FarmInput(crop='wheat',stage='mid',et0=5,rainfall=1,area_ha=2,efficiency=.8,head_m=30,pump_efficiency=.6))
     assert r['etc_mm']==5.75
@@ -172,7 +280,7 @@ def test_weather_fallback_and_cache(monkeypatch):
     def failure(*args, **kwargs):
         raise httpx.ConnectError('offline')
 
-    monkeypatch.setattr(integrations.httpx, 'get', failure)
+    monkeypatch.setattr(integrations, '_fetch', failure)
     with pytest.raises(WeatherUnavailable):
         integrations.weather(REGIONS[0], True)
 
@@ -199,10 +307,37 @@ def test_weather_fallback_and_cache(monkeypatch):
             request=httpx.Request('GET', 'https://api.open-meteo.com/v1/forecast'),
         )
 
-    monkeypatch.setattr(integrations.httpx, 'get', success)
+    monkeypatch.setattr(integrations, '_fetch', success)
     assert integrations.weather(REGIONS[0], True)['kind'] == 'current_model'
     integrations.weather(REGIONS[0], True)
     assert len(calls) == 1
+
+@pytest.mark.parametrize('currency',['TND','JPY',None])
+def test_export_uses_minimum_local_prices(client,monkeypatch,currency):
+    import csv
+    from backend.app import main
+    design=generate('irrigation with 2 soil sensors')
+    design['material_estimate']={'currency':currency,'items':[
+        {'key':'controller','currency':currency,'unit_price':100,'unit_price_low':80,'unit_price_high':120},
+        {'key':'soil_sensor','currency':currency,'unit_price':40,'unit_price_low':30,'unit_price_high':50},
+    ]}
+    monkeypatch.setattr(main,'project',lambda pid:{'id':pid,'design':design})
+    response=client.get('/api/v1/aiot/projects/999/export')
+    assert response.status_code==200
+    with zipfile.ZipFile(io.BytesIO(response.content)) as z:
+        content=z.read('bom.csv').decode()
+        assert 'USD' not in content and '$' not in content
+        rows={row['component']:row for row in csv.DictReader(io.StringIO(content))}
+        assert rows['relay']['price_status']=='unavailable'
+        assert rows['relay']['minimum_line_estimate']==''
+        if currency:
+            assert rows['esp32']['currency']==currency
+            assert rows['esp32']['minimum_unit_estimate']=='80'
+            assert rows['esp32']['minimum_line_estimate']=='80.00'
+            assert float(rows['soil']['minimum_line_estimate'])==30*float(rows['soil']['quantity'])
+        else:
+            assert all(row['price_status']=='unavailable' for row in rows.values())
+
 
 def test_translation_parity():
     root=Path(__file__).resolve().parents[2]/'frontend/src/i18n'
@@ -216,12 +351,39 @@ def test_translation_parity():
         assert isinstance(value, str) and value.strip()
         return 'text'
     assert shape(dictionaries[0])==shape(dictionaries[1])==shape(dictionaries[2])
-    sections={'overview','comparison','twin','agriculture','water','energy','simulator','insights','security','studio','settings'}
+    sections={'overview','twin','agriculture','water','simulator','fruitRipeness','studio','settings'}
     for dictionary in dictionaries:
         assert set(dictionary['guides'])==sections
         for guide in dictionary['guides'].values():
             assert set(guide)=={'purpose','inputs','steps','results','beginner','professional'}
             assert len(guide['steps'])>=2
+
+def test_fruitvision_endpoints_are_authenticated_and_fail_closed(client, monkeypatch):
+    from backend.app import fruitvision
+    assert client.get('/api/v1/fruit/status').status_code == 401
+    signup = client.post('/api/v1/auth/signup', json={
+        'email': 'fruit-check@example.com', 'password': 'test-password-123', 'full_name': 'Fruit Check'
+    })
+    assert signup.status_code == 201
+    headers = {'Authorization': 'Bearer ' + signup.json()['token']}
+    monkeypatch.setattr(fruitvision, 'available_fruits', lambda: [])
+    def unavailable(*_):
+        raise fruitvision.FruitModelUnavailable()
+    monkeypatch.setattr(fruitvision, 'predict', unavailable)
+    status = client.get('/api/v1/fruit/status', headers=headers)
+    assert status.json()['available_fruits'] == []
+    assert status.json()['stores_images'] is False
+    from PIL import Image
+    import io
+    image_buffer = io.BytesIO()
+    Image.new('RGB', (2, 2), 'red').save(image_buffer, format='PNG')
+    image = image_buffer.getvalue()
+    response = client.post('/api/v1/fruit/analyze', headers=headers,
+                           data={'fruit': 'apple'},
+                           files={'image': ('apple.png', image, 'image/png')})
+    assert response.status_code == 503
+    assert response.json()['error']['code'] == 'fruitModelUnavailable'
+    assert client.get('/api/v1/fruit/results', headers=headers).json() == []
 
 @pytest.mark.parametrize('prompt',['robot','solar robot','robot\nWi-Fi','drone','ロボット','ドローン','make a pizza','   '])
 def test_unsupported_studio_has_no_side_effects(client, monkeypatch, prompt):

@@ -56,6 +56,20 @@ studio_chat_messages = entity(
     Column('payload', json_type),
 )
 farm_assignments = entity('farm_assignments', ref('farm_id', 'farms'), ref('user_id', 'users'), constraints=(UniqueConstraint('farm_id', 'user_id'),))
+agronomist_farmer_assignments = entity(
+    'agronomist_farmer_assignments',
+    ref('agronomist_id', 'users'), ref('farmer_id', 'users'),
+    constraints=(UniqueConstraint('agronomist_id', 'farmer_id'),),
+)
+fruit_ripeness_results = entity(
+    'fruit_ripeness_results',
+    ref('user_id', 'users'),
+    Column('fruit', String(40), nullable=False),
+    Column('ripeness', String(20), nullable=False),
+    Column('confidence', Float, nullable=False),
+    Column('recommendation', String(500), nullable=False),
+    Column('model_version', String(80), nullable=False),
+)
 records = {}
 for name in ['weather_observations', 'sensor_readings', 'energy_systems', 'predictions', 'alerts', 'irrigation_recommendations', 'simulation_runs']:
     records[name] = entity(name, ref('region_id', 'administrative_areas'), Column('is_simulated', Boolean, nullable=False, default=True), Column('source', String(120)), Column('payload', json_type))
@@ -225,6 +239,22 @@ def initialize():
         admin_emails = {email.strip().lower() for email in os.getenv('ADMIN_EMAILS', '').split(',') if email.strip()}
         if admin_emails:
             c.execute(users.update().where(users.c.email.in_(admin_emails)).values(role='ADMIN'))
+        # Carry forward intentional legacy farm→agronomist assignments by linking
+        # each farm's existing owner to its assigned agronomist.
+        legacy_pairs=c.execute(
+            select(farm_assignments.c.user_id.label('agronomist_id'),farms.c.owner_id.label('farmer_id'))
+            .select_from(farm_assignments.join(farms,farm_assignments.c.farm_id==farms.c.id))
+            .join(users,farm_assignments.c.user_id==users.c.id)
+            .where(farms.c.owner_id.is_not(None),users.c.role=='AGRONOMIST')
+            .distinct()
+        ).mappings().all()
+        for pair in legacy_pairs:
+            exists=c.execute(select(agronomist_farmer_assignments.c.id).where(
+                agronomist_farmer_assignments.c.agronomist_id==pair['agronomist_id'],
+                agronomist_farmer_assignments.c.farmer_id==pair['farmer_id'],
+            )).first()
+            if not exists:
+                c.execute(agronomist_farmer_assignments.insert().values(**dict(pair)))
 
 def save_record(name, region_id, payload, source='deterministic-demo', simulated=True):
     with engine.begin() as c:

@@ -1,13 +1,29 @@
 {
+  "minimumBlueprintCost": "Coût minimum estimé des composants",
+  "partialMinimumBlueprintCost": "Sous-total minimum estimé des composants (partiel)",
+  "minimumMaterialCost": "Budget minimum estimé des matériaux",
+  "minimumLineCost": "Coût minimum estimé",
+  "partialPrice": "Estimation partielle",
+  "minimumBlueprintNote": "Utilise l’estimation unitaire locale la plus basse × la quantité du schéma. Les prix manquants sont exclus. Ces composants constituent une partie du budget agricole ; les quantités peuvent différer. Livraison, installation et taxes exclues.",
+  "minimumMaterialNote": "Utilise la borne basse de chaque estimation locale disponible. Quantités et prix inconnus exclus. Il s’agit d’une estimation de planification, pas d’un devis garanti.",
+  "category_controller": "Contrôleur",
+  "category_sensing": "Capteurs",
+  "category_communication": "Communication",
+  "category_actuation": "Actionnement",
+  "category_power": "Alimentation",
+  "category_protection": "Protection",
+  "editReview": "Modifier l’avis",
+  "deleteReview": "Supprimer l’avis",
+  "cancelReviewAction": "Annuler",
+  "deleteReviewConfirm": "Supprimer définitivement cet avis ? Cette action est irréversible.",
+  "reviewDecision": "Statut de l’avis",
+  "reviewNotFound": "Cet avis n’existe plus. Actualisez la page.",
+  "reviewManageForbidden": "Vous pouvez uniquement modifier ou supprimer vos propres avis.",
   "overview": "Vue d’ensemble",
-  "comparison": "Comparaison régionale",
   "twin": "Jumeau numérique",
   "agriculture": "Intelligence agricole",
   "water": "Gestion de l’eau",
-  "energy": "Gestion de l’énergie",
   "simulator": "Simulateur de scénarios",
-  "insights": "Analyses IA",
-  "security": "Cybersécurité",
   "studio": "ResiliFarm Studio",
   "settings": "Paramètres et accessibilité",
   "profile": "Profil",
@@ -114,7 +130,6 @@
   "deficit": "Déficit énergétique",
   "heatRisk": "Indicateur de chaleur",
   "droughtRisk": "Indicateur de sécheresse",
-  "regionalNote": "La comparaison régionale montre des sorties du modèle météo Open-Meteo, pas des mesures agricoles.",
   "inspect": "Inspecter",
   "mapNote": "Emplacements illustratifs. La carte nécessite Internet ; les commandes des parcelles fonctionnent hors ligne.",
   "devices": "Appareils simulés",
@@ -140,8 +155,6 @@
   "run": "Lancer la simulation",
   "savedRun": "Simulation enregistrée",
   "rules": "Règles explicables · aucun modèle entraîné",
-  "insightsText": "Les calculs utilisent les valeurs saisies et les données du modèle météo. Ce sont des estimations, pas des mesures du champ.",
-  "securityText": "Contrôles de télémétrie simulée : humidité hors limites, valeurs figées, sauts et débit élevé avec pression faible. Aucun service de sécurité en direct.",
   "analyze": "Analyser la télémétrie",
   "normal": "Normal",
   "leakDetected": "Fuite suspectée : débit supérieur à 130 % et pression inférieure à 80 % de la référence.",
@@ -322,7 +335,7 @@
   "homeJourneySteps": [
     "Choisissez un pays et une région administrative. Consultez le modèle météo actuel et ses prévisions sur sept jours.",
     "Dans Agriculture, saisissez les paramètres réels de l’exploitation. Vous pouvez reprendre les valeurs du modèle météo, puis consulter le calcul clairement identifié.",
-    "Eau, Énergie, Simulation, Analyses et Sécurité nécessitent des sources Internet adaptées aux données agricoles. Aucune n’est encore intégrée : ces vues indiquent leur indisponibilité au lieu d’inventer des données.",
+    "Les sections Eau et Simulation n?cessitent des sources de donn?es agricoles en ligne. Elles restent indisponibles. La maturit? des fruits est propos?e uniquement pour les fruits avec un mod?le local ?valu?.",
     "Utilisez Studio pour concevoir un concept matériel ; il n’est ni connecté ni déployé sur un équipement."
   ],
   "homeDataNote": "Changer de région charge son modèle météo. Les valeurs agricoles ne sont pas préremplies.",
@@ -353,18 +366,6 @@
       "results": "Valeurs du modèle météo pour la grille du centre administratif ; aucune mesure agricole n’est disponible.",
       "beginner": "Les conditions Open-Meteo actuelles sont issues d’un modèle par pas de 15 minutes, pas d’une station locale.",
       "professional": "La vue ne contient ni fermes préremplies, ni télémétrie synthétique, ni référence calculée. La météo est modélisée aux coordonnées et peut différer du champ."
-    },
-    "comparison": {
-      "purpose": "Comparer les sorties du modèle météo entre régions administratives.",
-      "inputs": "Pays ; la Tunisie comprend ses 24 gouvernorats et le Japon ses 47 préfectures.",
-      "steps": [
-        "Choisissez un pays.",
-        "Comparez les prévisions météo régionales.",
-        "Choisissez une région pour afficher sa météo actuelle."
-      ],
-      "results": "Comparaison de données météo modélisées, pas de mesures agricoles.",
-      "beginner": "Aucune mesure de ferme ou de capteur n’est incluse.",
-      "professional": "Chaque région utilise les coordonnées de son centre administratif. Le fournisseur donne des valeurs modélisées, pas des observations de station."
     },
     "twin": {
       "purpose": "Voir le centre administratif sur une carte avec sa météo régionale modélisée.",
@@ -401,17 +402,6 @@
       "beginner": "Aucune source en ligne adaptée au réseau d’eau n’est intégrée ; aucun appareil n’est attendu.",
       "professional": "Les valeurs synthétiques du réseau Darcy ne sont pas exposées dans l’espace en direct."
     },
-    "energy": {
-      "purpose": "La production solaire et l’énergie de pompage propres à une exploitation nécessitent une source en ligne ou ses spécifications réelles.",
-      "inputs": "Demande en eau, hauteur de pompe (m), rendement, capacité solaire (kWp) et heures solaires équivalentes.",
-      "steps": [
-        "Utilisez une source Internet fiable ou saisissez les spécifications réelles quand cette fonction sera prise en charge.",
-        "Aucune production ni consommation supposée n’est affichée."
-      ],
-      "results": "Indisponible : aucune source en ligne de données énergétiques agricoles n’est intégrée.",
-      "beginner": "Aucune source en ligne adaptée à l’énergie agricole n’est intégrée ; aucun appareil n’est attendu.",
-      "professional": "Les kWh calculés nécessitent les spécifications réelles de l’équipement et restent des estimations, pas des mesures."
-    },
     "simulator": {
       "purpose": "Les scénarios sont des simulations, pas des données de ferme en direct.",
       "inputs": "Scénario, intensité, option d’intervention et entrées agricoles sous Calculer.",
@@ -422,28 +412,6 @@
       "results": "Aucun résultat de scénario simulé n’est affiché.",
       "beginner": "Indisponible tant que des données et méthodes réelles adaptées ne sont pas intégrées.",
       "professional": "L’API refuse les simulations tant que des données fiables et une méthode validée ne sont pas intégrées."
-    },
-    "insights": {
-      "purpose": "Les analyses opérationnelles nécessitent des paramètres agricoles réels et des sources de données en ligne adaptées.",
-      "inputs": "Un calcul dans Agriculture ou l’estimation régionale initiale.",
-      "steps": [
-        "Saisissez les vrais paramètres agricoles dans Agriculture.",
-        "Utilisez le modèle météo régional disponible et vérifiez l’étiquette de chaque calcul."
-      ],
-      "results": "Indisponible tant que des sources agricoles et des méthodes de recommandation validées ne sont pas intégrées.",
-      "beginner": "Aucune recommandation ne repose sur des exemples ou des données manquantes.",
-      "professional": "La vue en direct n’applique pas de règles à des données d’exemple."
-    },
-    "security": {
-      "purpose": "Une analyse d’anomalies en direct nécessite une source Internet fiable d’événements ou de mesures réels.",
-      "inputs": "Normal, fuite, falsification, capteur figé ou saut de mesure.",
-      "steps": [
-        "Sélectionnez une source publique ou agricole fiable lorsqu’elle sera intégrée.",
-        "Analysez ensuite ses valeurs avec leurs horodatages et leur provenance."
-      ],
-      "results": "Indisponible : aucune source en ligne adaptée aux événements agricoles ou de sécurité n’est intégrée.",
-      "beginner": "Aucun tableau d’exemple n’est présenté comme donnée en direct.",
-      "professional": "Aucune ingestion par appareil ni source externe de sécurité n’est intégrée ; l’IoT n’est pas un prérequis."
     },
     "studio": {
       "purpose": "Créer et modifier un concept de matériel d’irrigation à partir du catalogue.",
@@ -468,6 +436,17 @@
       "results": "Valeurs actuelles du modèle Open-Meteo et prévision sur sept jours.",
       "beginner": "Aucun échantillon ou repli météo n’est affiché en cas de panne.",
       "professional": "La météo actuelle est issue d’un modèle par pas de 15 minutes, pas de la télémétrie d’une station."
+    },
+    "fruitRipeness": {
+      "purpose": "Estime la maturit? d?un fruit choisi ? partir d?une photo avec un mod?le FruitVision ?valu?.",
+      "inputs": "Un type de fruit et une photo JPEG, PNG ou WebP de 10 Mo maximum.",
+      "steps": [
+        "Choisissez un fruit pris en charge et importez une photo nette.",
+        "Consultez l?estimation et v?rifiez directement le fruit."
+      ],
+      "results": "?tat de maturit?, confiance du mod?le, recommandation, version du mod?le et historique.",
+      "beginner": "Une estimation par image peut ?tre erron?e ; v?rifiez le fruit. Les photos import?es ne sont pas conserv?es.",
+      "professional": "Utilise les caract?ristiques couleur et forme de FruitVision AB. Seuls les mod?les ?valu?s sur un jeu de test sont activ?s."
     }
   },
   "studioAiStatusUnknown": "Vérification du mode de génération Studio…",
@@ -482,17 +461,22 @@
   "currentWeather": "Conditions météo actuelles",
   "modelWeather": "Modèle météo actuel (pas une station)",
   "weatherValidAt": "heure du modèle",
-  "weatherGridNote": "Les conditions actuelles Open-Meteo proviennent d’un modèle météo par pas de 15 minutes sur cette grille régionale, pas de mesures d’une station locale.",
+  "weatherGridNote": "Open-Meteo fournit des données de modèle météo pour cette région, pas des mesures d’une station locale.",
   "farmDataStatus": "Mesures de l’exploitation",
-  "noFarmTelemetry": "Open-Meteo est actuellement la seule source Internet en direct intégrée pour les données agricoles. Aucune source en ligne pour le sol, le débit, la pression ou la météo sur site n’est encore intégrée.",
+  "noFarmTelemetry": "La météo et les estimations modélisées d’humidité et de température du sol sont disponibles pour cette région via Open-Meteo. Ce sont des estimations, pas des mesures locales. Les mesures de débit et de pression nécessitent une source régionale de capteurs. L’API REST SoilGrids est temporairement suspendue par son fournisseur.",
+  "soilModelTitle": "Conditions du modèle de sol",
+  "modeledValue": "Estimation du modèle",
+  "soilSurface": "Humidité du sol en surface (0–1 cm)",
+  "soilRootZone": "Humidité du sol en zone racinaire (9–27 cm)",
+  "soilTemperature": "Température du sol (6 cm)",
+  "soilModelNote": "Valeurs modélisées par Open-Meteo, pas des mesures de capteurs au champ",
+  "soilModelUnavailable": "Les valeurs du modèle de sol sont indisponibles pour cette région.",
   "regionLocation": "Emplacement administratif",
   "regionCoordinatesOnly": "Le point indique le centre administratif, pas une exploitation relevée.",
   "realFarmInputsOnly": "Saisissez les valeurs réelles de votre exploitation. Aucun exemple n’est prérempli. Les résultats sont des calculs, pas des mesures.",
   "farmInputsRequired": "Saisissez toutes les valeurs requises de votre exploitation avant le calcul.",
   "noWaterTelemetry": "Aucune source Internet publique concernant le réseau d’eau, le débit ou la pression de cette exploitation n’est intégrée. Aucun appareil IoT n’est requis.",
-  "noEnergyTelemetry": "Aucune source Internet publique concernant la production solaire ou l’énergie de pompage de cette exploitation n’est intégrée. Aucun appareil IoT n’est requis.",
   "scenarioLiveUnavailable": "Les scénarios sont des simulations ; ils sont désactivés dans l’espace en direct.",
-  "securityLiveUnavailable": "L’analyse de sécurité exige une source Internet fiable d’événements ou de mesures réels ; aucune n’est intégrée. La connexion IoT n’est pas nécessaire.",
   "weatherConnected": "Modèle météo connecté",
   "modelWeatherPolicy": "Les conditions actuelles et les prévisions proviennent des modèles météo Open-Meteo, pas d’une station locale.",
   "forecastDays": "Prévision du modèle sur sept jours",
@@ -501,7 +485,6 @@
   "calculationEstimate": "Estimation calculée à partir de vos valeurs agricoles, de coefficients culturaux de référence et du modèle météo indiqué ; ce n’est pas une observation directe.",
   "hardwareUnavailable": "Connexion au matériel indisponible",
   "weatherUpdates": "L’application actualise la météo toutes les 10 minutes. L’heure affichée est celle de validité du modèle.",
-  "comparisonPartial": "La météo est disponible pour {{loaded}} régions sur {{total}} ; {{failed}} n’ont pas pu être chargées.",
   "assistantIntro": "Posez vos questions sur les cultures, les sols, les ravageurs, l’irrigation ou la gestion agricole. Obtenez des conseils préliminaires et des fourchettes de budget même avec des informations incomplètes. Les sources, estimations du modèle et hypothèses sont distinguées.",
   "assistantPrompt": "Posez une question agricole ou decrivez le systeme d irrigation souhaite...",
   "assistantSend": "Envoyer",
@@ -683,7 +666,17 @@
   "climate": "Climat",
   "agronomist": "Tableau de bord agronome",
   "noAssignedFarms": "Aucune ferme n’est encore assignée.",
-  "assignedFarmsHelp": "Les administrateurs assignent les fermes aux agronomes. Vous ne voyez que les fermes qui vous sont assignées.",
+  "noFarmerFarms": "Aucune ferme n’est encore liée aux comptes des agriculteurs qui vous sont attribués.",
+  "noAssignedFarmers": "Aucun agriculteur ne vous est encore attribué. Demandez à un administrateur d’ajouter des agriculteurs à votre portefeuille.",
+  "assignedFarmersHelp": "Les administrateurs attribuent des agriculteurs aux agronomes. Cette page affiche vos agriculteurs et leurs exploitations enregistrées.",
+  "assignedFarmers": "Votre portefeuille d’agriculteurs",
+  "selectFarmer": "Sélectionner un agriculteur pour consulter son dossier",
+  "selectFarmerPlaceholder": "Choisir un agriculteur",
+  "farmerLabel": "Agriculteur",
+  "consultingEstimateNotice": "Les indicateurs météo et d’irrigation sont des estimations indicatives. Aucun capteur de ferme n’est connecté.",
+  "reviewHistory": "Historique des consultations",
+  "noReviewHistory": "Aucun avis précédent n’a été enregistré pour cette exploitation.",
+  "farms": "Exploitations enregistrées",
   "conditionAnalysis": "Analyse des conditions",
   "fieldReadings": "Relevés des parcelles",
   "aiRecommendation": "Recommandation d’irrigation IA",
@@ -729,5 +722,24 @@
   "ownerUpdated": "Propriétaire mis à jour.",
   "create": "Créer",
   "assignTo": "Attribuer à un agriculteur",
-  "noFarms": "Aucune ferme pour le moment. Créez-en une ci-dessus."
+  "noFarms": "Aucune ferme pour le moment. Créez-en une ci-dessus.",
+  "fruitRipeness": "Maturit? des fruits",
+  "fruitIntro": "Importez une photo nette d?un fruit pour estimer sa maturit? avec le mod?le FruitVision AB. Il s?agit d?une estimation visuelle ? v?rifier directement.",
+  "fruitModelUnavailable": "Mod?le FruitVision indisponible. Aucun mod?le entra?n? et ?valu? n?est install? ; l?analyse est d?sactiv?e.",
+  "fruitType": "Fruit",
+  "fruitPhoto": "Photo du fruit",
+  "fruitPhotoLimit": "JPEG, PNG ou WebP ; maximum {{size}} Mo.",
+  "analyzeFruit": "Analyser la photo",
+  "fruitHistory": "Historique de vos analyses",
+  "fruitNoResults": "Aucune analyse enregistr?e.",
+  "fruitPrivacy": "La photo est trait?e uniquement pendant cette requ?te puis supprim?e. Seuls le r?sultat et ses m?tadonn?es sont enregistr?s.",
+  "fruitConfidence": "Confiance",
+  "unripe": "Pas m?r",
+  "ripe": "M?r",
+  "rotten": "Pourri",
+  "unsupportedImageType": "Choisissez une image JPEG, PNG ou WebP.",
+  "invalidImage": "Le fichier choisi n?est pas une image valide prise en charge.",
+  "imageTooLarge": "L?image doit faire 10 Mo ou moins.",
+  "imageDimensionsTooLarge": "Les dimensions de l?image sont trop grandes.",
+  "fruitNotRecognized": "Cette photo ne satisfait pas au contr?le de forme FruitVision. Essayez une photo nette d?un seul fruit entier."
 }

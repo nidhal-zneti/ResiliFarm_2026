@@ -6,12 +6,9 @@ import {
   FlaskConical,
   LayoutDashboard,
   Map,
-  MapPinned,
   Settings,
-  ShieldCheck,
-  Sparkles,
+  ScanSearch,
   Sprout,
-  Sun,
   ArrowRight,
 } from "lucide-react";
 import { Panel } from "./components";
@@ -20,14 +17,11 @@ export type ExperienceMode = "beginner" | "professional";
 
 const sections = [
   ["overview", LayoutDashboard],
-  ["comparison", MapPinned],
   ["twin", Map],
   ["agriculture", Sprout],
   ["water", Droplets],
-  ["energy", Sun],
   ["simulator", FlaskConical],
-  ["insights", Sparkles],
-  ["security", ShieldCheck],
+  ["fruitRipeness", ScanSearch],
   ["studio", CircuitBoard],
   ["settings", Settings],
 ] as const;

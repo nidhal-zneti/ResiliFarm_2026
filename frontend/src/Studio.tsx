@@ -22,6 +22,7 @@ import type {
   Validation,
 } from "./types";
 import { BlueprintWorkspace } from "./StudioBlueprint";
+import { minimumMaterialBudget, minimumLinePrice, minimumUnitPrice, formatLocalPrice } from "./studioPricing";
 import FirmwarePanel, { type FirmwareSettings } from "./FirmwarePanel";
 import "@xyflow/react/dist/style.css";
 
@@ -38,38 +39,15 @@ function formatAmount(value: number, locale: string) {
   return value.toLocaleString(locale, { maximumFractionDigits: 2 });
 }
 
-function formatMoney(value: number, currency: string, locale: string) {
-  if (currency === "JPY") return `¥${formatAmount(value, locale)}`;
-  if (currency === "TND") return `TND ${formatAmount(value, locale)}`;
-  return `${currency} ${formatAmount(value, locale)}`;
-}
-
-function estimateTotal(estimate: MaterialEstimate | undefined, locale: string) {
-  if (!estimate) return null;
-  const currency = estimate.currency ?? "TND";
-  if (estimate.subtotal_low != null && estimate.subtotal_high != null) {
-    return `${formatMoney(estimate.subtotal_low, currency, locale)} – ${formatMoney(estimate.subtotal_high, currency, locale)}`;
-  }
-  if (estimate.priced_subtotal != null) {
-    return formatMoney(estimate.priced_subtotal, currency, locale);
-  }
-  return null;
-}
-
 function estimateItemPrice(
   item: MaterialEstimate["items"][number],
   locale: string,
   unavailable: string,
 ) {
-  const currency = item.currency;
-  if (item.line_total_low != null && item.line_total_high != null) {
-    return `${formatMoney(item.line_total_low, currency, locale)} – ${formatMoney(item.line_total_high, currency, locale)}`;
-  }
-  if (item.line_total != null) return formatMoney(item.line_total, currency, locale);
-  if (item.unit_price_low != null && item.unit_price_high != null) {
-    return `${formatMoney(item.unit_price_low, currency, locale)} – ${formatMoney(item.unit_price_high, currency, locale)} / ${item.unit}`;
-  }
-  if (item.unit_price != null) return `${formatMoney(item.unit_price, currency, locale)} / ${item.unit}`;
+  const line = minimumLinePrice(item);
+  if (line) return formatLocalPrice(line, locale);
+  const unit = minimumUnitPrice(item);
+  if (unit) return `${formatLocalPrice(unit, locale)} / ${item.unit}`;
   return unavailable;
 }
 
@@ -260,7 +238,8 @@ export default function Studio({
   const currentRegion = regions.find((item) => item.id === region);
   const chatMessages = conversation?.messages ?? project?.messages ?? [];
   const estimate = design?.material_estimate;
-  const total = estimateTotal(estimate, i18n.language);
+  const budget = minimumMaterialBudget(estimate);
+  const total = budget.price ? formatLocalPrice(budget.price, i18n.language) : null;
   const sizing = estimate?.irrigation_sizing;
   const formatSizingValue = (value: number | null | undefined) =>
     value == null ? "—" : formatAmount(value, i18n.language);
@@ -472,7 +451,7 @@ export default function Studio({
             </div>
 
             <div className="studio-design-hero">
-              <div><span>{t("studioHeroBudget")}</span><strong>{total ?? t("priceUnavailable")}</strong></div>
+              <div><span>{t("minimumMaterialCost")}</span><strong>{total ?? t("priceUnavailable")}</strong>{!budget.complete && <small>{t("partialPrice")}</small>}</div>
               <div><span>{t("studioHeroParts")}</span><strong>{design.bom.reduce((sum, item) => sum + item.quantity, 0)}</strong></div>
               <div>
                 <span>{t("studioHeroCompatibility")}</span>
@@ -555,10 +534,10 @@ export default function Studio({
 
         {step === "budget" && design && (
           <section className="studio-budget-view">
-            <div className="studio-step-heading"><div><p className="eyebrow">{t("studioStepBudget")}</p><h2>{t("sourcedMaterialsCost")}</h2></div></div>
+            <div className="studio-step-heading"><div><p className="eyebrow">{t("studioStepBudget")}</p><h2>{t("minimumMaterialCost")}</h2></div></div>
             <div className="studio-budget-summary">
               <strong>{total ?? t("priceUnavailable")}</strong>
-              <span>{t(estimate?.complete ? "completeSupplierEstimate" : "partialSupplierEstimate")}</span>
+              <span>{t(budget.complete ? "completeSupplierEstimate" : "partialSupplierEstimate")}</span>
             </div>
             {sizing && (
               <section className="studio-sizing-card" aria-labelledby="studio-sizing-title">
@@ -589,7 +568,7 @@ export default function Studio({
             {estimate?.items.length ? (
               <div className="studio-table-wrap">
                 <table className="studio-table studio-budget-table">
-                  <thead><tr><th>{t("studioItem")}</th><th>{t("quantity")}</th><th>{t(currentRegion?.country_id === 2 ? "studioPriceRangeJPY" : "studioPriceRangeTND")}</th></tr></thead>
+                  <thead><tr><th>{t("studioItem")}</th><th>{t("quantity")}</th><th>{t("minimumLineCost")}{estimate?.currency ? ` (${estimate.currency})` : ""}</th></tr></thead>
                   <tbody>{estimate.items.map((item) => {
                     const expanded = expandedBudgetItem === item.key;
                     return (
@@ -602,7 +581,7 @@ export default function Studio({
                             </button>
                           </td>
                           <td>{item.quantity ?? "—"} {t(`unit_${item.unit}`, { defaultValue: item.unit })}</td>
-                          <td>{estimateItemPrice(item, i18n.language, t("priceUnavailable"))}</td>
+                          <td>{item.currency === estimate.currency ? estimateItemPrice(item, i18n.language, t("priceUnavailable")) : t("priceUnavailable")}</td>
                         </tr>
                         {expanded && (
                           <tr key={`${item.key}-details`} className="studio-budget-details-row">
@@ -624,6 +603,7 @@ export default function Studio({
             ) : <p className="studio-unavailable-note">{t("studioBudgetUnavailable")}</p>}
             {estimate?.warnings.map((warning) => <p className="caption" key={warning}>{t(warning)}</p>)}
             <p className="caption">{t("supplierEstimateNote")}</p>
+            <p className="caption">{t("minimumMaterialNote")}</p>
           </section>
         )}
 
@@ -661,9 +641,9 @@ export default function Studio({
 
       <footer className="studio-bottom-bar">
         <div className="studio-bottom-total">
-          <span>{t("sourcedMaterialsCost")}</span>
+          <span>{t("minimumMaterialCost")}</span>
           <strong>{project ? total ?? t("priceUnavailable") : "—"}</strong>
-          {project && estimate && <small>{t(estimate.complete ? "completeSupplierEstimate" : "partialSupplierEstimate")}</small>}
+          {project && estimate && <small>{t(budget.complete ? "completeSupplierEstimate" : "partialSupplierEstimate")}</small>}
         </div>
         {step === "export" && project ? (
           <a className="primary studio-next-button" href={exportHref}>

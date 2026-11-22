@@ -1,13 +1,29 @@
 {
+  "minimumBlueprintCost": "Minimum estimated parts cost",
+  "partialMinimumBlueprintCost": "Minimum estimated parts subtotal (partial)",
+  "minimumMaterialCost": "Minimum estimated materials budget",
+  "minimumLineCost": "Minimum estimated cost",
+  "partialPrice": "Partial estimate",
+  "minimumBlueprintNote": "Uses the lowest available local unit estimate × blueprint quantity. Missing prices are excluded. These controller parts are a subset of the farm materials budget; quantities may differ. Shipping, installation and taxes are excluded.",
+  "minimumMaterialNote": "Uses the low end of each available local price estimate. Unknown quantities and prices are excluded. This is a planning estimate, not a guaranteed quote.",
+  "category_controller": "Controller",
+  "category_sensing": "Sensors",
+  "category_communication": "Communication",
+  "category_actuation": "Actuation",
+  "category_power": "Power",
+  "category_protection": "Protection",
+  "editReview": "Edit review",
+  "deleteReview": "Delete review",
+  "cancelReviewAction": "Cancel",
+  "deleteReviewConfirm": "Delete this review permanently? This cannot be undone.",
+  "reviewDecision": "Review status",
+  "reviewNotFound": "This review no longer exists. Refresh the page.",
+  "reviewManageForbidden": "You can only modify or delete your own reviews.",
   "overview": "Overview",
-  "comparison": "Regional comparison",
   "twin": "Digital twin",
   "agriculture": "Agricultural intelligence",
   "water": "Water management",
-  "energy": "Energy management",
   "simulator": "Scenario simulator",
-  "insights": "AI insights",
-  "security": "Cybersecurity",
   "studio": "ResiliFarm Studio",
   "settings": "Settings & accessibility",
   "profile": "Profile",
@@ -114,7 +130,6 @@
   "deficit": "Energy deficit",
   "heatRisk": "Heat-risk indicator",
   "droughtRisk": "Drought indicator",
-  "regionalNote": "Regional comparison shows Open-Meteo weather-model output, not measured farm conditions.",
   "inspect": "Inspect",
   "mapNote": "Illustrative field locations. Map tiles require internet; field controls remain available offline.",
   "devices": "Simulated devices",
@@ -140,8 +155,6 @@
   "run": "Run simulation",
   "savedRun": "Saved simulation",
   "rules": "Explainable rules · no trained model",
-  "insightsText": "Calculations use the farm values you enter and weather-model inputs. They are estimates, not measured field outcomes.",
-  "securityText": "Simulated telemetry checks: out-of-range moisture, frozen readings, abrupt jumps and high flow with low pressure. This is not a live security service.",
   "analyze": "Analyze telemetry",
   "normal": "Normal",
   "leakDetected": "Suspected leak: flow is over 130% of baseline and pressure is below 80%.",
@@ -322,7 +335,7 @@
   "homeJourneySteps": [
     "Choose a country and administrative region. Review current model weather and the seven-day forecast.",
     "In Agriculture, enter actual farm parameters. Optionally copy weather-model inputs, then review the labeled calculation estimate.",
-    "Water, Energy, Simulator, Insights and Security need suitable online farm-data sources. None are integrated yet, so these views show unavailable status instead of invented data.",
+    "Water and Simulator need suitable online farm-data sources. Neither is integrated yet, so these views remain unavailable. Fruit Ripeness is available only for fruits with evaluated local models.",
     "Use Studio to draft hardware concepts; a design is not connected to or deployed on equipment."
   ],
   "homeDataNote": "Changing region loads that region’s weather-model data. Farm values are not prefilled.",
@@ -353,18 +366,6 @@
       "results": "Weather-model values for the administrative center grid; no farm measurements are available.",
       "beginner": "Open-Meteo current conditions are 15-minute model output, not a local station reading.",
       "professional": "The overview does not include seeded farms, synthetic telemetry or calculated baselines. Weather is coordinate-based model output and may differ from field conditions."
-    },
-    "comparison": {
-      "purpose": "Compare weather-model output across administrative regions.",
-      "inputs": "Country; Tunisia includes all 24 governorates and Japan all 47 prefectures.",
-      "steps": [
-        "Choose a country.",
-        "Compare the regional weather forecasts.",
-        "Select a region to open its current weather."
-      ],
-      "results": "A comparison of regional model data, not measured conditions on farms.",
-      "beginner": "No farm or sensor readings are included.",
-      "professional": "Each region is queried at its administrative-center coordinate. The provider returns model values, not station observations."
     },
     "twin": {
       "purpose": "View an administrative-center map point and its regional weather.",
@@ -401,17 +402,6 @@
       "beginner": "No suitable online water-network source is integrated yet; no device connection is expected.",
       "professional": "Synthetic Darcy network outputs are not exposed in the live workspace."
     },
-    "energy": {
-      "purpose": "Farm-specific solar generation and pump energy need an online source or real farm specifications.",
-      "inputs": "Farm water demand, pump head (m), pump efficiency, solar capacity (kWp) and equivalent sun hours.",
-      "steps": [
-        "Use an authoritative online source or enter actual farm equipment specifications when supported.",
-        "This page shows no assumed generation or pump usage."
-      ],
-      "results": "Unavailable because no online farm-energy source is integrated.",
-      "beginner": "No suitable online farm-energy source is integrated yet; no device connection is expected.",
-      "professional": "Calculated kWh values require actual equipment specifications and remain estimates, not measurements."
-    },
     "simulator": {
       "purpose": "Scenario results are simulations, not live farm data.",
       "inputs": "Scenario, severity, intervention toggle and farm inputs under Calculate.",
@@ -422,28 +412,6 @@
       "results": "No synthetic scenario outputs are shown.",
       "beginner": "Unavailable until suitable real data and methods are integrated.",
       "professional": "The simulation API rejects requests until trustworthy source data and a validated method are integrated."
-    },
-    "insights": {
-      "purpose": "Operational insights need actual farm inputs and relevant online data sources.",
-      "inputs": "Calculate in Agriculture first, or inspect the initial regional estimate.",
-      "steps": [
-        "Enter actual farm parameters in Agriculture.",
-        "Use the available regional weather model and review each calculation label."
-      ],
-      "results": "Unavailable until suitable farm data sources and validated recommendation methods are integrated.",
-      "beginner": "No recommendations are generated from demo values or missing sources.",
-      "professional": "The live insights view does not use threshold rules over example data."
-    },
-    "security": {
-      "purpose": "Live anomaly analysis needs a trusted online source of actual events or readings.",
-      "inputs": "Normal, leak, tampering, frozen sensor or sudden sensor jump.",
-      "steps": [
-        "Select a trusted public or farm data source when one is integrated.",
-        "Then analyze source values with their timestamps and provenance."
-      ],
-      "results": "Unavailable because no suitable online security or farm-event source is integrated.",
-      "beginner": "No sample arrays are presented as live data.",
-      "professional": "There is no device ingestion and no external security feed is integrated; IoT is not a prerequisite."
     },
     "studio": {
       "purpose": "Create and revise a catalogue-based irrigation hardware concept.",
@@ -468,6 +436,17 @@
       "results": "Current Open-Meteo model values and a seven-day forecast.",
       "beginner": "No fallback or sample weather is shown if the provider fails.",
       "professional": "Current weather is 15-minute model output; it is not station telemetry."
+    },
+    "fruitRipeness": {
+      "purpose": "Estimate the ripeness of a selected fruit from one uploaded photo using an evaluated FruitVision model.",
+      "inputs": "One fruit type and a JPEG, PNG, or WebP photo up to 10 MB.",
+      "steps": [
+        "Choose a supported fruit and upload a clear photo.",
+        "Review the estimate and inspect the fruit directly before acting."
+      ],
+      "results": "Ripeness label, model confidence, recommendation, model version, and saved analysis history.",
+      "beginner": "Image-based estimates can be wrong; confirm by inspecting the fruit. Uploaded photos are not retained.",
+      "professional": "Uses the FruitVision AB colour-and-shape feature path. Only model artifacts with a held-out evaluation are enabled."
     }
   },
   "studioAiStatusUnknown": "Checking Studio generation mode…",
@@ -482,17 +461,22 @@
   "currentWeather": "Current weather conditions",
   "modelWeather": "Current weather model (not a station)",
   "weatherValidAt": "model time",
-  "weatherGridNote": "Open-Meteo current conditions use 15-minute weather-model data for this regional grid; they are not local station measurements.",
+  "weatherGridNote": "Open-Meteo provides weather-model output for this region, not measurements from a local station.",
   "farmDataStatus": "Farm measurements",
-  "noFarmTelemetry": "Open-Meteo is the only live farm-related internet feed currently integrated. No online sources for soil, flow, pressure or on-farm weather are integrated yet.",
+  "noFarmTelemetry": "Weather and modeled soil moisture and temperature are available for this region from Open-Meteo. These are model estimates, not local measurements. Flow and pressure readings need a regional sensor source. SoilGrids REST is temporarily paused by its provider.",
+  "soilModelTitle": "Soil model conditions",
+  "modeledValue": "Model estimate",
+  "soilSurface": "Surface soil moisture (0–1 cm)",
+  "soilRootZone": "Root-zone soil moisture (9–27 cm)",
+  "soilTemperature": "Soil temperature (6 cm)",
+  "soilModelNote": "Open-Meteo modeled values; not in-field sensor readings",
+  "soilModelUnavailable": "Soil model values are currently unavailable for this region.",
   "regionLocation": "Administrative region location",
   "regionCoordinatesOnly": "This point marks the administrative center, not a surveyed farm.",
   "realFarmInputsOnly": "Enter values from your real farm. No example farm values are prefilled. Results are calculations, not measurements.",
   "farmInputsRequired": "Enter all required values from your real farm before calculating.",
   "noWaterTelemetry": "No public internet source for this farm’s water network, flow or pressure is integrated yet. No IoT device connection is assumed.",
-  "noEnergyTelemetry": "No public internet source for this farm’s solar generation or pump energy is integrated yet. No IoT device connection is assumed.",
   "scenarioLiveUnavailable": "Scenario outputs are simulations, so they are disabled in the live workspace.",
-  "securityLiveUnavailable": "Security analysis needs a trusted online source of actual events or readings; none is integrated. No IoT connection is required.",
   "weatherConnected": "Weather model connected",
   "modelWeatherPolicy": "Current conditions and the forecast come from Open-Meteo weather models. They are not readings from a local station.",
   "forecastDays": "Seven-day model forecast",
@@ -501,7 +485,6 @@
   "calculationEstimate": "Calculated estimate from your farm values, reference crop coefficients and the labeled weather model; it is not a direct observation.",
   "hardwareUnavailable": "Hardware connection unavailable",
   "weatherUpdates": "The app refreshes weather every 10 minutes. The displayed time is the model-valid time.",
-  "comparisonPartial": "Weather is available for {{loaded}} of {{total}} regions; {{failed}} could not be loaded.",
   "assistantIntro": "Ask about crops, soils, pests, irrigation or farm planning. Get preliminary guidance and budget ranges even with incomplete information. Sources, model estimates and assumptions are labeled separately.",
   "assistantPrompt": "Ask an agriculture question or describe an irrigation design you need...",
   "assistantSend": "Send",
@@ -683,7 +666,17 @@
   "climate": "Climate",
   "agronomist": "Agronomist dashboard",
   "noAssignedFarms": "No farms are assigned yet.",
-  "assignedFarmsHelp": "Admins assign farms to agronomists. You only see the farms assigned to you.",
+  "noFarmerFarms": "Your assigned farmers do not have farms linked to their accounts yet.",
+  "noAssignedFarmers": "No farmers are assigned to you yet. Ask an administrator to add farmers to your caseload.",
+  "assignedFarmersHelp": "Administrators assign farmers to agronomists. This page shows your assigned farmers and their registered farms.",
+  "assignedFarmers": "Your farmer caseload",
+  "selectFarmer": "Select a farmer to view their record",
+  "selectFarmerPlaceholder": "Choose farmer",
+  "farmerLabel": "Farmer",
+  "consultingEstimateNotice": "Weather-based condition and irrigation figures are advisory estimates. No farm sensor readings are connected.",
+  "reviewHistory": "Past consultation reviews",
+  "noReviewHistory": "No previous reviews have been saved for this farm.",
+  "farms": "Registered farms",
   "conditionAnalysis": "Condition analysis",
   "fieldReadings": "Field readings",
   "aiRecommendation": "AI irrigation recommendation",
@@ -729,5 +722,24 @@
   "ownerUpdated": "Owner updated.",
   "create": "Create",
   "assignTo": "Assign to farmer",
-  "noFarms": "No farms yet. Create one above."
+  "noFarms": "No farms yet. Create one above.",
+  "fruitRipeness": "Fruit ripeness",
+  "fruitIntro": "Upload a clear photo of one fruit to estimate its ripeness with the FruitVision AB model. Results are visual estimates and should be checked in person.",
+  "fruitModelUnavailable": "FruitVision model unavailable. No trained and evaluated fruit model is installed, so image analysis is disabled.",
+  "fruitType": "Fruit",
+  "fruitPhoto": "Fruit photo",
+  "fruitPhotoLimit": "JPEG, PNG or WebP; maximum {{size}} MB.",
+  "analyzeFruit": "Analyze photo",
+  "fruitHistory": "Your analysis history",
+  "fruitNoResults": "No saved analyses yet.",
+  "fruitPrivacy": "Uploaded photos are processed for this request only and are discarded. Only the prediction and its metadata are saved.",
+  "fruitConfidence": "Confidence",
+  "unripe": "Unripe",
+  "ripe": "Ripe",
+  "rotten": "Rotten",
+  "unsupportedImageType": "Choose a JPEG, PNG, or WebP image.",
+  "invalidImage": "The selected file is not a valid supported image.",
+  "imageTooLarge": "Image must be 10 MB or smaller.",
+  "imageDimensionsTooLarge": "Image dimensions are too large.",
+  "fruitNotRecognized": "This photo did not pass FruitVision?s single-fruit shape check. Try a clear photo of one whole fruit."
 }

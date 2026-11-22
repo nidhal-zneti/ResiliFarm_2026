@@ -28,6 +28,21 @@ export async function api<T>(
   if (!response.ok) throw new Error(data.error?.code || "error");
   return data as T;
 }
+
+export async function upload<T>(path: string, form: FormData, timeoutMs = 60000): Promise<T> {
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = "Bearer " + token;
+  const response = await fetch("/api/v1" + path, {
+    method: "POST",
+    headers,
+    body: form,
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error?.code || "error");
+  return data as T;
+}
 export function download(
   name: string,
   data: string,

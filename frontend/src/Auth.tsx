@@ -12,7 +12,7 @@ import { api } from "./api";
 import { Panel } from "./components";
 import type { AuthResponse, User } from "./types";
 
-const FEATURES = ["twin", "agriculture", "water", "energy"] as const;
+const FEATURES = ["twin", "agriculture", "water", "fruitRipeness"] as const;
 
 export function AuthScreen({
   onAuthenticated,
