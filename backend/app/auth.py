@@ -30,7 +30,7 @@ def create_token(user_id):
     return jwt.encode({'sub': str(user_id), 'iat': issued, 'exp': issued + timedelta(hours=TTL_HOURS)}, SECRET, algorithm=ALGORITHM)
 
 def public_user(user):
-    return {'id': user['id'], 'email': user['email'], 'full_name': user['full_name'], 'role': user.get('role') or 'FARMER', 'created_at': user['created_at']}
+    return {'id': user['id'], 'email': user['email'], 'full_name': user['full_name'], 'phone': user.get('phone'), 'is_active': bool(user.get('is_active', True)), 'role': user.get('role') or 'FARMER', 'created_at': user['created_at']}
 
 _bearer = HTTPBearer(auto_error=False)
 

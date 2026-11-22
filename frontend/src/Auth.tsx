@@ -142,6 +142,11 @@ export function AuthScreen({
               {t(mode === "signin" ? "signUp" : "signIn")}
             </button>
           </div>
+          {mode === "signup" && (
+            <button type="button" className="text-button" onClick={() => setMode("signin")}>
+              Sign in instead
+            </button>
+          )}
         </div>
       </section>
     </div>

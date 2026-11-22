@@ -31,7 +31,7 @@ def ref(name, table):
 countries = entity('countries', Column('code', String(2), unique=True, nullable=False), Column('name', String(80)))
 regions = entity('administrative_areas', ref('country_id', 'countries'), Column('name', String(80)), Column('lat', Float), Column('lon', Float), Column('climate', String(40)))
 zones = entity('agricultural_zones', ref('region_id', 'administrative_areas'), Column('name', String(80)))
-farms = entity('farms', ref('zone_id', 'agricultural_zones'), Column('name', String(80)), Column('owner_id', ForeignKey('users.id'), nullable=True, index=True))
+farms = entity('farms', ref('zone_id', 'agricultural_zones'), Column('name', String(80)), Column('owner_id', ForeignKey('users.id'), nullable=True, index=True), Column('governorate', String(80)), Column('address', String(255)), Column('latitude', Float), Column('longitude', Float), Column('cultivated_area_ha', Float), Column('crop_type', String(80)), Column('soil_type', String(80)), Column('irrigation_method', String(80)), Column('water_source', String(80)), Column('archived', Boolean, nullable=False, server_default='0'))
 crops = entity('crop_profiles', Column('name', String(40), unique=True), Column('coefficients', json_type))
 fields = entity('fields', ref('farm_id', 'farms'), ref('crop_id', 'crop_profiles'), Column('name', String(80)), Column('area_ha', Float), Column('lat', Float), Column('lon', Float))
 networks = entity('water_networks', ref('region_id', 'administrative_areas'), Column('name', String(80)))
@@ -42,7 +42,7 @@ versions = entity('aiot_design_versions', ref('project_id', 'aiot_projects'), Co
 messages = entity('aiot_conversation_messages', ref('project_id', 'aiot_projects'), Column('role', String(20)), Column('text', String(4000)))
 components = entity('aiot_components', Column('key', String(60), unique=True), Column('specification', json_type))
 connections = entity('aiot_connections', ref('version_id', 'aiot_design_versions'), Column('source', String(80)), Column('target', String(80)), Column('signal', String(100)))
-users = entity('users', Column('email', String(255), unique=True, nullable=False), Column('full_name', String(120), nullable=False), Column('password_hash', String(255), nullable=False), Column('role', String(20), nullable=False, server_default='FARMER'))
+users = entity('users', Column('email', String(255), unique=True, nullable=False), Column('full_name', String(120), nullable=False), Column('password_hash', String(255), nullable=False), Column('role', String(20), nullable=False, server_default='FARMER'), Column('phone', String(40), nullable=True), Column('is_active', Boolean, nullable=False, server_default='1'))
 farm_assignments = entity('farm_assignments', ref('farm_id', 'farms'), ref('user_id', 'users'), constraints=(UniqueConstraint('farm_id', 'user_id'),))
 records = {}
 for name in ['weather_observations', 'sensor_readings', 'energy_systems', 'predictions', 'alerts', 'irrigation_recommendations', 'simulation_runs']:
@@ -142,14 +142,30 @@ KC = {'olive': [0.55, 0.65, 0.60], 'wheat': [0.30, 1.15, 0.40], 'tomato': [0.60,
 
 def _migrate():
     """Add columns introduced after the first release; portable across SQLite and PostgreSQL."""
-    columns = {column['name'] for column in inspect(engine).get_columns('users')}
-    if 'role' not in columns:
+    user_columns = {column['name'] for column in inspect(engine).get_columns('users')}
+    if 'phone' not in user_columns:
         with engine.begin() as c:
-            c.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'FARMER'"))
+            c.execute(text('ALTER TABLE users ADD COLUMN phone VARCHAR(40)'))
+    if 'is_active' not in user_columns:
+        with engine.begin() as c:
+            c.execute(text("ALTER TABLE users ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT 1"))
     farm_columns = {column['name'] for column in inspect(engine).get_columns('farms')}
+    farm_migrations = {
+        'governorate': 'VARCHAR(80)', 'address': 'VARCHAR(255)', 'latitude': 'FLOAT',
+        'longitude': 'FLOAT', 'cultivated_area_ha': 'FLOAT', 'crop_type': 'VARCHAR(80)',
+        'soil_type': 'VARCHAR(80)', 'irrigation_method': 'VARCHAR(80)',
+        'water_source': 'VARCHAR(80)',
+    }
+    for column, ddl in farm_migrations.items():
+        if column not in farm_columns:
+            with engine.begin() as c:
+                c.execute(text(f'ALTER TABLE farms ADD COLUMN {column} {ddl}'))
     if 'owner_id' not in farm_columns:
         with engine.begin() as c:
-            c.execute(text("ALTER TABLE farms ADD COLUMN owner_id INTEGER REFERENCES users(id)"))
+            c.execute(text('ALTER TABLE farms ADD COLUMN owner_id INTEGER REFERENCES users(id)'))
+    if 'archived' not in farm_columns:
+        with engine.begin() as c:
+            c.execute(text('ALTER TABLE farms ADD COLUMN archived BOOLEAN NOT NULL DEFAULT 0'))
 
 def initialize():
     metadata.create_all(engine)
@@ -198,3 +214,5 @@ def initialize():
 def save_record(name, region_id, payload, source='deterministic-demo', simulated=True):
     with engine.begin() as c:
         return c.execute(records[name].insert().values(region_id=region_id, payload=payload, source=source, is_simulated=simulated)).inserted_primary_key[0]
+
+iot_devices = entity('iot_devices', Column('device_id', String(80), unique=True, nullable=False), Column('name', String(120), nullable=False), Column('device_type', String(80)), Column('sensor_type', String(80)), Column('farm_id', ForeignKey('farms.id'), nullable=True, index=True), Column('installation_status', String(30), nullable=False, server_default='PENDING'), Column('is_active', Boolean, nullable=False, server_default='1'), Column('last_communication_at', DateTime(timezone=True), nullable=True))

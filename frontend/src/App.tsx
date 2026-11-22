@@ -44,7 +44,7 @@ import { AuthScreen, ProfileView } from "./Auth";
 import { ExperienceMode, SectionGuide, StartHere } from "./Guide";
 import MapControls from "./MapControls";
 import AgronomistDashboardView from "./AgronomistDashboard";
-import AdminView from "./Admin";
+import AdminView from "./AdminComplete";
 import type {
   Region,
   Overview,
@@ -136,7 +136,7 @@ export default function App() {
     (!user && !publicPages.has(page) && page !== "profile") ||
     (!!user && !canViewPage);
   const navPages = pages.filter(([key]) =>
-    key === "agronomist" ? isAgronomist : key === "admin" ? isAdmin : true,
+    key === "admin" ? false : key === "agronomist" ? isAgronomist : true,
   );
   const selectedRegion = regions.find((r) => r.id === rid);
   const navigate = (p: string) => {
@@ -149,11 +149,12 @@ export default function App() {
   const handleAuthenticated = (result: AuthResponse) => {
     setToken(result.token);
     setUser(result.user);
+    navigate(result.user.role === "ADMIN" ? "admin" : "profile");
   };
   const signOut = () => {
     setToken(null);
     setUser(null);
-    navigate("home");
+    navigate("profile");
   };
   useEffect(() => {
     if (user && !canViewPage) navigate("home");
@@ -316,6 +317,10 @@ export default function App() {
         .join("")
         .toUpperCase()
     : "";
+  if (page === "admin" && isAdmin) {
+    return <AdminView />;
+  }
+
   return (
     <div className="app">
       <a

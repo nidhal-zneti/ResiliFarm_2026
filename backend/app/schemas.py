@@ -75,3 +75,41 @@ class FarmCreateInput(Input):
 class ReviewInput(Input):
     status: str = Field(min_length=1, max_length=20)
     note: str = ''
+
+class AdminUserCreateInput(Input):
+    email: str = Field(min_length=3, max_length=255, pattern=EMAIL)
+    password: str = Field(min_length=8, max_length=128)
+    full_name: str = Field(min_length=1, max_length=120)
+    phone: str | None = Field(default=None, max_length=40)
+    role: Literal['FARMER','AGRONOMIST','ADMIN'] = 'FARMER'
+
+class AdminUserUpdateInput(Input):
+    email: str = Field(min_length=3, max_length=255, pattern=EMAIL)
+    full_name: str = Field(min_length=1, max_length=120)
+    phone: str | None = Field(default=None, max_length=40)
+
+class AccountStatusInput(Input):
+    is_active: bool
+
+class IoTDeviceInput(Input):
+    device_id: str = Field(min_length=1, max_length=80)
+    name: str = Field(min_length=1, max_length=120)
+    device_type: str = Field(min_length=1, max_length=80)
+    sensor_type: str = Field(min_length=1, max_length=80)
+    farm_id: int | None = None
+    installation_status: Literal['PENDING','INSTALLED','INACTIVE']='PENDING'
+    is_active: bool = True
+
+class FarmUpdateInput(Input):
+    name: str = Field(min_length=1, max_length=80)
+    region_id: int = Field(ge=1)
+    owner_id: int | None = None
+    governorate: str = Field(default='', max_length=80)
+    address: str = Field(default='', max_length=255)
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
+    cultivated_area_ha: float | None = Field(default=None, gt=0, le=10000)
+    crop_type: str = Field(default='', max_length=80)
+    soil_type: str = Field(default='', max_length=80)
+    irrigation_method: str = Field(default='', max_length=80)
+    water_source: str = Field(default='', max_length=80)
