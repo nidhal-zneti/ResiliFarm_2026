@@ -7,6 +7,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import { BlueprintWorkspace } from "../src/StudioBlueprint";
+import StudioDesignSummary from "../src/StudioDesignSummary";
 import en from "../src/i18n/en.json";
 import fr from "../src/i18n/fr.json";
 import ja from "../src/i18n/ja.json";
@@ -58,6 +59,31 @@ export async function run() {
       `${locale}: summary and grand total must match`);
     assert.ok(html.includes(escaped(i18n.t("partialMinimumBlueprintCost"))));
     assert.ok(html.includes(escaped(i18n.t("priceUnavailable"))));
+    const detailedEstimate = { ...estimate, items: [
+      { ...item("controller", 1, 7665), label: "Controller", unit: "each", price_basis: "comparable_listings" },
+      { ...item("dripline", 20000000, 3), label: "Dripline", unit: "metre", price_basis: "model_estimate" },
+      { ...item("pump", null, 800), label: "Pump", unit: "each", price_basis: "model_estimate" },
+    ] } as MaterialEstimate;
+    const summaryDesign = { ...design, material_estimate: detailedEstimate,
+      bom: [{ key: "esp32", quantity: 1 }, { key: "soil", quantity: 11 }] as Part[] };
+    const summary = renderToStaticMarkup(createElement(StudioDesignSummary, { design: summaryDesign,
+      validation: { valid: true, checks: ["espSupply"], issues: [], warnings: [] } }));
+    assert.ok(summary.includes(`<bdi>${escaped(formatLocalPrice({currency: "TND", amount: 60007665}, locale))}</bdi>`),
+      `${locale}: full large total must stay in a single amount element`);
+    assert.ok(summary.includes(escaped(i18n.t("summaryPricedLines", { priced: 2, total: 3 }))));
+    assert.ok(summary.includes(escaped(i18n.t("summaryComponentScope", { types: 2 }))));
+    assert.ok(summary.includes(escaped((12).toLocaleString(locale))));
+    assert.ok(summary.includes(escaped(i18n.t("summaryCompatibilityScope"))));
+    assert.ok(summary.includes(escaped(i18n.t("summaryExcluded"))));
+    assert.ok(summary.includes(escaped(i18n.t("priceBasis_model_estimate"))));
+    assert.ok(summary.includes(escaped(i18n.t("summaryShowCalculation"))));
+    assert.equal((summary.match(/<details /g) ?? []).length, 3);
+    const unchecked = renderToStaticMarkup(createElement(StudioDesignSummary, { design: { ...design, material_estimate: undefined }, validation: null }));
+    assert.ok(unchecked.includes(escaped(i18n.t("summaryNotChecked"))));
+    assert.ok(!unchecked.includes(escaped(i18n.t("valid"))));
+    const precise = renderToStaticMarkup(createElement(StudioDesignSummary, { design: { ...design,
+      material_estimate: { ...estimate, items: [{ ...item("controller", 3, 0.335), unit: "each" }] } }, validation: null }));
+    assert.ok(precise.includes(escaped(formatLocalPrice({ currency: "TND", amount: 0.335 }, locale, 4))));
   }
   console.log("Studio minimum pricing: totals, quantities, rounding, missing prices and currencies passed.");
 }

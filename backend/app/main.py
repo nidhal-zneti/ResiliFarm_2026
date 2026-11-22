@@ -17,7 +17,7 @@ from .schemas import FarmInput, ScenarioInput, MessageInput, ProjectInput, Valid
 from .services import irrigation
 from .integrations import weather, soil_model, WeatherUnavailable
 from .studio import CATALOG, generate, validate, UnsupportedRequest, ProviderUnavailable, provider_status
-from .studio_assistant import AssistantUnavailable, is_design_request, is_design_edit, update_profile, question_turn, answer_agriculture
+from .studio_assistant import AssistantUnavailable, is_design_request, is_design_edit, update_profile, question_turn, answer_agriculture, _general_plan_defaults
 from .firmware_generation import generate_firmware, FirmwareUnavailable, FirmwareConfigurationError
 from . import fruitvision
 
@@ -654,6 +654,8 @@ def assistant_message(x:AssistantMessageInput,user=Depends(auth.current_user)):
         context['region_changed']=True
     pending=context.get('pending_field')
     profile=dict(context.get('farm_profile') or {})
+    planning_mode=context.get('planning_mode',x.planning_mode) if context.get('design_intake') else x.planning_mode
+    context['planning_mode']=planning_mode
     result=None
     design_project=None
 
@@ -675,12 +677,16 @@ def assistant_message(x:AssistantMessageInput,user=Depends(auth.current_user)):
         context['design_request']=x.text
         context['design_intake']=True
         profile=update_profile(x.text,profile)
+        if planning_mode=='general':
+            profile=_general_plan_defaults(profile)
         context['farm_profile']=profile
         result=question_turn(profile,r,x.language)
     elif is_design_request(x.text):
         context['design_request']=x.text
         context['design_intake']=True
         profile=update_profile(x.text,profile)
+        if planning_mode=='general':
+            profile=_general_plan_defaults(profile)
         context['farm_profile']=profile
         result=question_turn(profile,r,x.language)
     else:

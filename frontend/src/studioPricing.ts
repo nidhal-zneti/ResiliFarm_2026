@@ -41,6 +41,21 @@ export function minimumMaterialBudget(estimate?: MaterialEstimate) {
   return sumLocalPrices(estimate?.items.map((item) => minimumLinePrice(item)) ?? [], estimate?.currency);
 }
 
-export function formatLocalPrice(price: LocalPrice, locale: string) {
-  return `${price.currency} ${price.amount.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+export function materialBudgetRange(estimate?: MaterialEstimate) {
+  const prices = estimate?.items.map((item) => {
+    const low = minimumLinePrice(item);
+    const highAmount = item.unit_price_high ?? item.unit_price_low ?? item.unit_price;
+    if (!low || item.currency !== low.currency) return null;
+    const high = item.quantity === 0 || !valid(highAmount)
+      ? low.amount
+      : Math.max(low.amount, highAmount * item.quantity!);
+    return { low, high: { ...low, amount: round(high) } };
+  }) ?? [];
+  const low = sumLocalPrices(prices.map((price) => price?.low ?? null), estimate?.currency);
+  const high = sumLocalPrices(prices.map((price) => price?.high ?? null), estimate?.currency);
+  return { low: low.price, high: high.price, complete: low.complete };
+}
+
+export function formatLocalPrice(price: LocalPrice, locale: string, maximumFractionDigits = 2) {
+  return `${price.currency} ${price.amount.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits })}`;
 }

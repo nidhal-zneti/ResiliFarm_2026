@@ -81,6 +81,43 @@ def _labeled_value(text, labels, unit_pattern):
     return _number(match.group(1)) if match else None
 
 
+def _general_plan_defaults(profile):
+    """Fill missing planning inputs with visible, conservative placeholders."""
+    profile = dict(profile)
+    if profile.get('area_ha') is None:
+        if profile.get('field_length_m') and profile.get('field_width_m'):
+            profile['area_ha'] = profile['field_length_m'] * profile['field_width_m'] / 10000
+        else:
+            profile['area_ha'] = 0.5
+    profile.setdefault('crop', 'tomato')
+    profile.setdefault('irrigation_method', 'drip')
+    profile.setdefault('zones', 2)
+    if profile.get('field_length_m') is None and profile.get('field_width_m') is None:
+        side = (profile['area_ha'] * 10000) ** 0.5
+        profile['field_length_m'] = round(side, 1)
+        profile['field_width_m'] = round(side, 1)
+    elif profile.get('field_length_m') is None:
+        profile['field_length_m'] = round(profile['area_ha'] * 10000 / profile['field_width_m'], 1)
+    elif profile.get('field_width_m') is None:
+        profile['field_width_m'] = round(profile['area_ha'] * 10000 / profile['field_length_m'], 1)
+    profile.setdefault('row_spacing_m', 1.0)
+    profile.setdefault('laterals_per_row', 1)
+    profile.setdefault('emitter_spacing_m', 0.3)
+    profile.setdefault('emitter_flow_lph', 2.0)
+    profile.setdefault('water_source', 'tank')
+    profile.setdefault('head_m', 20.0)
+    profile.setdefault('water_distance_m', 10.0)
+    profile.setdefault('energy_source', 'solar')
+    rows = max(1, int(-(-profile['field_width_m'] // profile['row_spacing_m'])))
+    rows_in_zone = -(-rows // profile['zones'])
+    emitters_per_lateral = -(-profile['field_length_m'] // profile['emitter_spacing_m'])
+    profile.setdefault('source_flow_lpm', round(
+        rows_in_zone * profile['laterals_per_row'] * emitters_per_lateral * profile['emitter_flow_lph'] / 60, 2
+    ))
+    profile['planning_mode'] = 'general'
+    return profile
+
+
 def update_profile(text, profile, pending_field=None):
     """Extract explicit farm inputs only; an unanswered value stays unknown."""
     profile = dict(profile or {})
@@ -200,9 +237,27 @@ def update_profile(text, profile, pending_field=None):
             profile[field] = parsed
             unknown.discard(field)
 
-    laterals = re.search(r'(\d+)\s*(?:drip\s*)?(?:laterals?|lines?)\s*(?:per|/)\s*(?:crop\s*)?row|(?:laterals?|lines?)\s*(?:per|/)\s*(?:crop\s*)?row\s*[:=]?\s*(\d+)', value, re.I)
+    # Also recognize concise dimensions and spacing used in ordinary design prompts.
+    direct_patterns = {
+        'field_length_m': r'(\d+(?:[.,]\d+)?)\s*m\s+long\b',
+        'field_width_m': r'(\d+(?:[.,]\d+)?)\s*m\s+wide\b',
+        'row_spacing_m': r'(\d+(?:[.,]\d+)?)\s*m\s+between\s+(?:crop\s+)?rows?\b',
+        'emitter_spacing_m': r'emitters?\s+spaced\s+(?:at\s+)?(\d+(?:[.,]\d+)?)\s*m\s+apart\b',
+        'emitter_flow_lph': r'(?:rated|flow)\s+(?:at\s+)?(\d+(?:[.,]\d+)?)\s*l\s*/\s*h\b',
+        'head_m': r'(\d+(?:[.,]\d+)?)\s*m\s+total\s+(?:pump\s+)?head\b',
+    }
+    for field, pattern in direct_patterns.items():
+        match = re.search(pattern, value, re.I)
+        if match:
+            parsed = _number(match.group(1))
+            if parsed is not None and parsed > 0:
+                profile[field] = parsed
+                unknown.discard(field)
+
+    laterals = re.search(r'(\d+|one|two|three)\s*(?:drip\s*)?(?:laterals?|lines?)\s*(?:per|/)\s*(?:crop\s*)?row|(?:laterals?|lines?)\s*(?:per|/)\s*(?:crop\s*)?row\s*[:=]?\s*(\d+)', value, re.I)
     if laterals:
-        count = int(laterals.group(1) or laterals.group(2))
+        count_text = laterals.group(1) or laterals.group(2)
+        count = {'one': 1, 'two': 2, 'three': 3}.get(count_text, int(count_text) if count_text.isdigit() else 0)
         if 1 <= count <= 8:
             profile['laterals_per_row'] = count
             unknown.discard('laterals_per_row')

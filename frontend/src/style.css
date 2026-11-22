@@ -3631,7 +3631,7 @@ footer span {
 .studio-step-content { min-width: 0; min-height: 340px; margin: 0 auto; }
 .studio-step-describe { max-width: 900px; }
 .studio-describe-panel { padding: clamp(18px, 3vw, 32px); }
-.studio-chat-toolbar { display: flex; justify-content: flex-end; margin-bottom: 14px; }
+.studio-chat-toolbar { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 16px; margin-bottom: 14px; }
 .studio-chat-toolbar label { display: flex; align-items: center; gap: 8px; color: #728075; font-size: .83rem; }
 .studio-chat-toolbar select { max-width: 240px; min-height: 38px; padding: 6px 10px; border: 1px solid var(--studio-line); border-radius: 9px; background: white; color: var(--studio-ink); }
 .studio-chat-history { display: grid; align-content: start; gap: 12px; min-height: 230px; max-height: min(48vh, 500px); overflow: auto; padding: 8px 2px 18px; }
@@ -3653,12 +3653,39 @@ footer span {
 .studio-step-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .studio-step-heading h2 { margin: 3px 0 0; }
 .studio-step-heading .eyebrow { margin: 0; color: #718077; }
-.studio-design-hero { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 18px; border-radius: 16px; background: #eff5ec; }
-.studio-design-hero > div { display: grid; align-content: center; gap: 7px; min-height: 78px; padding-inline: 15px; border-inline-end: 1px solid #d8e4d6; }
+.studio-design-summary { container-type: inline-size; min-width: 0; }
+.studio-design-hero { display: grid; grid-template-columns: minmax(0, 1.6fr) repeat(2, minmax(0, 1fr)); gap: 18px; padding: 22px; border-radius: 16px; background: #eff5ec; }
+.studio-design-hero > div { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 10px; min-width: 0; min-height: 78px; padding-inline: 12px; border-inline-end: 1px solid #d8e4d6; }
 .studio-design-hero > div:last-child { border: 0; }
 .studio-design-hero span, .studio-bottom-total > span { color: #65756b; font-size: .84rem; }
-.studio-design-hero strong { font-size: clamp(1.15rem, 2vw, 1.55rem); overflow-wrap: anywhere; }
+.studio-design-hero strong { font-size: clamp(1.15rem, 2vw, 1.55rem); overflow-wrap: normal; }
 .studio-design-hero small { color: #69786e; }
+.studio-design-hero h3 { margin: 0; font-size: .9rem; color: #526759; line-height: 1.5; }
+.studio-design-hero p { margin: 0; font-size: .85rem; }
+.studio-exact-amount { min-width: 0; max-width: 100%; overflow-x: auto; white-space: nowrap; font-variant-numeric: tabular-nums; padding-block: 3px; }
+.studio-price-range { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+.studio-price-range > span { color: #718077; font-size: .9em; font-weight: 500; }
+.studio-summary-details { min-width: 0; margin-top: 4px; }
+.studio-summary-details summary { font-size: .85rem; font-weight: 600; }
+.studio-summary-details[open] > p { margin-block: 10px; }
+.studio-summary-details ul { margin: 8px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.studio-summary-details li { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: .85rem; }
+.studio-summary-details li strong { font-size: .9rem; white-space: nowrap; }
+.studio-summary-details .studio-table-wrap { margin-top: 12px; background: var(--panel); }
+.studio-calculation-table { min-width: 700px; }
+.studio-calculation-table td bdi { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.studio-calculation-table tfoot { border-top: 2px solid var(--line); font-weight: 700; }
+.studio-largest-cost { padding: 10px 12px; border-radius: 8px; background: #ffffffa6; overflow-wrap: anywhere; }
+.studio-summary-budget:has(.studio-summary-details[open]) { grid-column: 1 / -1; border-inline-end: 0; }
+@container (max-width: 850px) {
+  .studio-design-hero { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .studio-design-hero .studio-summary-budget { grid-column: 1 / -1; border-inline-end: 0; border-bottom: 1px solid #d8e4d6; padding-bottom: 18px; }
+}
+@container (max-width: 480px) {
+  .studio-design-hero { grid-template-columns: minmax(0, 1fr); padding: 16px; }
+  .studio-design-hero > div { padding: 0 0 16px; border-inline-end: 0; border-bottom: 1px solid #d8e4d6; }
+  .studio-design-hero > div:last-child { border-bottom: 0; padding-bottom: 0; }
+}
 .studio-compatible { color: #28744e; }
 .studio-needs-review { color: #a35b20; }
 .studio-section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }

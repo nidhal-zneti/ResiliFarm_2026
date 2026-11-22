@@ -36,6 +36,7 @@ class AssistantMessageInput(Input):
     region_id: int = Field(1, ge=1)
     text: str = Field(min_length=1, max_length=4000)
     language: Literal['en','fr','ja','ar'] = 'en'
+    planning_mode: Literal['general','exact'] = 'general'
 
 class FirmwareInput(Input):
     version: int = Field(ge=1)

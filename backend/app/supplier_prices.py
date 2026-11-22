@@ -279,6 +279,8 @@ def estimate(region, profile, language='en'):
 
     country = {**country, 'domains': _permitted_domains(country)}
     quantities, warnings = _quantity_profile(profile)
+    if profile.get('planning_mode') == 'general':
+        warnings.append('generalPlanAssumptions')
     irrigation_sizing = _irrigation_sizing(profile)
     if irrigation_sizing:
         warnings.extend(warning for warning in irrigation_sizing['warnings'] if warning not in warnings)

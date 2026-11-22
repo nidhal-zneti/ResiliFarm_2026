@@ -22,6 +22,7 @@ import type {
   Validation,
 } from "./types";
 import { BlueprintWorkspace } from "./StudioBlueprint";
+import StudioDesignSummary from "./StudioDesignSummary";
 import { minimumMaterialBudget, minimumLinePrice, minimumUnitPrice, formatLocalPrice } from "./studioPricing";
 import FirmwarePanel, { type FirmwareSettings } from "./FirmwarePanel";
 import "@xyflow/react/dist/style.css";
@@ -72,6 +73,7 @@ export default function Studio({
   const [voltage, setVoltage] = useState(3.3);
   const [conversations, setConversations] = useState<StudioConversation[]>([]);
   const [conversation, setConversation] = useState<StudioConversation | null>(null);
+  const [planningMode, setPlanningMode] = useState<"general" | "exact">("general");
   const [regions, setRegions] = useState<Region[]>([]);
   const [helpOpen, setHelpOpen] = useState(false);
   const [showAllParts, setShowAllParts] = useState(false);
@@ -160,6 +162,7 @@ export default function Studio({
         region_id: region,
         text: message.trim(),
         language: i18n.language,
+        planning_mode: planningMode,
       }, 180000);
       setConversation(response.conversation);
       setConversations((items) => [
@@ -373,6 +376,18 @@ export default function Studio({
           <Panel title={t("requirements")} className="studio-describe-panel">
             <div className="studio-chat-toolbar">
               <label>
+                <span>{t("planningMode")}</span>
+                <select
+                  disabled={busy || Boolean(conversation?.messages.length)}
+                  aria-label={t("planningMode")}
+                  value={planningMode}
+                  onChange={(event) => setPlanningMode(event.target.value as "general" | "exact")}
+                >
+                  <option value="general">{t("planningModeGeneral")}</option>
+                  <option value="exact">{t("planningModeExact")}</option>
+                </select>
+              </label>
+              <label>
                 <span>{t("assistantConversations")}</span>
                 <select
                   disabled={busy}
@@ -450,17 +465,7 @@ export default function Studio({
               </label>
             </div>
 
-            <div className="studio-design-hero">
-              <div><span>{t("minimumMaterialCost")}</span><strong>{total ?? t("priceUnavailable")}</strong>{!budget.complete && <small>{t("partialPrice")}</small>}</div>
-              <div><span>{t("studioHeroParts")}</span><strong>{design.bom.reduce((sum, item) => sum + item.quantity, 0)}</strong></div>
-              <div>
-                <span>{t("studioHeroCompatibility")}</span>
-                <strong className={validation?.valid ? "studio-compatible" : "studio-needs-review"}>
-                  {t(validation?.valid ? "valid" : "invalid")}
-                </strong>
-                <small>{t("studioIssueCount", { count: validation?.issues.length ?? 0 })}</small>
-              </div>
-            </div>
+            <StudioDesignSummary design={design} validation={validation} />
 
             <section className="studio-design-parts">
               <div className="studio-section-heading"><h3>{t("studioParts")}</h3><span>{t("studioBomCount", { count: design.bom.length })}</span></div>
