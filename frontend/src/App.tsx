@@ -31,7 +31,6 @@ import {
   UserRound,
   ClipboardCheck,
   UserCog,
-  Wheat,
 } from "lucide-react";
 import { api, download, getToken, setToken } from "./api";
 import {
@@ -44,7 +43,6 @@ import Studio from "./Studio";
 import { AuthScreen, ProfileView } from "./Auth";
 import { ExperienceMode, SectionGuide, StartHere } from "./Guide";
 import MapControls from "./MapControls";
-import FarmerDashboard from "./FarmerDashboard";
 import AgronomistDashboardView from "./AgronomistDashboard";
 import AdminView from "./Admin";
 import type {
@@ -61,7 +59,6 @@ import type {
 const pages = [
   ["home", Home],
   ["overview", LayoutDashboard],
-  ["farmer", Wheat],
   ["comparison", MapPinned],
   ["twin", Map],
   ["agriculture", Sprout],
@@ -308,7 +305,6 @@ export default function App() {
     page !== "overview" &&
     page !== "studio" &&
     page !== "profile" &&
-    page !== "farmer" &&
     page !== "agronomist" &&
     page !== "admin";
   const initials = user
@@ -514,19 +510,10 @@ export default function App() {
             </div>
           )}
           {page === "home" && <StartHere mode={mode} onNavigate={navigate} />}
-          {page === "farmer" && (
-            <FarmerDashboard
-              region={selectedRegion}
-              weather={weather}
-              calc={calc}
-              onNavigate={navigate}
-            />
-          )}
           {page === "agronomist" && <AgronomistDashboardView />}
           {page === "admin" && <AdminView />}
           {page !== "home" &&
             page !== "profile" &&
-            page !== "farmer" &&
             page !== "agronomist" &&
             page !== "admin" && (
               <SectionGuide section={page} mode={mode} />

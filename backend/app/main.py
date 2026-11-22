@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
 from . import auth, db
-from .schemas import FarmInput, ScenarioInput, MessageInput, ProjectInput, TelemetryInput, ValidateInput, SignupInput, LoginInput, ProfileInput, PasswordInput, RoleInput, AssignmentInput, ReviewInput
+from .schemas import FarmInput, ScenarioInput, MessageInput, ProjectInput, TelemetryInput, ValidateInput, SignupInput, LoginInput, ProfileInput, PasswordInput, RoleInput, AssignmentInput, ReviewInput, FarmCreateInput
 from .services import irrigation, anomalies
 from .integrations import weather, WeatherUnavailable
 from .studio import CATALOG, generate, validate, UnsupportedRequest, ProviderUnavailable, provider_status
@@ -25,7 +25,7 @@ async def lifespan(app):
     yield
 
 app=FastAPI(title='ResiliFarm AI',version='1.0.0',lifespan=lifespan)
-app.add_middleware(CORSMiddleware,allow_origins=os.getenv('CORS_ORIGINS','http://localhost:5173,http://127.0.0.1:5173').split(','),allow_methods=['GET','POST'],allow_headers=['Content-Type','Authorization'])
+app.add_middleware(CORSMiddleware,allow_origins=os.getenv('CORS_ORIGINS','http://localhost:5173,http://127.0.0.1:5173').split(','),allow_origin_regex=os.getenv('CORS_ORIGIN_REGEX',r'https?://(localhost|127\.0\.0\.1)(:\d+)?'),allow_methods=['GET','POST'],allow_headers=['Content-Type','Authorization'])
 
 @app.exception_handler(RequestValidationError)
 async def invalid(_, exc):
@@ -101,12 +101,15 @@ def _number(value,fallback=0.0):
     except (TypeError,ValueError): return fallback
 
 def _visible_farms(c,user):
-    cols=[db.farms.c.id,db.farms.c.name,db.zones.c.name.label('zone'),db.regions.c.id.label('region_id'),db.regions.c.name.label('region_name'),db.regions.c.lat.label('lat'),db.regions.c.lon.label('lon'),db.regions.c.climate.label('climate')]
-    agronomist=(user.get('role') or 'FARMER')=='AGRONOMIST'
-    base=db.farms.join(db.zones,db.farms.c.zone_id==db.zones.c.id).join(db.regions,db.zones.c.region_id==db.regions.c.id)
-    if agronomist: base=base.join(db.farm_assignments,db.farms.c.id==db.farm_assignments.c.farm_id)
+    cols=[db.farms.c.id,db.farms.c.name,db.zones.c.name.label('zone'),db.regions.c.id.label('region_id'),db.regions.c.name.label('region_name'),db.regions.c.lat.label('lat'),db.regions.c.lon.label('lon'),db.regions.c.climate.label('climate'),db.farms.c.owner_id,db.users.c.full_name.label('owner_name')]
+    role=user.get('role') or 'FARMER'
+    base=db.farms.join(db.zones,db.farms.c.zone_id==db.zones.c.id).join(db.regions,db.zones.c.region_id==db.regions.c.id).outerjoin(db.users,db.farms.c.owner_id==db.users.c.id)
     stmt=select(*cols).select_from(base)
-    if agronomist: stmt=stmt.where(db.farm_assignments.c.user_id==user['id'])
+    if role=='AGRONOMIST':
+        stmt=stmt.join(db.farm_assignments,db.farms.c.id==db.farm_assignments.c.farm_id).where(db.farm_assignments.c.user_id==user['id'])
+    elif role!='ADMIN':
+        # A farmer only ever sees the farm that was assigned to them.
+        stmt=stmt.where(db.farms.c.owner_id==user['id'])
     return c.execute(stmt.order_by(db.farms.c.id)).mappings().all()
 
 def _farm_fields(c,fid):
@@ -152,7 +155,32 @@ def set_role(uid:int,x:RoleInput,user=Depends(auth.require_admin)):
 @app.get('/api/v1/farms')
 def list_farms(user=Depends(auth.current_user)):
     with db.engine.connect() as c:
-        return [{'id':r['id'],'name':r['name'],'region_id':r['region_id'],'region':r['region_name']} for r in _visible_farms(c,user)]
+        return [{'id':r['id'],'name':r['name'],'region_id':r['region_id'],'region':r['region_name'],'owner_id':r['owner_id'],'owner':r['owner_name']} for r in _visible_farms(c,user)]
+
+@app.post('/api/v1/farms',status_code=201)
+def create_farm(x:FarmCreateInput,user=Depends(auth.require_admin)):
+    with db.engine.begin() as c:
+        region_row=c.execute(select(db.regions).where(db.regions.c.id==x.region_id)).mappings().first()
+        if not region_row: raise HTTPException(404,'regionNotFound')
+        if x.owner_id is not None and not c.execute(select(db.users.c.id).where(db.users.c.id==x.owner_id)).scalar_one_or_none():
+            raise HTTPException(404,'userNotFound')
+        zone_id=c.execute(select(db.zones.c.id).where(db.zones.c.region_id==x.region_id).order_by(db.zones.c.id)).scalar_one_or_none()
+        if zone_id is None:
+            zone_id=c.execute(db.zones.insert().values(region_id=x.region_id,name=f"{region_row['name']} zone")).inserted_primary_key[0]
+        name=x.name.strip()
+        fid=c.execute(db.farms.insert().values(zone_id=zone_id,name=name,owner_id=x.owner_id)).inserted_primary_key[0]
+        crop_id=c.execute(select(db.crops.c.id).where(db.crops.c.name==x.crop)).scalar_one_or_none()
+        if crop_id is not None:
+            c.execute(db.fields.insert().values(farm_id=fid,crop_id=crop_id,name=f'{name} · field',area_ha=x.area_ha,lat=region_row['lat'],lon=region_row['lon']))
+    return {'id':fid,'name':name,'region_id':x.region_id,'owner_id':x.owner_id}
+
+@app.post('/api/v1/farms/{fid}/owner')
+def set_farm_owner(fid:int,x:AssignmentInput,user=Depends(auth.require_admin)):
+    with db.engine.begin() as c:
+        if not c.execute(select(db.farms.c.id).where(db.farms.c.id==fid)).scalar_one_or_none(): raise HTTPException(404,'farmNotFound')
+        if not c.execute(select(db.users.c.id).where(db.users.c.id==x.user_id)).scalar_one_or_none(): raise HTTPException(404,'userNotFound')
+        c.execute(db.farms.update().where(db.farms.c.id==fid).values(owner_id=x.user_id))
+    return {'assigned':True,'owner_id':x.user_id}
 
 @app.get('/api/v1/farms/{fid}/agronomists')
 def farm_agronomists(fid:int,user=Depends(auth.require_admin)):

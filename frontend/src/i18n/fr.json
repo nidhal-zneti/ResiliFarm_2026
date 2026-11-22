@@ -547,5 +547,16 @@
   "farmNotFound": "Ferme introuvable.",
   "userNotFound": "Utilisateur introuvable.",
   "assigneeNotAgronomist": "L’utilisateur sélectionné n’est pas un agronome.",
-  "invalidRole": "Rôle inconnu."
+  "invalidRole": "Rôle inconnu.",
+  "createFarm": "Créer une ferme",
+  "farmName": "Nom de la ferme",
+  "ownerLabel": "Propriétaire",
+  "unassigned": "Non attribuée",
+  "farmOwnership": "Propriété des fermes",
+  "farmOwnershipHint": "Créez une ferme et attribuez-la à un agriculteur. Un agriculteur ne voit que la ferme qui lui est attribuée.",
+  "farmCreated": "Ferme créée.",
+  "ownerUpdated": "Propriétaire mis à jour.",
+  "create": "Créer",
+  "assignTo": "Attribuer à un agriculteur",
+  "noFarms": "Aucune ferme pour le moment. Créez-en une ci-dessus."
 }

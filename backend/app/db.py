@@ -31,7 +31,7 @@ def ref(name, table):
 countries = entity('countries', Column('code', String(2), unique=True, nullable=False), Column('name', String(80)))
 regions = entity('administrative_areas', ref('country_id', 'countries'), Column('name', String(80)), Column('lat', Float), Column('lon', Float), Column('climate', String(40)))
 zones = entity('agricultural_zones', ref('region_id', 'administrative_areas'), Column('name', String(80)))
-farms = entity('farms', ref('zone_id', 'agricultural_zones'), Column('name', String(80)))
+farms = entity('farms', ref('zone_id', 'agricultural_zones'), Column('name', String(80)), Column('owner_id', ForeignKey('users.id'), nullable=True, index=True))
 crops = entity('crop_profiles', Column('name', String(40), unique=True), Column('coefficients', json_type))
 fields = entity('fields', ref('farm_id', 'farms'), ref('crop_id', 'crop_profiles'), Column('name', String(80)), Column('area_ha', Float), Column('lat', Float), Column('lon', Float))
 networks = entity('water_networks', ref('region_id', 'administrative_areas'), Column('name', String(80)))
@@ -146,6 +146,10 @@ def _migrate():
     if 'role' not in columns:
         with engine.begin() as c:
             c.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'FARMER'"))
+    farm_columns = {column['name'] for column in inspect(engine).get_columns('farms')}
+    if 'owner_id' not in farm_columns:
+        with engine.begin() as c:
+            c.execute(text("ALTER TABLE farms ADD COLUMN owner_id INTEGER REFERENCES users(id)"))
 
 def initialize():
     metadata.create_all(engine)

@@ -408,5 +408,16 @@
   "farmNotFound": "المزرعة غير موجودة.",
   "userNotFound": "المستخدم غير موجود.",
   "assigneeNotAgronomist": "المستخدم المحدد ليس مهندساً زراعياً.",
-  "invalidRole": "دور غير معروف."
+  "invalidRole": "دور غير معروف.",
+  "createFarm": "إنشاء مزرعة",
+  "farmName": "اسم المزرعة",
+  "ownerLabel": "المالك",
+  "unassigned": "غير مُعيَّنة",
+  "farmOwnership": "ملكية المزارع",
+  "farmOwnershipHint": "أنشئ مزرعة وعيّنها لمزارع. لا يرى المزارع إلا المزرعة المُعيَّنة له.",
+  "farmCreated": "تم إنشاء المزرعة.",
+  "ownerUpdated": "تم تحديث المالك.",
+  "create": "إنشاء",
+  "assignTo": "تعيين لمزارع",
+  "noFarms": "لا توجد مزارع بعد. أنشئ واحدة أعلاه."
 }

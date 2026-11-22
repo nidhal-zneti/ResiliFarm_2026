@@ -65,6 +65,13 @@ class RoleInput(Input):
 class AssignmentInput(Input):
     user_id: int
 
+class FarmCreateInput(Input):
+    name: str = Field(min_length=1, max_length=80, pattern=r'.*\S.*')
+    region_id: int = Field(ge=1)
+    owner_id: int | None = None
+    crop: Literal['olive','wheat','tomato'] = 'olive'
+    area_ha: float = Field(1, gt=0, le=10000)
+
 class ReviewInput(Input):
     status: str = Field(min_length=1, max_length=20)
     note: str = ''

@@ -547,5 +547,16 @@
   "farmNotFound": "Farm not found.",
   "userNotFound": "User not found.",
   "assigneeNotAgronomist": "The selected user is not an agronomist.",
-  "invalidRole": "Unknown role."
+  "invalidRole": "Unknown role.",
+  "createFarm": "Create a farm",
+  "farmName": "Farm name",
+  "ownerLabel": "Owner",
+  "unassigned": "Unassigned",
+  "farmOwnership": "Farm ownership",
+  "farmOwnershipHint": "Create a farm and assign it to a farmer. A farmer only sees the farm that is assigned to them.",
+  "farmCreated": "Farm created.",
+  "ownerUpdated": "Owner updated.",
+  "create": "Create",
+  "assignTo": "Assign to farmer",
+  "noFarms": "No farms yet. Create one above."
 }

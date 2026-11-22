@@ -184,6 +184,8 @@ export type FarmSummary = {
   name: string;
   region_id: number;
   region: string;
+  owner_id: number | null;
+  owner: string | null;
 };
 export type FarmFieldReading = {
   id: number;
