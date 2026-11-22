@@ -7,6 +7,7 @@ type TextFieldProps = {
   value: string;
   onChangeText: (value: string) => void;
   placeholder?: string;
+  hint?: string;
   secureTextEntry?: boolean;
   keyboardType?: KeyboardTypeOptions;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
@@ -20,6 +21,7 @@ export function TextField({
   value,
   onChangeText,
   placeholder,
+  hint,
   secureTextEntry,
   keyboardType,
   autoCapitalize = 'none',
@@ -41,6 +43,7 @@ export function TextField({
         autoComplete={autoComplete}
         editable={editable}
       />
+      {hint ? <Text style={styles.hint}>{hint}</Text> : null}
     </View>
   );
 }
@@ -50,6 +53,10 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   label: {
+    ...typography.small,
+    color: colors.textMuted,
+  },
+  hint: {
     ...typography.small,
     color: colors.textMuted,
   },

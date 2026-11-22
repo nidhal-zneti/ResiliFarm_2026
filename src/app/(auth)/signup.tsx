@@ -22,7 +22,10 @@ export default function SignupScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const canSubmit =
-    fullName.trim().length > 0 && email.trim().length > 0 && password.length > 0 && !busy;
+    fullName.trim().length > 0 &&
+    email.trim().length > 0 &&
+    password.length >= 8 &&
+    !busy;
 
   const handleSubmit = async () => {
     setBusy(true);
@@ -66,6 +69,7 @@ export default function SignupScreen() {
           label={t('auth.password')}
           value={password}
           onChangeText={setPassword}
+          hint={t('auth.passwordHint')}
           secureTextEntry
           autoComplete="password"
         />

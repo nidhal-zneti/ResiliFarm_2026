@@ -98,6 +98,7 @@
     "signUp": "Create account",
     "email": "Email address",
     "password": "Password",
+    "passwordHint": "At least 8 characters.",
     "fullName": "Full name",
     "forgotPassword": "Forgot password?",
     "noAccount": "Don't have an account yet?",
@@ -116,6 +117,7 @@
     "timeout": "The connection timed out. Please try again.",
     "notAvailable": "This feature is not available yet.",
     "farmNotFound": "No farm is linked to your account.",
-    "weatherUnavailable": "Weather is temporarily unavailable."
+    "weatherUnavailable": "Weather is temporarily unavailable.",
+    "invalidInput": "Please check your details. The password must be at least 8 characters."
   }
 }
