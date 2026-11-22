@@ -129,7 +129,6 @@ export default function App() {
   const isAdmin = role === "ADMIN";
   const isAgronomist = role === "AGRONOMIST" || isAdmin;
   const isFarmer = role === "FARMER";
-  const readOnly = isFarmer;
   const canViewPage =
     page === "agronomist" ? isAgronomist : page === "admin" ? isAdmin : true;
   const locked =
@@ -490,11 +489,6 @@ export default function App() {
             />
           ) : (
             <>
-              {readOnly && (
-                <p className="notice read-only-notice">
-                  <Lock size={16} /> {t("readOnlyNotice")}
-                </p>
-              )}
               {showHeader && (
                 <div className="section-intro">
                   <div>
@@ -654,20 +648,19 @@ export default function App() {
               {page === "agriculture" && !calc && (
                 <Panel title={t("calculate")}>
                   <p>{t("realFarmInputsOnly")}</p>
-                  <button type="button" onClick={applyWeatherForecast} disabled={!weather || readOnly}>{t("useWeatherForecastInputs")}</button>
-                  <FarmForm value={farm} onChange={updateFarm} onSubmit={calculate} busy={busy} readOnly={readOnly} />
+                  <button type="button" onClick={applyWeatherForecast} disabled={!weather}>{t("useWeatherForecastInputs")}</button>
+                  <FarmForm value={farm} onChange={updateFarm} onSubmit={calculate} busy={busy} />
                 </Panel>
               )}
               {page === "agriculture" && calc && (
                 <>
                   <Panel title={t("calculate")}>
-                    <button type="button" onClick={applyWeatherForecast} disabled={!weather || readOnly}>{t("useWeatherForecastInputs")}</button>
+                    <button type="button" onClick={applyWeatherForecast} disabled={!weather}>{t("useWeatherForecastInputs")}</button>
                     <FarmForm
                       value={farm}
                       onChange={updateFarm}
                       onSubmit={calculate}
                       busy={busy}
-                      readOnly={readOnly}
                     />
                   </Panel>
                   <p className="caption">{t("inputNote")}</p>
@@ -732,7 +725,7 @@ export default function App() {
               {page === "studio" && (
                 <Studio
                   region={rid}
-                  readOnly={readOnly}
+                  readOnly={isFarmer}
                   onDeploy={() =>
                     api<Overview>(`/regions/${rid}/overview`)
                       .then(setOverview)
