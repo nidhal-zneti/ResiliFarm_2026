@@ -27,6 +27,8 @@
     "irrigationUnavailable": "Monitoring unavailable",
     "recommendedWater": "Suggested amount",
     "adviceUnavailableHelp": "We don't have enough data to recommend irrigation today.",
+    "adviceNeededReason": "Based on today's regional weather and your crop's water needs.",
+    "adviceNotNeededReason": "Rain and current conditions cover your crop's water needs today.",
     "weather": "Weather",
     "temperature": "Temperature",
     "rain": "Rain",
@@ -112,6 +114,8 @@
     "unauthenticated": "Please sign in again.",
     "network": "Can't connect. Check your network.",
     "timeout": "The connection timed out. Please try again.",
-    "notAvailable": "This feature is not available yet."
+    "notAvailable": "This feature is not available yet.",
+    "farmNotFound": "No farm is linked to your account.",
+    "weatherUnavailable": "Weather is temporarily unavailable."
   }
 }

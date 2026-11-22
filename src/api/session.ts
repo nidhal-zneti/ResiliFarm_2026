@@ -11,6 +11,22 @@ import { IS_NATIVE } from './config';
  */
 const TOKEN_KEY = 'resilifarm.token';
 
+type TokenListener = (token: string | null) => void;
+
+const listeners = new Set<TokenListener>();
+
+function notify(token: string | null): void {
+  listeners.forEach((listener) => listener(token));
+}
+
+/** Subscribe to token changes (sign-in, sign-out, expired session). */
+export function subscribeToken(listener: TokenListener): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
 export async function getToken(): Promise<string | null> {
   if (IS_NATIVE) {
     return SecureStore.getItemAsync(TOKEN_KEY);
@@ -21,15 +37,17 @@ export async function getToken(): Promise<string | null> {
 export async function setToken(token: string): Promise<void> {
   if (IS_NATIVE) {
     await SecureStore.setItemAsync(TOKEN_KEY, token);
-    return;
+  } else {
+    await AsyncStorage.setItem(TOKEN_KEY, token);
   }
-  await AsyncStorage.setItem(TOKEN_KEY, token);
+  notify(token);
 }
 
 export async function clearToken(): Promise<void> {
   if (IS_NATIVE) {
     await SecureStore.deleteItemAsync(TOKEN_KEY);
-    return;
+  } else {
+    await AsyncStorage.removeItem(TOKEN_KEY);
   }
-  await AsyncStorage.removeItem(TOKEN_KEY);
+  notify(null);
 }

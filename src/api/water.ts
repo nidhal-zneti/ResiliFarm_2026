@@ -1,6 +1,5 @@
 import type { WaterAvailability } from '@/types';
 
-import { ApiError } from './client';
 import { USE_MOCK } from './config';
 import { mockDelay, mockWater } from './mock';
 
@@ -23,10 +22,9 @@ export async function getWaterAvailability(farmId: number): Promise<WaterAvailab
     return mockWater;
   }
   void farmId;
-  // TODO: no sensor/telemetry endpoint yet. Once it exists, map it here and
-  // return NO_DATA when the sensor is missing or silent.
-  void NO_DATA;
-  throw new ApiError('notAvailable', 501);
+  // No tank/reservoir telemetry endpoint exists yet. Report honestly that there
+  // is no reading rather than inventing one.
+  return NO_DATA;
 }
 
 export async function setManualWaterLevel(
@@ -39,5 +37,6 @@ export async function setManualWaterLevel(
   }
   void farmId;
   void levelPct;
-  throw new ApiError('notAvailable', 501);
+  // There is no endpoint to persist a manual level yet, so nothing is stored.
+  return NO_DATA;
 }

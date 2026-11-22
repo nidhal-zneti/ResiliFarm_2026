@@ -1,22 +1,34 @@
 import type { HomeSummary } from '@/types';
 
 import { USE_MOCK } from './config';
+import { getMyFarm } from './farms';
+import { getIrrigationAdvice } from './irrigation';
 import { mockDelay, mockHomeSummary } from './mock';
+import { getAlerts } from './notifications';
+import { getProfile } from './profile';
+import { getWaterAvailability } from './water';
+import { getWeather } from './weather';
 
 /**
  * Aggregated payload for the Home screen.
  *
- * One call keeps the most important screen fast and simple. While the farmer
- * endpoints are being built it returns clearly-labelled mock data; once ready it
- * should compose the individual service calls (farms, weather, irrigation,
- * water, alerts) so the screen code does not change.
+ * One call keeps the most important screen fast and simple. It composes the
+ * individual services (profile, farm, weather, irrigation, water, alerts) so the
+ * screen code stays unchanged whether the data is real or demo.
  */
 export async function getHomeSummary(): Promise<HomeSummary> {
   if (USE_MOCK) {
     await mockDelay();
     return mockHomeSummary;
   }
-  // TODO: compose from getMyFarm(), getIrrigationAdvice(), getWeather(),
-  // getWaterAvailability() and getNotifications() once those endpoints exist.
-  throw new Error('HomeSummary endpoint not available yet');
+
+  const [user, farm] = await Promise.all([getProfile(), getMyFarm()]);
+  const [weather, irrigation, water, alerts] = await Promise.all([
+    getWeather(farm.regionId),
+    getIrrigationAdvice(farm.regionId),
+    getWaterAvailability(farm.id),
+    getAlerts(),
+  ]);
+
+  return { user, farm, irrigation, weather, water, alerts };
 }

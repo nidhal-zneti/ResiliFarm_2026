@@ -27,6 +27,8 @@
     "irrigationUnavailable": "Suivi indisponible",
     "recommendedWater": "Quantité conseillée",
     "adviceUnavailableHelp": "Nous n'avons pas assez de données pour recommander une irrigation aujourd'hui.",
+    "adviceNeededReason": "D'après la météo régionale du jour et les besoins en eau de votre culture.",
+    "adviceNotNeededReason": "La pluie et les conditions actuelles couvrent les besoins en eau de votre culture aujourd'hui.",
     "weather": "Météo",
     "temperature": "Température",
     "rain": "Pluie",
@@ -112,6 +114,8 @@
     "unauthenticated": "Veuillez vous reconnecter.",
     "network": "Connexion impossible. Vérifiez votre réseau.",
     "timeout": "La connexion a expiré. Réessayez.",
-    "notAvailable": "Cette fonction n'est pas encore disponible."
+    "notAvailable": "Cette fonction n'est pas encore disponible.",
+    "farmNotFound": "Aucune ferme n'est associée à votre compte.",
+    "weatherUnavailable": "La météo est momentanément indisponible."
   }
 }

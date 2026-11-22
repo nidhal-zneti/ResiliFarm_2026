@@ -68,7 +68,9 @@ export function WeatherCard({ weather }: { weather: Weather }) {
             <Text style={styles.dayLabel}>{weekdayShort(day.date, i18n.language)}</Text>
             {weatherIcon(day.condition, 22, colors.primary)}
             <Text style={styles.dayTemp}>
-              {Math.round(day.tempMaxC)}° / {Math.round(day.tempMinC)}°
+              {day.tempMinC != null
+                ? `${Math.round(day.tempMaxC)}° / ${Math.round(day.tempMinC)}°`
+                : `${Math.round(day.tempMaxC)}°`}
             </Text>
             <View style={styles.dayRainRow}>
               {day.rainMm > 0 ? (

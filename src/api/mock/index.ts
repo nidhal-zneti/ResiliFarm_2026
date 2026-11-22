@@ -48,6 +48,7 @@ export const mockUser: User = {
 export const mockFarm: Farm = {
   id: 1,
   name: 'Parcelle Olive Nord',
+  regionId: 1,
   location: 'Sidi Bouzid, Tunisia',
   crop: 'Olive',
   areaHa: 3.5,

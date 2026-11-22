@@ -21,6 +21,8 @@ export type User = {
 export type Farm = {
   id: number;
   name: string;
+  /** Region the farm belongs to (used to fetch its weather and alerts). */
+  regionId: number;
   /** Human-readable place, e.g. "Sidi Bouzid". */
   location: string;
   crop: string;
@@ -58,7 +60,8 @@ export type WeatherDay = {
   /** Short weekday label already localised by the backend, if provided. */
   label?: string;
   condition: string;
-  tempMinC: number;
+  /** Omitted when the provider only supplies a daily maximum. */
+  tempMinC?: number;
   tempMaxC: number;
   rainMm: number;
 };

@@ -55,7 +55,13 @@ export function IrrigationAdviceCard({ advice }: { advice: IrrigationAdvice }) {
         <Text style={styles.reason}>{t('home.adviceUnavailableHelp')}</Text>
       ) : advice.reason ? (
         <Text style={styles.reason}>{advice.reason}</Text>
-      ) : null}
+      ) : (
+        <Text style={styles.reason}>
+          {advice.status === 'needed'
+            ? t('home.adviceNeededReason')
+            : t('home.adviceNotNeededReason')}
+        </Text>
+      )}
 
       {advice.warning ? (
         <View style={styles.warning}>
