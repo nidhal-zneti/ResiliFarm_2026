@@ -75,7 +75,14 @@ def test_comparable_listings_and_rolls_keep_sources(monkeypatch):
                listing('ESP32 devkit board', '80 DT', 'second'),
                listing('Dripline roll of 100 m', '200 DT', 'drip')]
     monkeypatch.setattr(prices, 'search_context', lambda *a, **k: sources)
-    result = prices.estimate(REGION, PROFILE)
+    complete_profile = {
+        **PROFILE,
+        'row_spacing_m': 1,
+        'laterals_per_row': 1,
+        'emitter_spacing_m': 0.3,
+        'emitter_flow_lph': 2,
+    }
+    result = prices.estimate(REGION, complete_profile)
     items = {item['key']: item for item in result['items']}
     assert items['controller']['unit_price'] == 60
     assert items['controller']['unit_price_low'] == 40
@@ -83,10 +90,10 @@ def test_comparable_listings_and_rolls_keep_sources(monkeypatch):
     assert len(items['controller']['sources']) == 2
     assert items['controller']['price_basis'] == 'comparable_listings'
     assert items['dripline']['unit_price'] == 2
-    assert items['dripline']['line_total'] == 10000
-    assert result['subtotal_low'] == 10040
-    assert result['subtotal_high'] == 10080
-    assert result['priced_subtotal'] == 10060
+    assert items['dripline']['line_total'] == 20000
+    assert result['subtotal_low'] == 20040
+    assert result['subtotal_high'] == 20080
+    assert result['priced_subtotal'] == 20060
     assert not result['complete']
     assert result['accuracy_validated'] is False
 
@@ -253,7 +260,14 @@ def test_api_saves_budget_ranges_in_design_and_conversation(monkeypatch, assista
         cid = connection.execute(db.studio_conversations.insert().values(
             user_id=1, region_id=1, title='Budget', context={
                 'design_intake': True, 'design_request': 'Build an irrigation controller',
-                'farm_profile': {**PROFILE, 'crop': 'wheat', 'energy_source': 'grid'},
+                    'farm_profile': {
+                        **PROFILE,
+                        'laterals_per_row': 1,
+                        'emitter_spacing_m': 0.3,
+                        'emitter_flow_lph': 2,
+                        'crop': 'wheat',
+                        'energy_source': 'grid',
+                    },
             })).inserted_primary_key[0]
     response = assistant_api.post('/api/v1/aiot/assistant/messages', json={
         'conversation_id': cid, 'region_id': 1, 'text': 'Prepare the estimate', 'language': 'en'})

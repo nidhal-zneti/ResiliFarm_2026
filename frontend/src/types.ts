@@ -263,7 +263,7 @@ export type Project = {
   region_id: number;
   deployed: boolean;
   design: Design;
-  messages: { id: number; role: string; text: string }[];
+  messages: StudioChatMessage[];
   versions: { version: number; design: Design }[];
 };
 export type Role = "FARMER" | "AGRONOMIST" | "ADMIN";

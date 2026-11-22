@@ -144,6 +144,9 @@ def generate(text, previous=None, preferences=()):
     provider_action='design'
     if provider_options:
         provider_action=provider_options.pop('_action','design')
+        if previous and re.search(r'\badd\s+(?:exactly\s+)?(?:one|another)\s+(?:more\s+)?soil\s+sensors?\b',text):
+            provider_action='design'
+            provider_options['soil_count']=min(24,previous['options']['soil_count']+1)
         options.update(provider_options)
     else:
         # Preferences supplement a supported request only in the rule-based path.

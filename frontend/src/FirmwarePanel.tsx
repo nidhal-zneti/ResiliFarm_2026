@@ -36,6 +36,7 @@ export default function FirmwarePanel({
   designVersion,
   busy,
   historical,
+  readOnly,
   autoGenerate,
   onGenerate,
 }: {
@@ -44,6 +45,7 @@ export default function FirmwarePanel({
   designVersion: number;
   busy: boolean;
   historical: boolean;
+  readOnly: boolean;
   autoGenerate: boolean;
   onGenerate: (settings: FirmwareSettings) => Promise<void>;
 }) {
@@ -56,7 +58,7 @@ export default function FirmwarePanel({
   const generationKey = `${projectId}:${designVersion}`;
 
   async function generate() {
-    if (busy || generating || historical) return;
+    if (busy || generating || historical || readOnly) return;
     setGenerating(true);
     setGenerationError("");
     setCopyStatus("");
@@ -76,10 +78,10 @@ export default function FirmwarePanel({
   }
 
   useEffect(() => {
-    if (!autoGenerate || busy || generating || generated || historical || attemptedVersion.current === generationKey) return;
+    if (!autoGenerate || busy || generating || generated || historical || readOnly || attemptedVersion.current === generationKey) return;
     attemptedVersion.current = generationKey;
     void generate();
-  }, [autoGenerate, busy, generating, generated, historical, generationKey]);
+  }, [autoGenerate, busy, generating, generated, historical, readOnly, generationKey]);
 
   const code = generated || historical ? design.firmware : "";
   async function copyCode() {
@@ -96,7 +98,7 @@ export default function FirmwarePanel({
     <section className="studio-code-view">
       <div className="studio-step-heading">
         <div><p className="eyebrow">{t("studioStepCode")}</p><h2>{t("firmwarePanelTitle")}</h2></div>
-        <button type="button" className="studio-code-regenerate" disabled={busy || generating || historical} onClick={() => void generate()}>
+        <button type="button" className="studio-code-regenerate" disabled={busy || generating || historical || readOnly} onClick={() => void generate()}>
           {generating ? <LoaderCircle size={16} className="firmware-spinner" /> : <Code2 size={16} />}
           {t(generated ? "firmwareRegenerate" : "firmwareGenerate")}
         </button>

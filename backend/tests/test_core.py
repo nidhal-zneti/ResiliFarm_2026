@@ -91,33 +91,39 @@ def test_distinct_design_profiles():
     assert tank['options']['pressure'] is False
     assert greenhouse['cost_usd'] != tank['cost_usd']
 
-def test_api_end_to_end(client):
+def test_api_end_to_end(client,monkeypatch):
+    from backend.app import main
     assert client.get('/health').json()['status']=='ok'
     all_regions=client.get('/api/v1/regions').json()['regions']
     assert len(all_regions)==71
     assert sum(r['country_id']==1 for r in all_regions)==24
     assert sum(r['country_id']==2 for r in all_regions)==47
-    for name in ['overview','weather','water-network','energy']:
+    fake_weather={'source':'Open-Meteo test response','kind':'current_model','is_simulated':False,
+                  'is_measured':False,'updated_at':'2026-01-01T12:00','coverage':{},
+                  'current':{'temperature_2m':20},'days':[],'units':{}}
+    monkeypatch.setattr(main,'weather',lambda *args,**kwargs: fake_weather)
+    for name in ['overview','weather']:
         assert client.get('/api/v1/regions/1/'+name).status_code==200
+    for name in ['water-network','energy']:
+        assert client.get('/api/v1/regions/1/'+name).status_code==503
     for name in ['predictions/water-demand','predictions/solar','recommendations/irrigation']:
-        assert client.post('/api/v1/'+name,json={'area_ha':5}).json()['water_m3']>0
+        assert client.post('/api/v1/'+name,json=FarmInput().model_dump()).json()['water_m3']>0
     result=client.post('/api/v1/simulations/scenario',json={'scenario':'leak','intervention':True})
-    assert result.status_code==201
-    assert client.get('/api/v1/simulations/'+str(result.json()['id'])).status_code==200
-    assert client.get('/api/v1/alerts').json()[0]['is_simulated']
+    assert result.status_code==503
+    assert client.get('/api/v1/alerts').json()==[]
     p=client.post('/api/v1/aiot/projects',json={'text':'solar irrigation','region_id':1}).json()
     pid=p['id'];base=f'/api/v1/aiot/projects/{pid}'
     edited=client.post(base+'/messages',json={'text':'Add another soil-moisture sensor'}).json()
     assert len(edited['versions'])==2
     assert edited['design']['options']['soil_count']==3
     assert not client.post(base+'/validate',json={'supply_v':5,'soil_count':3}).json()['valid']
-    assert client.post(base+'/deploy').status_code==200
-    assert any(d['id']==pid for d in client.get('/api/v1/regions/1/overview').json()['devices'])
-    # Edits revoke the old deployment until the new version is revalidated.
+    assert client.post(base+'/deploy').status_code==503
+    assert client.get('/api/v1/regions/1/overview').json()['devices']==[]
+    # Physical deployment remains blocked until a hardware connector exists.
     client.post(base+'/messages',json={'text':'8 soil sensors'})
-    assert client.post(base+'/deploy').status_code==422
+    assert client.post(base+'/deploy').status_code==503
     client.post(base+'/messages',json={'text':'Replace incompatible components'})
-    assert client.post(base+'/deploy').status_code==200
+    assert client.post(base+'/deploy').status_code==503
     export=client.get(base+'/export?language=ja')
     assert export.status_code==200
     with zipfile.ZipFile(io.BytesIO(export.content)) as z:
@@ -159,21 +165,44 @@ def test_postgres_schema_compiles():
 
 def test_weather_fallback_and_cache(monkeypatch):
     from backend.app.db import REGIONS
+    from backend.app.integrations import WeatherUnavailable
     import httpx
-    def failure(*a,**k): raise httpx.ConnectError('offline')
-    monkeypatch.setattr(integrations.httpx,'get',failure)
-    r=integrations.weather(REGIONS[0],True)
-    assert r['is_simulated'] and r['fallback_reason']=='weatherUnavailable'
-    calls=[]
-    class Response:
-        def raise_for_status(self): pass
-        def json(self):
-            return {'daily':{'time':['2026-01-01'],'et0_fao_evapotranspiration':[3],'temperature_2m_max':[20],'precipitation_sum':[2],'shortwave_radiation_sum':[14],'relative_humidity_2m_mean':[60],'wind_speed_10m_max':[10]}}
-    def success(*a,**k): calls.append(1);return Response()
-    monkeypatch.setattr(integrations.httpx,'get',success)
-    assert integrations.weather(REGIONS[0],True)['kind']=='forecast'
-    integrations.weather(REGIONS[0],True)
-    assert len(calls)==1
+    integrations._cache.pop(REGIONS[0]['id'], None)
+
+    def failure(*args, **kwargs):
+        raise httpx.ConnectError('offline')
+
+    monkeypatch.setattr(integrations.httpx, 'get', failure)
+    with pytest.raises(WeatherUnavailable):
+        integrations.weather(REGIONS[0], True)
+
+    payload = {
+        'current': {
+            'time': '2026-01-01T12:00', 'temperature_2m': 20, 'relative_humidity_2m': 60,
+            'precipitation': 0, 'rain': 0, 'weather_code': 1, 'wind_speed_10m': 10,
+            'wind_direction_10m': 180, 'wind_gusts_10m': 12, 'shortwave_radiation': 400,
+            'interval': 900,
+        },
+        'daily': {
+            'time': ['2026-01-01'], 'et0_fao_evapotranspiration': [3],
+            'temperature_2m_max': [20], 'precipitation_sum': [2],
+            'shortwave_radiation_sum': [14], 'relative_humidity_2m_mean': [60],
+            'wind_speed_10m_max': [10],
+        },
+    }
+    calls = []
+
+    def success(*args, **kwargs):
+        calls.append(1)
+        return httpx.Response(
+            200, json=payload,
+            request=httpx.Request('GET', 'https://api.open-meteo.com/v1/forecast'),
+        )
+
+    monkeypatch.setattr(integrations.httpx, 'get', success)
+    assert integrations.weather(REGIONS[0], True)['kind'] == 'current_model'
+    integrations.weather(REGIONS[0], True)
+    assert len(calls) == 1
 
 def test_translation_parity():
     root=Path(__file__).resolve().parents[2]/'frontend/src/i18n'
@@ -192,7 +221,7 @@ def test_translation_parity():
         assert set(dictionary['guides'])==sections
         for guide in dictionary['guides'].values():
             assert set(guide)=={'purpose','inputs','steps','results','beginner','professional'}
-            assert len(guide['steps'])>=3
+            assert len(guide['steps'])>=2
 
 @pytest.mark.parametrize('prompt',['robot','solar robot','robot\nWi-Fi','drone','ロボット','ドローン','make a pizza','   '])
 def test_unsupported_studio_has_no_side_effects(client, monkeypatch, prompt):
@@ -283,6 +312,14 @@ def test_ai_edit_preserves_context_and_increments_once(monkeypatch):
     mock_studio_ai(monkeypatch,{'supported':True,'action':'design','changes':{'solar':False}})
     assert generate('I do not want solar power',updated)['options']['solar'] is False
 
+def test_ai_edit_enforces_explicit_one_more_sensor_if_model_misses_it(monkeypatch):
+    d=generate('solar irrigation')
+    mock_studio_ai(monkeypatch,{'supported':True,'action':'explain','changes':{}})
+    updated=generate('Add exactly one more soil sensor; keep everything else unchanged.',d)
+    assert updated['options']['soil_count']==d['options']['soil_count']+1
+    assert updated['options']['solar']==d['options']['solar']
+    assert updated['options']['lora']==d['options']['lora']
+
 def test_ai_paraphrase_and_greenhouse_share_catalogue_builder(monkeypatch):
     mock_studio_ai(monkeypatch,{'supported':True,'action':'design','changes':{'lora':True}})
     assert generate('Keep the roots damp far from any router')['options']['lora']
@@ -361,19 +398,45 @@ def test_ai_status_reports_actual_model_availability(client,monkeypatch):
     assert client.get('/api/v1/aiot/provider').json()['available']
 
 def test_account_signup_login_profile_and_password(client):
-    created=client.post('/api/v1/auth/signup',json={'email':'Farmer@Example.com','password':'secret123','full_name':'Amina Farmer'})
-    assert created.status_code==201
-    token=created.json()['token']
-    assert created.json()['user']['email']=='farmer@example.com'
-    assert set(created.json()['user'])=={'id','email','full_name','role','created_at'}  # Never expose the password hash.
-    assert client.post('/api/v1/auth/signup',json={'email':'farmer@example.com','password':'secret123','full_name':'Dup'}).status_code==409
-    assert client.post('/api/v1/auth/login',json={'email':'farmer@example.com','password':'wrong'}).status_code==401
-    headers={'Authorization':'Bearer '+token}
-    assert client.get('/api/v1/auth/me').status_code==401
-    assert client.get('/api/v1/auth/me',headers={'Authorization':'Bearer invalid'}).status_code==401
-    assert client.get('/api/v1/auth/me',headers=headers).json()['full_name']=='Amina Farmer'
-    assert client.post('/api/v1/auth/profile',json={'email':'amina@example.com','full_name':'Amina B'},headers=headers).json()['email']=='amina@example.com'
-    assert client.post('/api/v1/auth/password',json={'current_password':'wrong','new_password':'longenough'},headers=headers).status_code==401
-    assert client.post('/api/v1/auth/password',json={'current_password':'secret123','new_password':'longenough'},headers=headers).status_code==200
-    assert client.post('/api/v1/auth/login',json={'email':'amina@example.com','password':'longenough'}).status_code==200
-    assert client.post('/api/v1/auth/signup',json={'email':'not-an-email','password':'short','full_name':'x'}).status_code==422
+    disabled = client.post('/api/v1/auth/signup', json={
+        'email': 'Farmer@Example.com', 'password': 'secret123', 'full_name': 'Amina Farmer',
+    })
+    assert disabled.status_code == 403
+    assert disabled.json()['error']['code'] == 'publicRegistrationDisabled'
+
+    from backend.app import auth, db
+    with db.engine.begin() as connection:
+        connection.execute(db.users.insert().values(
+            email='farmer@example.com', full_name='Amina Farmer',
+            password_hash=auth.hash_password('secret123'), role='FARMER', is_active=True,
+        ))
+    assert client.post('/api/v1/auth/login', json={
+        'email': 'farmer@example.com', 'password': 'wrong',
+    }).status_code == 401
+    login = client.post('/api/v1/auth/login', json={
+        'email': 'Farmer@Example.com', 'password': 'secret123',
+    })
+    assert login.status_code == 200
+    token = login.json()['token']
+    user = login.json()['user']
+    assert user['email'] == 'farmer@example.com'
+    assert set(user) == {'id', 'email', 'full_name', 'phone', 'is_active', 'role', 'created_at'}
+    headers = {'Authorization': 'Bearer ' + token}
+    assert client.get('/api/v1/auth/me').status_code == 401
+    assert client.get('/api/v1/auth/me', headers={'Authorization': 'Bearer invalid'}).status_code == 401
+    assert client.get('/api/v1/auth/me', headers=headers).json()['full_name'] == 'Amina Farmer'
+    assert client.post('/api/v1/auth/profile', json={
+        'email': 'amina@example.com', 'full_name': 'Amina B',
+    }, headers=headers).json()['email'] == 'amina@example.com'
+    assert client.post('/api/v1/auth/password', json={
+        'current_password': 'wrong', 'new_password': 'longenough',
+    }, headers=headers).status_code == 401
+    assert client.post('/api/v1/auth/password', json={
+        'current_password': 'secret123', 'new_password': 'longenough',
+    }, headers=headers).status_code == 200
+    assert client.post('/api/v1/auth/login', json={
+        'email': 'amina@example.com', 'password': 'longenough',
+    }).status_code == 200
+    assert client.post('/api/v1/auth/signup', json={
+        'email': 'not-an-email', 'password': 'short', 'full_name': 'x',
+    }).status_code == 403

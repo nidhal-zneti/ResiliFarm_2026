@@ -155,6 +155,9 @@ KC = {'olive': [0.55, 0.65, 0.60], 'wheat': [0.30, 1.15, 0.40], 'tomato': [0.60,
 def _migrate():
     """Add columns introduced after the first release; portable across SQLite and PostgreSQL."""
     user_columns = {column['name'] for column in inspect(engine).get_columns('users')}
+    if 'role' not in user_columns:
+        with engine.begin() as c:
+            c.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'FARMER'"))
     if 'phone' not in user_columns:
         with engine.begin() as c:
             c.execute(text('ALTER TABLE users ADD COLUMN phone VARCHAR(40)'))

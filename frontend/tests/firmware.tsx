@@ -24,7 +24,9 @@ export async function run() {
   };
   const render = (generated: FirmwareGeneration | undefined, state = {}) => renderToStaticMarkup(createElement(FirmwarePanel, {
     design: { firmware: "void setup() {}", firmware_generation: generated } as Design,
-    busy: false, historical: false, modelAvailable: true, onGenerate: async () => {}, ...state,
+    projectId: 1, designVersion: 1,
+    busy: false, historical: false, readOnly: false, autoGenerate: false,
+    onGenerate: async () => {}, ...state,
   }));
   const escaped = (text: string) => renderToStaticMarkup(createElement("span", null, text)).slice(6, -7);
   for (const [language, dictionary] of Object.entries({ en, fr, ja, ar })) {
@@ -34,12 +36,13 @@ export async function run() {
     assert.ok(html.includes(escaped(dictionary.firmwareDownload)));
     assert.ok(html.includes("qwen3:4b-instruct"));
     assert.ok(html.includes("void setup() {}"));
-    assert.ok(!/<button[^>]*class="primary"[^>]*disabled/.test(html), "Active-HIGH must allow regeneration");
+    assert.ok(!/<button[^>]*class="studio-code-regenerate"[^>]*disabled/.test(html), "Generated firmware can be regenerated");
     assert.ok(render({ ...info, compile_status: "not_checked" }).includes(escaped(dictionary.firmwareCompileUnchecked)));
-    for (const state of [{ busy: true }, { historical: true }, { modelAvailable: false }]) {
-      assert.match(render(info, state), /<button[^>]*class="primary"[^>]*disabled/);
+    for (const state of [{ busy: true }, { historical: true }, { readOnly: true }]) {
+      assert.match(render(info, state), /<button[^>]*class="studio-code-regenerate"[^>]*disabled/);
     }
-    assert.match(render(undefined), /<button[^>]*class="primary"[^>]*disabled/, "Relay selection is required");
+    assert.match(render(undefined), /<button[^>]*class="studio-code-regenerate"/,
+      "The local template is available without a configured model");
   }
   console.log("Passed: firmware controls, download/code preview and compilation status in EN/FR/JA/AR.");
 }

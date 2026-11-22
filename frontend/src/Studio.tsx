@@ -635,6 +635,7 @@ export default function Studio({
             designVersion={version ?? project.versions.at(-1)!.version}
             busy={busy}
             historical={historical}
+            readOnly={readOnly}
             autoGenerate={!historical}
             onGenerate={generateFirmware}
           />

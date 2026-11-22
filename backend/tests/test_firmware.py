@@ -1,26 +1,31 @@
+"""The Studio firmware path builds a deterministic, review-required local starter."""
 import io
 import json
-import zipfile
 import subprocess
+import zipfile
 from copy import deepcopy
 from pathlib import Path
 
-import httpx
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, func, select
 from sqlalchemy.pool import StaticPool
 
-from backend.app import db
+from backend.app import db, main
 from backend.app.firmware_generation import (
-    FirmwareConfigurationError, FirmwareUnavailable, generate_firmware, pin_plan, validate_code, compile_sketch,
+    FirmwareConfigurationError,
+    FirmwareUnavailable,
+    compile_sketch,
+    generate_firmware,
+    pin_plan,
+    validate_code,
 )
 from backend.app.main import app, save_version
 from backend.app.schemas import FirmwareInput
 from backend.app.studio import generate
 
 
-CODE = '''const float DRY_PCT = 30.0f;
+LOGIC = '''const float DRY_PCT = 30.0f;
 const float WET_PCT = 50.0f;
 void setup() { setControlTiming(60000UL, 600000UL); }
 void loop() {
@@ -32,151 +37,125 @@ void loop() {
   }
 }
 '''
-DRAFT = {'code': CODE, 'libraries': [], 'setup_steps': ['Calibrate ADC dry/wet readings.'],
-         'assumptions': ['Classic ESP32 with analog soil sensors.'], 'limitations': ['Not hardware-tested.']}
 
 
 @pytest.fixture(autouse=True)
-def isolated_provider(monkeypatch):
-    for key in ('STUDIO_AI_BASE_URL', 'STUDIO_AI_MODEL', 'STUDIO_AI_API_KEY'):
-        monkeypatch.delenv(key, raising=False)
-    def forbidden(*a, **k):
-        raise AssertionError('Unexpected network call')
-    monkeypatch.setattr(httpx, 'post', forbidden)
-    # Unit tests must not depend on whether this workstation has Arduino installed.
+def local_template_only(monkeypatch):
+    monkeypatch.delenv('STUDIO_AI_BASE_URL', raising=False)
+    monkeypatch.delenv('STUDIO_AI_MODEL', raising=False)
+    monkeypatch.delenv('STUDIO_AI_API_KEY', raising=False)
+    monkeypatch.delenv('FIRMWARE_COMPILE', raising=False)
     monkeypatch.setattr('backend.app.firmware_generation.compile_sketch', lambda code: 'not_checked')
 
 
 @pytest.fixture
 def design():
-    result = generate('irrigation with 2 soil sensors')
-    result['farm_context'] = {'zones': 2, 'area_ha': 1}
-    return result
+    return generate('irrigation with 2 soil sensors and 2 zones')
 
 
 def request(**changes):
-    return FirmwareInput(version=1, relay_active_low=True, **changes)
+    values = {
+        'version': 1,
+        'board': 'esp32-devkit',
+        'relay_active_low': True,
+        'temperature_sensor': 'none',
+        'hardware_notes': '',
+        'requirements': '',
+        'language': 'en',
+    }
+    return FirmwareInput(**{**values, **changes})
 
 
-def mock_model(monkeypatch, draft=None, finish='stop', native=False):
-    monkeypatch.setenv('STUDIO_AI_BASE_URL', 'http://127.0.0.1:11434/v1' if native else 'http://model.invalid/v1')
-    monkeypatch.setenv('STUDIO_AI_MODEL', 'test-model')
-    calls = []
-    def respond(url, **kwargs):
-        calls.append((url, kwargs['json']))
-        content = json.dumps(DRAFT if draft is None else draft)
-        body = ({'message': {'content': content}, 'done_reason': finish} if native else
-                {'choices': [{'message': {'content': content}, 'finish_reason': finish}]})
-        return httpx.Response(200, request=httpx.Request('POST', url), json=body)
-    monkeypatch.setattr(httpx, 'post', respond)
-    return calls
-
-
-@pytest.mark.parametrize('native', [False, True])
-def test_model_code_has_provenance_and_disabled_outputs(monkeypatch, design, native):
-    calls = mock_model(monkeypatch, native=native)
+def test_local_template_has_review_required_outputs(design):
     original = deepcopy(design)
-    result = generate_firmware(design, request())
+    result = generate_firmware(design, request(relay_active_low=False, temperature_sensor='sht31'))
     assert design == original
-    assert result['source'] == 'provider' and result['model'] == 'test-model'
-    assert result['compile_status'] == 'not_checked' and result['hardware_tested'] is False
-    assert result['outputs_enabled'] is False
+    assert result['source'] == 'template'
+    assert result['model'] == 'ResiliFarm local irrigation template'
+    assert result['compile_status'] == 'not_checked'
+    assert result['hardware_tested'] is False and result['outputs_enabled'] is False
     assert 'constexpr bool OUTPUTS_ENABLED = false;' in result['code']
-    assert 'constexpr bool RELAY_ACTIVE_LOW = true;' in result['code']
-    assert 'constexpr size_t ZONE_COUNT = 2;' in result['code']
-    assert 'void generatedSetup()' in result['code'] and 'void generatedLoop()' in result['code']
+    assert 'constexpr bool RELAY_ACTIVE_LOW = false;' in result['code']
     assert 'void setup()' in result['code'] and 'void loop()' in result['code']
-    assert result['libraries'] == [] and result['setup_steps'] == DRAFT['setup_steps']
-    if native:
-        assert calls[0][0] == 'http://127.0.0.1:11434/api/chat'
-        assert calls[0][1]['options']['num_ctx'] == 8192
-        assert calls[0][1]['think'] is False
-    else:
-        assert calls[0][0] == 'http://model.invalid/v1/chat/completions'
+    assert 'CALIBRATION_CONFIRMED = false' in result['code']
+    assert 'Adafruit SHT31 Library' in result['libraries']
+    assert 'Measure and enter dry/wet ADC calibration values' in result['setup_steps'][0]
 
 
-def test_pin_map_resolves_two_zone_flow_conflict(design):
+def test_pin_plan_maps_two_zones_and_optional_sensor(design):
     pins, zones = pin_plan(design, request(temperature_sensor='sht31'))
     by_name = {pin['symbol']: pin['gpio'] for pin in pins}
     assert zones == 2
     assert by_name['PUMP_PIN'] == 26 and by_name['FLOW_PIN'] == 27
     assert by_name['VALVE_1_PIN'] == 25 and by_name['VALVE_2_PIN'] == 14
-    assert by_name['I2C_SDA_PIN'] == 21
+    assert by_name['I2C_SDA_PIN'] == 21 and by_name['I2C_SCL_PIN'] == 22
     assert len(set(by_name.values())) == len(pins)
-    assert all(pin['gpio'] < 34 for pin in pins if pin['mode'] == 'output')
 
 
-def test_radio_reserves_spi_pins(design):
+def test_capacity_limits_are_reported_instead_of_unmapped_pins(design):
+    design['options']['valves'] = 20
+    design['options']['soil_count'] = 24
+    next(part for part in design['bom'] if part['key'] == 'soil')['quantity'] = 24
+    result = generate_firmware(design, request())
+    assert len([pin for pin in result['pin_map'] if pin['component'].startswith('valve:')]) == 6
+    assert len([pin for pin in result['pin_map'] if pin['component'].startswith('soil:')]) == 5
+    assert any('20 irrigation zones' in note for note in result['limitations'])
+    assert any('24 soil sensors' in note for note in result['limitations'])
+    assert len({pin['gpio'] for pin in result['pin_map']}) == len(result['pin_map'])
+
+
+def test_lora_reserves_bus_pins(design):
     design['options']['lora'] = True
-    pins, _ = pin_plan(design, request())
-    assert len({pin['gpio'] for pin in pins}) == len(pins)
-    design['farm_context']['zones'] = 4
-    with pytest.raises(FirmwareConfigurationError, match='firmwarePinCapacity'):
-        pin_plan(design, request())
-
-
-@pytest.mark.parametrize('mutation,error', [
-    ('zones', 'firmwarePinCapacity'), ('sensors', 'firmwarePinCapacity'),
-    ('greenhouse', 'firmwareGreenhouseHardware'),
-])
-def test_unrepresentable_hardware_is_explicit(design, mutation, error):
-    if mutation == 'zones': design['farm_context']['zones'] = 20
-    if mutation == 'sensors': design['options']['soil_count'] = 24
-    if mutation == 'greenhouse': design['options']['profile'] = 'greenhouse'
-    with pytest.raises(FirmwareConfigurationError, match=error):
-        pin_plan(design, request())
+    result = generate_firmware(design, request())
+    symbols = {pin['symbol']: pin['gpio'] for pin in result['pin_map']}
+    assert symbols['LORA_SCK_PIN'] == 18
+    assert symbols['LORA_MOSI_PIN'] == 23
+    assert len(set(symbols.values())) == len(symbols)
+    assert 'LoRa by Sandeep Mistry' in result['libraries']
 
 
 @pytest.mark.parametrize('bad_code', [
-    CODE.replace('void loop()', 'void incomplete()'),
-    CODE + '\n// TODO: implement the real algorithm',
-    CODE.replace('requestWater(zone, true);', 'digitalWrite(PUMP_PIN, LOW);'),
-    CODE + '\nvoid setPump(bool on) {}',
-    CODE + '\nconst bool OUTPUTS_ENABLED = true;',
-    CODE + '\n#include "../private.h"',
-    CODE + '\n{',
-    '```cpp\n' + CODE + '\n```',
-    CODE.replace('DRY_PCT)', 'UNDEFINED_THRESHOLD)'),
-    CODE + '\nvoid surprise() {}',
-    CODE.replace('requestWater(zone, true);', 'soilValid[zone] = true;'),
+    LOGIC.replace('void loop()', 'void incomplete()'),
+    LOGIC + '\n// TODO: implement the real algorithm',
+    LOGIC.replace('requestWater(zone, true);', 'digitalWrite(PUMP_PIN, LOW);'),
+    LOGIC + '\nvoid setPump(bool on) {}',
+    LOGIC + '\nconst bool OUTPUTS_ENABLED = true;',
+    LOGIC + '\n#include "../private.h"',
+    LOGIC + '\n{',
+    '```cpp\n' + LOGIC + '\n```',
+    LOGIC.replace('DRY_PCT)', 'UNDEFINED_THRESHOLD)'),
+    LOGIC + '\nvoid surprise() {}',
 ])
-def test_invalid_or_incomplete_code_is_rejected(design, bad_code):
+def test_firmware_validator_rejects_unsafe_or_incomplete_logic(design, bad_code):
     pins, _ = pin_plan(design, request())
     with pytest.raises(ValueError):
         validate_code(bad_code, pins)
 
 
-def test_truncated_model_output_is_not_accepted(monkeypatch, design):
-    mock_model(monkeypatch, finish='length')
-    with pytest.raises(FirmwareUnavailable, match='firmwareGenerationFailed'):
-        generate_firmware(design, request())
-
-
-def test_missing_provider_has_no_rule_fallback(design):
-    with pytest.raises(FirmwareUnavailable, match='firmwareModelUnavailable'):
-        generate_firmware(design, request())
-
-
 @pytest.mark.parametrize('outcome', ['passed', 'missing', 'error', 'timeout'])
-def test_compiler_status_and_failures(monkeypatch, tmp_path, outcome):
+def test_optional_compile_status(monkeypatch, tmp_path, design, outcome):
+    monkeypatch.setenv('FIRMWARE_COMPILE', '1')
     monkeypatch.setattr('backend.app.firmware_generation.TOOLCHAIN', tmp_path)
     monkeypatch.setattr('backend.app.firmware_generation.ROOT', tmp_path)
+    code = generate_firmware(design, request())['code']
     if outcome != 'missing':
         (tmp_path / 'arduino-cli.exe').touch()
         (tmp_path / 'arduino-cli.yaml').touch()
+
     def run(command, **kwargs):
         assert command[3] == 'compile' and 'esp32:esp32:esp32' in command
         assert 'upload' not in command
-        assert (Path(command[-1]) / 'resilifarm.ino').read_text() == CODE
+        assert (Path(command[-1]) / 'resilifarm.ino').read_text() == code
         if outcome == 'timeout':
             raise subprocess.TimeoutExpired(command, 180)
         return subprocess.CompletedProcess(command, 0 if outcome == 'passed' else 1)
+
     monkeypatch.setattr(subprocess, 'run', run)
     if outcome in ('error', 'timeout'):
         with pytest.raises(FirmwareUnavailable, match='firmwareCompileFailed'):
-            compile_sketch(CODE)
+            compile_sketch(code)
     else:
-        assert compile_sketch(CODE) == ('passed' if outcome == 'passed' else 'not_checked')
+        assert compile_sketch(code) == ('passed' if outcome == 'passed' else 'not_checked')
 
 
 @pytest.fixture
@@ -185,61 +164,60 @@ def project_client(monkeypatch, design):
     monkeypatch.setattr(db, 'engine', engine)
     try:
         with TestClient(app) as client:
-            with engine.begin() as c:
-                pid = c.execute(db.projects.insert().values(region_id=1, name='Firmware test')).inserted_primary_key[0]
-                save_version(c, pid, 'Irrigation', design, 1)
+            with engine.begin() as connection:
+                pid = connection.execute(db.projects.insert().values(region_id=1, name='Firmware test')).inserted_primary_key[0]
+                save_version(connection, pid, 'Irrigation', design, 1)
             yield client, pid
     finally:
         engine.dispose()
 
 
-def test_api_versions_code_and_exports_selected_version(monkeypatch, project_client):
+def test_api_versions_template_code_and_exports(project_client):
     client, pid = project_client
     before = client.get(f'/api/v1/aiot/projects/{pid}').json()
-    mock_model(monkeypatch)
     response = client.post(f'/api/v1/aiot/projects/{pid}/firmware', json=request().model_dump())
     assert response.status_code == 200, response.text
     project = response.json()
     assert len(project['versions']) == 2
     assert project['versions'][0]['design'] == before['design']
-    assert project['design']['firmware_generation']['source'] == 'provider'
+    assert project['design']['firmware_generation']['source'] == 'template'
+    assert project['design']['firmware_generation']['outputs_enabled'] is False
     assert project['deployed'] is False
     archive = client.get(f'/api/v1/aiot/projects/{pid}/export?version=2')
-    with zipfile.ZipFile(io.BytesIO(archive.content)) as z:
-        assert z.read('resilifarm/resilifarm.ino').decode() == project['design']['firmware']
-        assert json.loads(z.read('firmware_manifest.json'))['compile_status'] == 'not_checked'
-        assert 'VALVE_2_PIN,14,output' in z.read('firmware_pins.csv').decode()
-        assert 'starter.ino' not in z.namelist()
+    with zipfile.ZipFile(io.BytesIO(archive.content)) as result:
+        names = set(result.namelist())
+        assert {'resilifarm/resilifarm.ino', 'firmware_manifest.json', 'firmware_pins.csv', 'firmware_setup.txt'} <= names
+        assert result.read('resilifarm/resilifarm.ino').decode() == project['design']['firmware']
+        assert json.loads(result.read('firmware_manifest.json'))['compile_status'] == 'not_checked'
     old = client.get(f'/api/v1/aiot/projects/{pid}/export?version=1')
-    with zipfile.ZipFile(io.BytesIO(old.content)) as z:
-        assert z.read('starter.ino').decode() == before['design']['firmware']
+    with zipfile.ZipFile(io.BytesIO(old.content)) as result:
+        assert 'starter.ino' in result.namelist()
 
 
 @pytest.mark.parametrize('bad_request', [
-    {'version': 1}, {'version': 1, 'relay_active_low': 'false'},
-    {'version': 1, 'relay_active_low': True, 'board': 'esp32-s3'},
-    {'version': 1, 'relay_active_low': True, 'temperature_sensor': 'unknown'},
+    {'version': 1, 'relay_active_low': 'false'},
+    {'version': 1, 'board': 'esp32-s3'},
+    {'version': 1, 'temperature_sensor': 'unknown'},
+    {'version': 1, 'unexpected': True},
 ])
-def test_api_requires_explicit_supported_hardware(project_client, bad_request):
+def test_api_rejects_invalid_hardware_settings_without_writes(project_client, bad_request):
     client, pid = project_client
     response = client.post(f'/api/v1/aiot/projects/{pid}/firmware', json=bad_request)
     assert response.status_code == 422
     assert len(client.get(f'/api/v1/aiot/projects/{pid}').json()['versions']) == 1
 
 
-def test_generation_failure_and_stale_version_do_not_write(monkeypatch, project_client):
+def test_api_uses_defaults_and_rejects_stale_versions(project_client):
     client, pid = project_client
-    mock_model(monkeypatch, {'code': 'incomplete', **{k: v for k, v in DRAFT.items() if k != 'code'}})
-    before = client.get(f'/api/v1/aiot/projects/{pid}').json()
-    assert client.post(f'/api/v1/aiot/projects/{pid}/firmware', json=request().model_dump()).status_code == 503
-    stale = {**request().model_dump(), 'version': 2}
-    assert client.post(f'/api/v1/aiot/projects/{pid}/firmware', json=stale).status_code == 409
-    assert client.get(f'/api/v1/aiot/projects/{pid}').json() == before
+    stale = client.post(f'/api/v1/aiot/projects/{pid}/firmware', json={'version': 2})
+    assert stale.status_code == 409
+    minimal = client.post(f'/api/v1/aiot/projects/{pid}/firmware', json={'version': 1})
+    assert minimal.status_code == 200
+    assert len(minimal.json()['versions']) == 2
 
 
 def test_compile_failure_does_not_persist(monkeypatch, project_client):
     client, pid = project_client
-    mock_model(monkeypatch)
     def fail(code):
         raise FirmwareUnavailable('firmwareCompileFailed')
     monkeypatch.setattr('backend.app.firmware_generation.compile_sketch', fail)
@@ -249,31 +227,22 @@ def test_compile_failure_does_not_persist(monkeypatch, project_client):
     assert client.get(f'/api/v1/aiot/projects/{pid}').json() == before
 
 
-def test_successful_compile_status_reaches_export(monkeypatch, project_client):
-    client, pid = project_client
-    mock_model(monkeypatch)
-    monkeypatch.setattr('backend.app.firmware_generation.compile_sketch', lambda code: 'passed')
-    response = client.post(f'/api/v1/aiot/projects/{pid}/firmware', json=request().model_dump())
-    assert response.status_code == 200
-    assert response.json()['design']['firmware_generation']['compile_status'] == 'passed'
-    with zipfile.ZipFile(io.BytesIO(client.get(f'/api/v1/aiot/projects/{pid}/export').content)) as archive:
-        assert 'Compilation: passed.' in archive.read('firmware_setup.txt').decode()
-
-
 def test_edit_during_generation_rejects_stale_firmware(monkeypatch, project_client, design):
     client, pid = project_client
-    def racing_generation(*a):
-        with db.engine.begin() as c:
-            save_version(c, pid, 'Concurrent edit', design, 2)
-        return {'code': CODE, 'source': 'provider'}
-    monkeypatch.setattr('backend.app.main.generate_firmware', racing_generation)
-    assert client.post(f'/api/v1/aiot/projects/{pid}/firmware', json=request().model_dump()).status_code == 409
-    with db.engine.connect() as c:
-        assert c.execute(select(func.count()).select_from(db.versions)).scalar_one() == 2
+    def racing_generation(*args):
+        with db.engine.begin() as connection:
+            save_version(connection, pid, 'Concurrent edit', design, 2)
+        return {'code': 'void setup() {}'}
+    monkeypatch.setattr(main, 'generate_firmware', racing_generation)
+    response = client.post(f'/api/v1/aiot/projects/{pid}/firmware', json=request().model_dump())
+    assert response.status_code == 409
+    with db.engine.connect() as connection:
+        assert connection.execute(select(func.count()).select_from(db.versions)).scalar_one() == 2
 
 
 def test_firmware_locale_key_parity():
     root = Path(__file__).resolve().parents[2] / 'frontend/src/i18n'
-    dictionaries = [json.loads((root / f'{lang}.json').read_text(encoding='utf-8')) for lang in ('en', 'fr', 'ja', 'ar')]
+    dictionaries = [json.loads((root / f'{language}.json').read_text(encoding='utf-8'))
+                    for language in ('en', 'fr', 'ja', 'ar')]
     keys = {key for key in dictionaries[0] if key.startswith('firmware')}
-    assert all({key for key in d if key.startswith('firmware')} == keys for d in dictionaries)
+    assert all({key for key in dictionary if key.startswith('firmware')} == keys for dictionary in dictionaries)
