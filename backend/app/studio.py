@@ -235,13 +235,14 @@ def generate(text, previous=None, preferences=()):
         if quantity>0:
             bom.append({**CATALOG[k],'quantity':quantity})
     wires=[]
-    pins=[32,33,34,35,36,39]
+    pins=[32,33,34,35,36] if options['pressure'] else [32,33,34,35,36,39]
     for i in range(options['soil_count']): wires.append({'source':f'soil:{i+1}','target':'esp32','signal':f'ADC GPIO {pins[i] if i<len(pins) else "UNASSIGNED"}','rule':'analog33'})
     if options['temperature']: wires.append({'source':'temperature','target':'esp32','signal':'I²C GPIO 21/22','rule':'logic33'})
     if options['flow']: wires.append({'source':'flow','target':'levelShift','signal':'5 V → 3.3 V','rule':'levelShiftRequired'})
     wires += [{'source':'levelShift','target':'esp32','signal':'GPIO 27','rule':'logic33'}, {'source':'esp32','target':'driver','signal':'GPIO 26','rule':'relayDriver'}]
+    valve_pins=[25,14,13] if options['lora'] else [25,14,13,23,18,19]
     for i in range(options['valves']):
-        wires.append({'source':'esp32','target':f'relay:{i+1}','signal':f'digital output {26+i if i else 26}','rule':'relayDriver'})
+        wires.append({'source':'esp32','target':f'relay:{i+1}','signal':f'digital output {valve_pins[i] if i<len(valve_pins) else "UNASSIGNED"}','rule':'relayDriver'})
     wires += [{'source':'relay','target':'pump','signal':'12 V DC / 5 A','rule':'benchPump'}, {'source':'regulator','target':'esp32','signal':'5 V → DevKit VIN','rule':'espSupply'}]
     if options['pressure']: wires += [{'source':'pressure','target':'levelShift','signal':'0.5–4.5 V → ≤3.3 V','rule':'dividerRequired'},{'source':'levelShift','target':'esp32','signal':'ADC GPIO 39','rule':'analog33'}]
     if options['lora']: wires.append({'source':'lora','target':'esp32','signal':'SPI 18/19/23, CS 5, IRQ 4','rule':'regionalRadio'})

@@ -43,6 +43,18 @@ messages = entity('aiot_conversation_messages', ref('project_id', 'aiot_projects
 components = entity('aiot_components', Column('key', String(60), unique=True), Column('specification', json_type))
 connections = entity('aiot_connections', ref('version_id', 'aiot_design_versions'), Column('source', String(80)), Column('target', String(80)), Column('signal', String(100)))
 users = entity('users', Column('email', String(255), unique=True, nullable=False), Column('full_name', String(120), nullable=False), Column('password_hash', String(255), nullable=False))
+studio_conversations = entity(
+    'studio_assistant_conversations',
+    ref('user_id', 'users'), ref('region_id', 'administrative_areas'),
+    Column('title', String(160), nullable=False), Column('context', json_type, nullable=False),
+    Column('project_id', Integer),
+)
+studio_chat_messages = entity(
+    'studio_assistant_messages',
+    ref('conversation_id', 'studio_assistant_conversations'),
+    Column('role', String(20), nullable=False), Column('text', String(4000), nullable=False),
+    Column('payload', json_type),
+)
 records = {}
 for name in ['weather_observations', 'sensor_readings', 'energy_systems', 'predictions', 'alerts', 'irrigation_recommendations', 'simulation_runs']:
     records[name] = entity(name, ref('region_id', 'administrative_areas'), Column('is_simulated', Boolean, nullable=False, default=True), Column('source', String(120)), Column('payload', json_type))

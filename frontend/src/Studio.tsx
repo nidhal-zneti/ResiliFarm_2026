@@ -1,51 +1,104 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  CircuitBoard,
-  Send,
-  Plus,
-  Download,
-  CheckCircle2,
   AlertTriangle,
+  CheckCircle2,
+  ChevronRight,
+  CircuitBoard,
+  Download,
+  Plus,
+  Send,
 } from "lucide-react";
 import { api } from "./api";
 import { Panel } from "./components";
-import type { Project, Validation, Design } from "./types";
+import type {
+  Design,
+  MaterialEstimate,
+  Project,
+  Region,
+  StudioAssistantResponse,
+  StudioConversation,
+  Validation,
+} from "./types";
 import { BlueprintWorkspace } from "./StudioBlueprint";
+import FirmwarePanel, { type FirmwareSettings } from "./FirmwarePanel";
 import "@xyflow/react/dist/style.css";
+
+type StudioStep = "describe" | "design" | "budget" | "code" | "export";
+const STEPS: StudioStep[] = ["describe", "design", "budget", "code", "export"];
+const QUICK_STARTS = ["quickStartOlive", "quickStartGreenhouse", "quickStartWheat"] as const;
+const QUICK_PROMPTS: Record<(typeof QUICK_STARTS)[number], string> = {
+  quickStartOlive: "Design a 1 ha olive drip irrigation system",
+  quickStartGreenhouse: "Design a tomato greenhouse irrigation system",
+  quickStartWheat: "Design a wheat pivot irrigation system",
+};
+
+function formatAmount(value: number, locale: string) {
+  return value.toLocaleString(locale, { maximumFractionDigits: 2 });
+}
+
+function formatMoney(value: number, currency: string, locale: string) {
+  if (currency === "JPY") return `¥${formatAmount(value, locale)}`;
+  if (currency === "TND") return `TND ${formatAmount(value, locale)}`;
+  return `${currency} ${formatAmount(value, locale)}`;
+}
+
+function estimateTotal(estimate: MaterialEstimate | undefined, locale: string) {
+  if (!estimate) return null;
+  const currency = estimate.currency ?? "TND";
+  if (estimate.subtotal_low != null && estimate.subtotal_high != null) {
+    return `${formatMoney(estimate.subtotal_low, currency, locale)} – ${formatMoney(estimate.subtotal_high, currency, locale)}`;
+  }
+  if (estimate.priced_subtotal != null) {
+    return formatMoney(estimate.priced_subtotal, currency, locale);
+  }
+  return null;
+}
+
+function estimateItemPrice(
+  item: MaterialEstimate["items"][number],
+  locale: string,
+  unavailable: string,
+) {
+  const currency = item.currency;
+  if (item.line_total_low != null && item.line_total_high != null) {
+    return `${formatMoney(item.line_total_low, currency, locale)} – ${formatMoney(item.line_total_high, currency, locale)}`;
+  }
+  if (item.line_total != null) return formatMoney(item.line_total, currency, locale);
+  if (item.unit_price_low != null && item.unit_price_high != null) {
+    return `${formatMoney(item.unit_price_low, currency, locale)} – ${formatMoney(item.unit_price_high, currency, locale)} / ${item.unit}`;
+  }
+  if (item.unit_price != null) return `${formatMoney(item.unit_price, currency, locale)} / ${item.unit}`;
+  return unavailable;
+}
 
 export default function Studio({
   region,
-  onDeploy,
 }: {
   region: number;
   onDeploy: () => void;
 }) {
   const { t, i18n } = useTranslation();
+  const [step, setStep] = useState<StudioStep>("describe");
   const [text, setText] = useState("");
   const [project, setProject] = useState<Project | null>(null);
   const [saved, setSaved] = useState<{ id: number; name: string }[]>([]);
   const [selected, setSelected] = useState("esp32");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [provider, setProvider] = useState<{
-    configured: boolean;
-    available: boolean;
-    model: string;
-  } | null>(null);
-  const [voltage, setVoltage] = useState(3.3);
-  const [validation, setValidation] = useState<Validation | null>(null);
   const [version, setVersion] = useState<number | null>(null);
-  const [deployed, setDeployed] = useState(false);
-  const [generationStep, setGenerationStep] = useState<"prompt" | "clarify">(
-    "prompt",
-  );
-  const [planPrompt, setPlanPrompt] = useState("");
-  const [powerChoice, setPowerChoice] = useState("grid");
-  const [networkChoice, setNetworkChoice] = useState("auto");
-  const [profileChoice, setProfileChoice] = useState("irrigation");
+  const [validation, setValidation] = useState<Validation | null>(null);
+  const [voltage, setVoltage] = useState(3.3);
+  const [conversations, setConversations] = useState<StudioConversation[]>([]);
+  const [conversation, setConversation] = useState<StudioConversation | null>(null);
+  const [regions, setRegions] = useState<Region[]>([]);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [showAllParts, setShowAllParts] = useState(false);
+  const [expandedBudgetItem, setExpandedBudgetItem] = useState<string | null>(null);
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
   const [progressError, setProgressError] = useState("");
+  const [sketchUrl, setSketchUrl] = useState("");
+
   async function loadList() {
     try {
       setSaved(await api("/aiot/projects"));
@@ -53,14 +106,26 @@ export default function Studio({
       setError("error");
     }
   }
+
   useEffect(() => {
-    loadList();
-    api<{ configured: boolean; available: boolean; model: string }>(
-      "/aiot/provider",
-    )
-      .then(setProvider)
-      .catch(() => setProvider(null));
+    void loadList();
+    api<StudioConversation[]>("/aiot/assistant/conversations")
+      .then(setConversations)
+      .catch(() => setConversations([]));
+    api<{ regions: Region[] }>("/regions")
+      .then((response) => setRegions(response.regions))
+      .catch(() => setRegions([]));
   }, []);
+
+  useEffect(() => {
+    if (!helpOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setHelpOpen(false);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [helpOpen]);
+
   async function act(fn: () => Promise<void>) {
     setBusy(true);
     setError("");
@@ -72,68 +137,84 @@ export default function Studio({
       setBusy(false);
     }
   }
-  function accept(p: Project) {
+
+  function accept(p: Project, destination: StudioStep = "design") {
     setProject(p);
     setValidation(p.design.validation);
     setVoltage(p.design.options.supply_v);
     setVersion(null);
-    setDeployed(p.deployed);
     setSelected("esp32");
-    setGenerationStep("prompt");
-    setPlanPrompt("");
+    setShowAllParts(false);
+    setExpandedBudgetItem(null);
+    setStep(destination);
   }
-  async function send(
-    message = text || t("promptExample"),
-    preferences: string[] = [],
-  ) {
+
+  function newDesign() {
+    setProject(null);
+    setConversation(null);
+    setValidation(null);
+    setVersion(null);
+    setText("");
+    setStep("describe");
+    setError("");
+    setShowAllParts(false);
+    setExpandedBudgetItem(null);
+  }
+
+  async function send(message = text) {
+    if (!message.trim()) return;
     await act(async () => {
-      const p = await api<Project>(
-        project ? `/aiot/projects/${project.id}/messages` : "/aiot/projects",
-        {
-          text: message,
+      if (project && !conversation) {
+        const updated = await api<Project>(`/aiot/projects/${project.id}/messages`, {
+          text: message.trim(),
           language: i18n.language,
-          ...(!project
-            ? { region_id: region, name: t("studio"), preferences }
-            : {}),
-        },
-        105000,
-      );
-      accept(p);
+        }, 105000);
+        accept(updated, "design");
+        setText("");
+        await loadList();
+        return;
+      }
+      const response = await api<StudioAssistantResponse>("/aiot/assistant/messages", {
+        conversation_id: conversation?.id ?? null,
+        region_id: region,
+        text: message.trim(),
+        language: i18n.language,
+      }, 180000);
+      setConversation(response.conversation);
+      setConversations((items) => [
+        response.conversation,
+        ...items.filter((item) => item.id !== response.conversation.id),
+      ]);
+      if (response.result.project) accept(response.result.project, "design");
       setText("");
       await loadList();
     });
   }
-  function prepareBlueprint(e: FormEvent) {
-    e.preventDefault();
-    if (project) {
-      void send();
-      return;
-    }
-    const prompt = text.trim() || t("promptExample");
-    setPlanPrompt(prompt);
-    setPowerChoice("grid");
-    setNetworkChoice("auto");
-    setProfileChoice("irrigation");
-    setGenerationStep("clarify");
+
+  async function openConversation(id: number) {
+    await act(async () => {
+      const thread = await api<StudioConversation>(`/aiot/assistant/conversations/${id}`);
+      setConversation(thread);
+      setProject(null);
+      setValidation(null);
+      setVersion(null);
+      setStep("describe");
+      if (thread.project_id) {
+        accept(await api<Project>(`/aiot/projects/${thread.project_id}`), "design");
+      }
+    });
   }
-  function buildFromPlan() {
-    const prompt = planPrompt.slice(0, 3900);
-    const lower = prompt.toLowerCase();
-    const preferences: string[] = [];
-    if (!/solar|solaire|太陽/.test(lower) && powerChoice === "solar") {
-      preferences.push("solar");
-    }
-    if (networkChoice !== "auto" && !/wi-?fi|lora|ロラ/.test(lower)) {
-      preferences.push(networkChoice === "lora" ? "LoRa" : "Wi-Fi");
-    }
-    if (
-      !/greenhouse|serre|温室/.test(lower) &&
-      profileChoice === "greenhouse"
-    ) {
-      preferences.push("greenhouse");
-    }
-    send(prompt, preferences);
+
+  function newConversation() {
+    setConversation(null);
+    setProject(null);
+    setValidation(null);
+    setVersion(null);
+    setText("");
+    setStep("describe");
+    setError("");
   }
+
   useEffect(() => {
     if (!project) {
       setCompletedSteps([]);
@@ -141,14 +222,9 @@ export default function Studio({
       return;
     }
     try {
-      const savedProgress = window.localStorage.getItem(
-        `resilifarm:studio:${project.id}:instructions`,
-      );
+      const savedProgress = window.localStorage.getItem(`resilifarm:studio:${project.id}:instructions`);
       const parsed: unknown = savedProgress ? JSON.parse(savedProgress) : [];
-      if (
-        !Array.isArray(parsed) ||
-        parsed.some((step) => typeof step !== "string")
-      ) {
+      if (!Array.isArray(parsed) || parsed.some((item) => typeof item !== "string")) {
         throw new Error("invalidProgress");
       }
       setCompletedSteps(parsed);
@@ -158,440 +234,441 @@ export default function Studio({
       setProgressError("progressLoadError");
     }
   }, [project?.id]);
-  function toggleInstruction(step: string) {
+
+  function toggleInstruction(instruction: string) {
     if (!project) return;
-    const next = completedSteps.includes(step)
-      ? completedSteps.filter((item) => item !== step)
-      : [...completedSteps, step];
+    const next = completedSteps.includes(instruction)
+      ? completedSteps.filter((item) => item !== instruction)
+      : [...completedSteps, instruction];
     try {
-      window.localStorage.setItem(
-        `resilifarm:studio:${project.id}:instructions`,
-        JSON.stringify(next),
-      );
+      window.localStorage.setItem(`resilifarm:studio:${project.id}:instructions`, JSON.stringify(next));
       setCompletedSteps(next);
       setProgressError("");
     } catch {
       setProgressError("progressSaveError");
     }
   }
-  const design: Design | undefined =
-    version !== null
-      ? project?.versions.find((v) => v.version === version)?.design
-      : project?.design;
-  const part = design?.bom.find((p) => p.key === selected);
-  const historical =
-    version !== null && version !== project?.versions.at(-1)?.version;
-  const [sketchUrl, setSketchUrl] = useState("");
-  const promptLower = planPrompt.toLowerCase();
-  const askPower = !/solar|solaire|太陽/.test(promptLower);
-  const askNetwork = !/wi-?fi|lora|ロラ/.test(promptLower);
-  const askProfile = !/greenhouse|serre|温室/.test(promptLower);
+
+  const design: Design | undefined = version !== null
+    ? project?.versions.find((item) => item.version === version)?.design
+    : project?.design;
+  const historical = version !== null && version !== project?.versions.at(-1)?.version;
+  const part = design?.bom.find((item) => item.key === selected);
+  const currentRegion = regions.find((item) => item.id === region);
+  const chatMessages = conversation?.messages ?? project?.messages ?? [];
+  const estimate = design?.material_estimate;
+  const total = estimateTotal(estimate, i18n.language);
+  const sizing = estimate?.irrigation_sizing;
+  const formatSizingValue = (value: number | null | undefined) =>
+    value == null ? "—" : formatAmount(value, i18n.language);
+  const stepIndex = STEPS.indexOf(step);
+  const exportVersion = version ?? project?.versions.at(-1)?.version;
+  const exportHref = project && exportVersion
+    ? `/api/v1/aiot/projects/${project.id}/export?language=${i18n.language}&version=${exportVersion}`
+    : "#";
+
+  async function generateFirmware(settings: FirmwareSettings) {
+    if (!project) return;
+    setBusy(true);
+    try {
+      const latestVersion = project.versions.at(-1)!.version;
+      const updated = await api<Project>(`/aiot/projects/${project.id}/firmware`, {
+        ...settings,
+        version: latestVersion,
+        language: i18n.language,
+      }, 600000);
+      accept(updated, "code");
+      await loadList();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function loadSketch(file?: File) {
     if (!file) return;
     setSketchUrl(URL.createObjectURL(file));
   }
-  useEffect(() => {
-    return () => {
-      if (sketchUrl) URL.revokeObjectURL(sketchUrl);
-    };
+
+  useEffect(() => () => {
+    if (sketchUrl) URL.revokeObjectURL(sketchUrl);
   }, [sketchUrl]);
+
+  const stepLabels: Record<StudioStep, string> = {
+    describe: "studioStepDescribe",
+    design: "studioStepDesign",
+    budget: "studioStepBudget",
+    code: "studioStepCode",
+    export: "studioStepExport",
+  };
+
   return (
-    <>
-      <div className="section-intro">
-        <div>
+    <div className="studio-shell">
+      <header className="studio-header">
+        <div className="studio-title">
           <span className="eyebrow">{t("designLab")}</span>
           <h1>{t("studio")}</h1>
-          <p>{t("studioSub")}</p>
         </div>
-        <button
-          onClick={() => {
-            setProject(null);
-            setValidation(null);
-            setVersion(null);
-            setText("");
-            setDeployed(false);
-            setGenerationStep("prompt");
-            setPlanPrompt("");
-          }}
-        >
-          <Plus size={16} />
-          {t("newProject")}
-        </button>
-      </div>
-      <div className="notice">
-        <CircuitBoard size={18} />
-        <div>
-          <strong>
-            {t(
-              provider === null
-                ? "studioAiStatusUnknown"
-                : provider.configured
-                  ? provider.available
-                    ? "studioAiReady"
-                    : "studioAiNotReady"
-                  : "ruleDesigner",
-              { model: provider?.model },
-            )}
-          </strong>
-          {provider?.configured && <p>{t("studioAiScope")}</p>}
-          {design && (
-            <p>
-              {t(
-                design.generation_source === "provider"
-                  ? "studioAiDesign"
-                  : "studioRulesDesign",
-              )}
-            </p>
-          )}
-          {busy && provider?.configured && (
-            <p role="status">{t("studioAiWorking")}</p>
-          )}
-        </div>
-      </div>
-      {error && (
-        <p role="alert" className="notice warning">
-          {t(error, { defaultValue: t("error") })}
-        </p>
-      )}
-      {progressError && (
-        <p role="alert" className="notice warning">
-          {t(progressError, { defaultValue: t("error") })}
-        </p>
-      )}
-      <div className="studio-grid">
-        <Panel title={t("requirements")} className="conversation">
-          <label>
-            {t("savedProjects")}
-            <select
-              aria-label={t("savedProjects")}
-              value={project?.id || ""}
-              onChange={(e) =>
-                e.target.value &&
-                act(async () =>
-                  accept(await api(`/aiot/projects/${e.target.value}`)),
-                )
-              }
-            >
-              <option value="">{t("empty")}</option>
-              {saved.map((p) => (
-                <option value={p.id} key={p.id}>
-                  #{p.id} · {p.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="messages" aria-live="polite">
-            {!project ? (
-              <div className="assistant-message">
-                <CircuitBoard size={24} />
-                <p>{t("promptExample")}</p>
+        <div className="studio-header-actions">
+          <label className="sr-only" htmlFor="studio-saved-projects">{t("savedProjects")}</label>
+          <select
+            id="studio-saved-projects"
+            className="studio-project-picker"
+            disabled={busy}
+            value={project?.id ?? ""}
+            onChange={(event) => {
+              const id = Number(event.target.value);
+              if (!id) return;
+              void act(async () => {
+                setConversation(null);
+                accept(await api<Project>(`/aiot/projects/${id}`), "design");
+              });
+            }}
+          >
+            <option value="">{t("studioOpenDesign")}</option>
+            {saved.map((item) => <option key={item.id} value={item.id}>#{item.id} · {item.name}</option>)}
+          </select>
+          <button type="button" disabled={busy} onClick={newDesign}>
+            <Plus size={16} /> {t("newProject")}
+          </button>
+          <span className="studio-context-chip" title={`${i18n.language.toUpperCase()} · ${currentRegion?.name ?? ""}`}>
+            <span>{i18n.language.toUpperCase()}</span>
+            <span aria-hidden="true">·</span>
+            <span>{currentRegion?.name ?? t("loading")}</span>
+          </span>
+          <div className="studio-help-wrap">
+            <button
+              type="button"
+              className="studio-help-trigger"
+              aria-label={t("studioHelpLabel")}
+              aria-expanded={helpOpen}
+              aria-controls="studio-help-popover"
+              onClick={() => setHelpOpen((open) => !open)}
+            >?</button>
+            {helpOpen && (
+              <div id="studio-help-popover" className="studio-help-popover" role="dialog" aria-label={t("studioHelpTitle")}>
+                <button type="button" className="studio-help-close" aria-label={t("close")} onClick={() => setHelpOpen(false)}>×</button>
+                <strong>{t("studioHelpTitle")}</strong>
+                <ol>
+                  <li>{t("studioHelpDescribe")}</li>
+                  <li>{t("studioHelpReview")}</li>
+                  <li>{t("studioHelpCodeExport")}</li>
+                </ol>
               </div>
-            ) : (
-              project.messages.map((m) => (
-                <div
-                  key={m.id}
-                  className={
-                    m.role === "user" ? "user-message" : "assistant-message"
-                  }
-                >
-                  {m.role === "user" ? m.text : t(m.text)}
-                </div>
-              ))
             )}
           </div>
-          {!project && generationStep === "clarify" ? (
-            <section className="blueprint-plan">
-              <h3>{t("blueprintPlan")}</h3>
-              <p>{t("planSummary", { prompt: planPrompt })}</p>
-              <ol>
-                <li>{t("planStepCatalog")}</li>
-                <li>{t("planStepMap")}</li>
-                <li>{t("planStepValidate")}</li>
-              </ol>
-              {askPower && (
-                <fieldset>
-                  <legend>{t("clarifyPower")}</legend>
-                  {["grid", "solar"].map((choice) => (
-                    <label key={choice}>
-                      <input
-                        type="radio"
-                        name="blueprint-power"
-                        value={choice}
-                        checked={powerChoice === choice}
-                        onChange={() => setPowerChoice(choice)}
-                      />
-                      {t(`choice_${choice}`)}
-                    </label>
-                  ))}
-                </fieldset>
-              )}
-              {askNetwork && (
-                <fieldset>
-                  <legend>{t("clarifyNetwork")}</legend>
-                  {["auto", "wifi", "lora"].map((choice) => (
-                    <label key={choice}>
-                      <input
-                        type="radio"
-                        name="blueprint-network"
-                        value={choice}
-                        checked={networkChoice === choice}
-                        onChange={() => setNetworkChoice(choice)}
-                      />
-                      {t(`choice_${choice}`)}
-                    </label>
-                  ))}
-                </fieldset>
-              )}
-              {askProfile && (
-                <fieldset>
-                  <legend>{t("clarifyProfile")}</legend>
-                  {["irrigation", "greenhouse"].map((choice) => (
-                    <label key={choice}>
-                      <input
-                        type="radio"
-                        name="blueprint-profile"
-                        value={choice}
-                        checked={profileChoice === choice}
-                        onChange={() => setProfileChoice(choice)}
-                      />
-                      {t(`choice_${choice}`)}
-                    </label>
-                  ))}
-                </fieldset>
-              )}
-              <button
-                className="primary wide"
-                disabled={busy}
-                onClick={buildFromPlan}
-              >
-                <CircuitBoard size={16} />
-                {t(busy ? "loading" : "buildBlueprint")}
-              </button>
-              <button
-                className="wide"
-                disabled={busy}
-                onClick={() => {
-                  setGenerationStep("prompt");
-                  setPlanPrompt("");
-                }}
-              >
-                {t("cancelPlan")}
-              </button>
-            </section>
-          ) : (
-            <form onSubmit={prepareBlueprint}>
-              <label className="sr-only" htmlFor="studio-prompt">
-                {t("prompt")}
+        </div>
+      </header>
+
+      <nav className="studio-stepper" aria-label={t("studioSteps")}>
+        {STEPS.map((item, index) => (
+          <div className="studio-stepper-item" key={item}>
+            <button
+              type="button"
+              className={index === stepIndex ? "active" : index < stepIndex ? "complete" : ""}
+              aria-current={index === stepIndex ? "step" : undefined}
+              disabled={index > stepIndex || (index > 0 && !project)}
+              onClick={() => setStep(item)}
+            >
+              <span>{index < stepIndex ? "✓" : index + 1}</span>
+              {t(stepLabels[item])}
+            </button>
+            {index < STEPS.length - 1 && <ChevronRight className="studio-step-arrow" size={16} aria-hidden="true" />}
+          </div>
+        ))}
+      </nav>
+
+      {error && <p role="alert" className="notice warning studio-global-error">{t(error, { defaultValue: t("error") })}</p>}
+      {progressError && <p role="alert" className="notice warning studio-global-error">{t(progressError, { defaultValue: t("error") })}</p>}
+
+      <main className={`studio-step-content studio-step-${step}`}>
+        {step === "describe" && (
+          <Panel title={t("requirements")} className="studio-describe-panel">
+            <div className="studio-chat-toolbar">
+              <label>
+                <span>{t("assistantConversations")}</span>
+                <select
+                  disabled={busy}
+                  aria-label={t("assistantConversations")}
+                  value={conversation?.id ?? ""}
+                  onChange={(event) => event.target.value
+                    ? void openConversation(Number(event.target.value))
+                    : newConversation()}
+                >
+                  <option value="">{t("newConversation")}</option>
+                  {conversations.map((item) => <option key={item.id} value={item.id}>#{item.id} · {item.title}</option>)}
+                </select>
               </label>
+            </div>
+            <div className="studio-chat-history" aria-live="polite">
+              {chatMessages.length ? chatMessages.map((message, index) => (
+                <div key={message.id ?? index} className={message.role === "user" ? "user-message" : "assistant-message"}>
+                  <p>{message.role === "assistant" ? t(message.text, { defaultValue: message.text }) : message.text}</p>
+                  {"payload" in message && message.payload?.answer_basis && <small>{t(`answerBasis_${message.payload.answer_basis}`)}</small>}
+                  {"payload" in message && message.payload?.citations?.map((citation) => (
+                    <a key={citation.url} href={citation.url} target="_blank" rel="noreferrer" className="citation">{citation.title} ↗</a>
+                  ))}
+                  {"payload" in message && message.payload?.pending_field && <small>{t("answerOrUnknown")}</small>}
+                </div>
+              )) : <div className="studio-chat-empty"><CircuitBoard size={28} /><p>{t("assistantIntro")}</p></div>}
+            </div>
+            {!project && !conversation && (
+              <div className="studio-quick-starts" aria-label={t("studioQuickStarts")}>
+                {QUICK_STARTS.map((key) => (
+                  <button type="button" key={key} disabled={busy} onClick={() => void send(QUICK_PROMPTS[key])}>
+                    {t(key)}
+                  </button>
+                ))}
+              </div>
+            )}
+            <form className="studio-composer" onSubmit={(event) => { event.preventDefault(); void send(); }}>
+              <label className="sr-only" htmlFor="studio-prompt">{t("assistantPrompt")}</label>
               <textarea
                 id="studio-prompt"
-                maxLength={project ? 4000 : 3900}
+                maxLength={4000}
                 value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder={t("prompt")}
-                rows={5}
+                onChange={(event) => setText(event.target.value)}
+                placeholder={t("assistantPrompt")}
+                rows={4}
               />
-              <button className="primary wide" disabled={busy}>
-                <Send size={16} />
-                {t(busy ? "loading" : project ? "send" : "generate")}
+              <button className="primary" disabled={busy || !text.trim()}>
+                <Send size={16} /> {t(busy ? "loading" : "assistantSend")}
               </button>
             </form>
-          )}
-          {project && (
-            <div className="suggestions">
-              {[
-                "addSensor",
-                "useLora",
-                "reduceCost",
-                "addSolar",
-                "repair",
-                "explain",
-              ].map((k) => (
-                <button disabled={busy} key={k} onClick={() => send(t(k))}>
-                  {t(k)} <Plus size={12} />
-                </button>
-              ))}
-            </div>
-          )}
-        </Panel>
-        <div className="studio-center">
-          <Panel
-            title={t("blueprintBuilder")}
-            aside={
-              project && (
-                <label className="version-label">
-                  {t("version")}
-                  <select
-                    value={version ?? project.versions.at(-1)!.version}
-                    onChange={(e) => {
-                      const v = Number(e.target.value);
-                      setVersion(v);
-                      const snapshot = project.versions.find(
-                        (x) => x.version === v,
-                      )!.design;
+          </Panel>
+        )}
+
+        {step === "design" && design && project && (
+          <section className="studio-design-view">
+            <div className="studio-step-heading">
+              <div><p className="eyebrow">{t("studioStepDesign")}</p><h2>{t("blueprintBuilder")}</h2></div>
+              <label className="version-label">
+                {t("version")}
+                <select
+                  disabled={busy}
+                  value={version ?? project.versions.at(-1)!.version}
+                  onChange={(event) => {
+                    const nextVersion = Number(event.target.value);
+                    const snapshot = project.versions.find((item) => item.version === nextVersion)?.design;
+                    setVersion(nextVersion);
+                    if (snapshot) {
                       setValidation(snapshot.validation);
                       setVoltage(snapshot.options.supply_v);
-                    }}
+                    }
+                  }}
+                >
+                  {project.versions.map((item) => <option key={item.version} value={item.version}>v{item.version}</option>)}
+                </select>
+              </label>
+            </div>
+
+            <div className="studio-design-hero">
+              <div><span>{t("studioHeroBudget")}</span><strong>{total ?? t("priceUnavailable")}</strong></div>
+              <div><span>{t("studioHeroParts")}</span><strong>{design.bom.reduce((sum, item) => sum + item.quantity, 0)}</strong></div>
+              <div>
+                <span>{t("studioHeroCompatibility")}</span>
+                <strong className={validation?.valid ? "studio-compatible" : "studio-needs-review"}>
+                  {t(validation?.valid ? "valid" : "invalid")}
+                </strong>
+                <small>{t("studioIssueCount", { count: validation?.issues.length ?? 0 })}</small>
+              </div>
+            </div>
+
+            <section className="studio-design-parts">
+              <div className="studio-section-heading"><h3>{t("studioParts")}</h3><span>{t("studioBomCount", { count: design.bom.length })}</span></div>
+              <div className="studio-part-cards">
+                {(showAllParts ? design.bom : design.bom.slice(0, 4)).map((item) => (
+                  <button
+                    type="button"
+                    key={item.key}
+                    className={selected === item.key ? "studio-part-card selected" : "studio-part-card"}
+                    onClick={() => setSelected(item.key)}
                   >
-                    {project.versions.map((v) => (
-                      <option key={v.version} value={v.version}>
-                        v{v.version}
-                      </option>
-                    ))}
-                  </select>
+                    <strong>{t(item.key)}</strong>
+                    <span>×{item.quantity}</span>
+                    <small>{item.voltage_v} V · {item.protocol}</small>
+                  </button>
+                ))}
+              </div>
+              {design.bom.length > 4 && (
+                <button type="button" className="studio-see-all" aria-expanded={showAllParts} onClick={() => setShowAllParts((value) => !value)}>
+                  {t(showAllParts ? "studioShowFewer" : "studioSeeAll", { count: design.bom.length })} <ChevronRight size={15} />
+                </button>
+              )}
+              <details className="studio-bom-details">
+                <summary>{t("studioFullBom", { count: design.bom.length })}</summary>
+                <div className="studio-table-wrap"><table className="studio-table">
+                  <thead><tr><th>{t("studioItem")}</th><th>{t("quantity")}</th><th>{t("voltage")}</th><th>{t("protocol")}</th></tr></thead>
+                  <tbody>{design.bom.map((item) => (
+                    <tr key={item.key}><td>{t(item.key)}</td><td>{item.quantity}</td><td>{item.voltage_v} V</td><td>{item.protocol}</td></tr>
+                  ))}</tbody>
+                </table></div>
+              </details>
+            </section>
+
+            <details className="studio-detail-accordion">
+              <summary>{t("studioEngineeringDetails")}</summary>
+              <div className="studio-validation-detail">
+                <p className={validation?.valid ? "success" : "warning"}>
+                  {validation?.valid ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}{" "}
+                  {t(validation?.valid ? "valid" : "invalid")}
+                </p>
+                {validation?.issues.map((issue) => <p role="alert" className="warning" key={issue}>{t(issue)}</p>)}
+                <ul>{validation?.checks.map((check) => <li key={check}>{t(check)}</li>)}</ul>
+                <label className="studio-voltage-input">{t("testVoltage")}
+                  <input type="number" min="0" max="48" step=".1" value={voltage} onChange={(event) => setVoltage(Number(event.target.value))} />
                 </label>
-              )
-            }
-          >
-            {design ? (
+                <button type="button" disabled={busy || historical} onClick={() => void act(async () => {
+                  setValidation(await api<Validation>(`/aiot/projects/${project.id}/validate`, {
+                    supply_v: voltage,
+                    soil_count: design.options.soil_count,
+                  }));
+                })}>{t("validate")}</button>
+                {design.questions.map((question) => <p key={question}>{t(question)}</p>)}
+              </div>
+            </details>
+
+            <details className="studio-detail-accordion">
+              <summary>{t("studioDetailedBlueprint")}</summary>
               <BlueprintWorkspace
                 design={design}
                 selected={selected}
                 onSelect={setSelected}
-                projectId={project!.id}
+                projectId={project.id}
                 completedSteps={completedSteps}
                 onToggleStep={toggleInstruction}
                 sketchUrl={sketchUrl}
                 onSketch={loadSketch}
               />
-            ) : (
-              <div className="empty-design">
-                <CircuitBoard size={58} strokeWidth={1} />
-                <p>{t("blueprintEmpty")}</p>
-                <span>01 → 02 → 03</span>
+            </details>
+          </section>
+        )}
+
+        {step === "budget" && design && (
+          <section className="studio-budget-view">
+            <div className="studio-step-heading"><div><p className="eyebrow">{t("studioStepBudget")}</p><h2>{t("sourcedMaterialsCost")}</h2></div></div>
+            <div className="studio-budget-summary">
+              <strong>{total ?? t("priceUnavailable")}</strong>
+              <span>{t(estimate?.complete ? "completeSupplierEstimate" : "partialSupplierEstimate")}</span>
+            </div>
+            {sizing && (
+              <section className="studio-sizing-card" aria-labelledby="studio-sizing-title">
+                <h3 id="studio-sizing-title">{t("irrigationSizingTitle")}</h3>
+                <dl className="studio-sizing-grid">
+                  <div><dt>{t("irrigationSizingAreaEntered")}</dt><dd>{formatSizingValue(sizing.area_ha)} ha</dd></div>
+                  <div><dt>{t("irrigationSizingAreaFromField")}</dt><dd>{formatSizingValue(sizing.geometry_area_ha)} ha</dd></div>
+                  <div><dt>{t("irrigationSizingRows")}</dt><dd>{formatSizingValue(sizing.row_count)}</dd></div>
+                  <div><dt>{t("irrigationSizingRowsPerZone")}</dt><dd>{sizing.rows_per_zone.length ? sizing.rows_per_zone.join(" / ") : t("priceUnavailable")}</dd></div>
+                  <div><dt>{t("irrigationSizingLateralsPerRow")}</dt><dd>{formatSizingValue(sizing.lateral_lines_per_row)}</dd></div>
+                  <div><dt>{t("irrigationSizingLaterals")}</dt><dd>{formatSizingValue(sizing.total_lateral_length_m)} m</dd></div>
+                  <div><dt>{t("irrigationSizingEmittersPerLateral")}</dt><dd>{formatSizingValue(sizing.emitters_per_lateral)}</dd></div>
+                  <div><dt>{t("irrigationSizingEmitters")}</dt><dd>{formatSizingValue(sizing.total_emitters)}</dd></div>
+                  <div><dt>{t("irrigationSizingSourceFlow")}</dt><dd>{formatSizingValue(sizing.source_flow_lpm)} L/min</dd></div>
+                  <div className="studio-sizing-wide"><dt>{t("irrigationSizingZoneFlows")}</dt><dd>{sizing.zone_flows_lpm.length
+                    ? sizing.zone_flows_lpm.map((flow, index) => t("irrigationSizingZoneFlowValue", {
+                      zone: index + 1,
+                      flow: formatAmount(flow, i18n.language),
+                    })).join(" · ")
+                    : t("priceUnavailable")}</dd></div>
+                </dl>
+                <div className="studio-sizing-assumptions">
+                  <strong>{t("irrigationSizingAssumptions")}</strong>
+                  <ul>{sizing.assumptions.map((assumption) => <li key={assumption}>{t(assumption)}</li>)}</ul>
+                </div>
+              </section>
+            )}
+            {estimate?.items.length ? (
+              <div className="studio-table-wrap">
+                <table className="studio-table studio-budget-table">
+                  <thead><tr><th>{t("studioItem")}</th><th>{t("quantity")}</th><th>{t(currentRegion?.country_id === 2 ? "studioPriceRangeJPY" : "studioPriceRangeTND")}</th></tr></thead>
+                  <tbody>{estimate.items.map((item) => {
+                    const expanded = expandedBudgetItem === item.key;
+                    return (
+                      <Fragment key={item.key}>
+                        <tr>
+                          <td>
+                            <button type="button" className="studio-budget-expand" aria-expanded={expanded}
+                              onClick={() => setExpandedBudgetItem(expanded ? null : item.key)}>
+                              <span aria-hidden="true">{expanded ? "−" : "+"}</span>{t(`material_${item.key}`, { defaultValue: item.label })}
+                            </button>
+                          </td>
+                          <td>{item.quantity ?? "—"} {t(`unit_${item.unit}`, { defaultValue: item.unit })}</td>
+                          <td>{estimateItemPrice(item, i18n.language, t("priceUnavailable"))}</td>
+                        </tr>
+                        {expanded && (
+                          <tr key={`${item.key}-details`} className="studio-budget-details-row">
+                            <td colSpan={3}>
+                              <p>{item.label}</p>
+                              {item.price_basis && <small>{t(`priceBasis_${item.price_basis}`)}</small>}
+                              {item.assumptions?.map((assumption, index) => <small key={index}>{assumption}</small>)}
+                              {(item.sources ?? (item.source_url ? [{ url: item.source_url, title: item.source_title ?? item.source_url, fetched_at: item.source_fetched_at }] : [])).map((source) => (
+                                <a key={source.url} className="citation" href={source.url} target="_blank" rel="noreferrer">{source.title} ↗</a>
+                              ))}
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}</tbody>
+                </table>
               </div>
-            )}
-          </Panel>
+            ) : <p className="studio-unavailable-note">{t("studioBudgetUnavailable")}</p>}
+            {estimate?.warnings.map((warning) => <p className="caption" key={warning}>{t(warning)}</p>)}
+            <p className="caption">{t("supplierEstimateNote")}</p>
+          </section>
+        )}
+
+        {step === "code" && design && project && (
+          <FirmwarePanel
+            key={`${project.id}:${version ?? project.versions.at(-1)!.version}`}
+            design={design}
+            projectId={project.id}
+            designVersion={version ?? project.versions.at(-1)!.version}
+            busy={busy}
+            historical={historical}
+            autoGenerate={!historical}
+            onGenerate={generateFirmware}
+          />
+        )}
+
+        {step === "export" && design && project && (
+          <section className="studio-export-view">
+            <div className="studio-step-heading"><div><p className="eyebrow">{t("studioStepExport")}</p><h2>{t("export")}</h2></div></div>
+            <div className="studio-export-card">
+              <Download size={26} />
+              <h3>{project.name}</h3>
+              <p>{t("studioExportDescription", { version: exportVersion })}</p>
+              <ul>
+                <li>{t("studioExportDesign")}</li>
+                <li>{t("studioExportParts")}</li>
+                <li>{t("studioExportConnections")}</li>
+                <li>{t("studioExportCode")}</li>
+              </ul>
+            </div>
+          </section>
+        )}
+      </main>
+
+      <footer className="studio-bottom-bar">
+        <div className="studio-bottom-total">
+          <span>{t("sourcedMaterialsCost")}</span>
+          <strong>{project ? total ?? t("priceUnavailable") : "—"}</strong>
+          {project && estimate && <small>{t(estimate.complete ? "completeSupplierEstimate" : "partialSupplierEstimate")}</small>}
         </div>
-        <div className="studio-right">
-          <Panel title={t("components")}>
-            {design ? (
-              <>
-                <div className="cost">
-                  <span>{t("cost")}</span>
-                  <strong>${design.cost_usd.toFixed(2)}</strong>
-                  <small>USD · {t("estimated")}</small>
-                </div>
-                <div className="bom">
-                  {design.bom.map((p) => (
-                    <button
-                      key={p.key}
-                      className={selected === p.key ? "selected" : ""}
-                      onClick={() => setSelected(p.key)}
-                    >
-                      <span>
-                        {t(p.key)} <small>×{p.quantity}</small>
-                      </span>
-                      <strong>${(p.price_usd * p.quantity).toFixed(0)}</strong>
-                    </button>
-                  ))}
-                </div>
-                {part && (
-                  <div className="specs">
-                    <h3>{t(part.key)}</h3>
-                    <dl>
-                      {[
-                        ["voltage", part.voltage_v + " V"],
-                        ["current", part.current_ma + " mA"],
-                        ["power", part.power_w + " W"],
-                        ["protocol", part.protocol],
-                        ["operating", part.operating_c.join(" … ") + " °C"],
-                      ].map(([k, v]) => (
-                        <div key={k}>
-                          <dt>{t(k)}</dt>
-                          <dd>{v}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                    <p>{t(part.constraint)}</p>
-                  </div>
-                )}
-                <p className="caption">{t("supplyNote")}</p>
-                <p>
-                  {t("controllerEnergy")}:{" "}
-                  <strong>{design.controller_wh_day} Wh</strong>
-                </p>
-                <p>
-                  {t("pumpBench")}:{" "}
-                  <strong>{design.pump_wh_per_hour} Wh</strong>
-                </p>
-              </>
-            ) : (
-              <p className="caption">{t("noResult")}</p>
-            )}
-          </Panel>
-          {project && design && (
-            <>
-              <Panel title={t("validation")}>
-                <p className={validation?.valid ? "success" : "warning"}>
-                  {validation?.valid ? (
-                    <CheckCircle2 size={17} />
-                  ) : (
-                    <AlertTriangle size={17} />
-                  )}{" "}
-                  {t(validation?.valid ? "valid" : "invalid")}
-                </p>
-                {validation?.issues.map((k) => (
-                  <p role="alert" className="warning" key={k}>
-                    {t(k)}
-                  </p>
-                ))}
-                <ul className="check-list">
-                  {validation?.checks.map((k) => (
-                    <li key={k}>{t(k)}</li>
-                  ))}
-                </ul>
-                <label>
-                  {t("testVoltage")}
-                  <input
-                    type="number"
-                    min="0"
-                    max="48"
-                    step=".1"
-                    value={voltage}
-                    onChange={(e) => setVoltage(Number(e.target.value))}
-                  />
-                </label>
-                <button
-                  disabled={busy || historical}
-                  className="wide"
-                  onClick={() =>
-                    act(async () =>
-                      setValidation(
-                        await api(`/aiot/projects/${project.id}/validate`, {
-                          supply_v: voltage,
-                          soil_count: design.options.soil_count,
-                        }),
-                      ),
-                    )
-                  }
-                >
-                  {t("validate")}
-                </button>
-                <p className="caption">{t("qualifiedReview")}</p>
-              </Panel>
-              <Panel title={t("questions")}>
-                {design.questions.map((q) => (
-                  <p key={q}>{t(q)}</p>
-                ))}
-              </Panel>
-              <button
-                className="primary wide"
-                disabled
-              >
-                {t("hardwareUnavailable")}
-              </button>
-              <a
-                className="button wide"
-                href={`/api/v1/aiot/projects/${project.id}/export?language=${i18n.language}&version=${version ?? project.versions.at(-1)!.version}`}
-              >
-                <Download size={16} />
-                {t("export")}
-              </a>
-            </>
-          )}
-        </div>
-      </div>
-    </>
+        {step === "export" && project ? (
+          <a className="primary studio-next-button" href={exportHref}>
+            <Download size={17} /> {t("studioExportDesignPackage")}
+          </a>
+        ) : (
+          <button
+            type="button"
+            className="primary studio-next-button"
+            disabled={!project || busy}
+            onClick={() => setStep(STEPS[Math.min(stepIndex + 1, STEPS.length - 1)])}
+          >
+            {t("studioNext")} <ChevronRight size={17} />
+          </button>
+        )}
+      </footer>
+    </div>
   );
 }

@@ -3,6 +3,7 @@ import io
 import json
 import os
 import zipfile
+from copy import deepcopy
 from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.responses import Response, JSONResponse
@@ -11,10 +12,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
 from . import auth, db
-from .schemas import FarmInput, ScenarioInput, MessageInput, ProjectInput, TelemetryInput, ValidateInput, SignupInput, LoginInput, ProfileInput, PasswordInput
+from .schemas import FarmInput, ScenarioInput, MessageInput, ProjectInput, TelemetryInput, ValidateInput, SignupInput, LoginInput, ProfileInput, PasswordInput, AssistantMessageInput, FirmwareInput
 from .services import irrigation, anomalies
 from .integrations import weather, WeatherUnavailable
 from .studio import CATALOG, generate, validate, UnsupportedRequest, ProviderUnavailable, provider_status
+from .studio_assistant import AssistantUnavailable, is_design_request, is_design_edit, update_profile, question_turn, answer_agriculture
+from .firmware_generation import generate_firmware, FirmwareUnavailable, FirmwareConfigurationError
 
 @asynccontextmanager
 async def lifespan(app):
@@ -42,12 +45,28 @@ async def unsupported_request(_, exc):
 async def provider_unavailable(_, exc):
     return JSONResponse(status_code=503,content={'error':{'code':'studioAiUnavailable'}})
 
+@app.exception_handler(AssistantUnavailable)
+async def assistant_unavailable(_, exc):
+    return JSONResponse(status_code=503,content={'error':{'code':str(exc)}})
+
 @app.exception_handler(WeatherUnavailable)
 async def weather_unavailable(_, exc):
     return JSONResponse(status_code=503,content={'error':{'code':'weatherUnavailable'}})
 
+@app.exception_handler(FirmwareUnavailable)
+async def firmware_unavailable(_, exc):
+    return JSONResponse(status_code=503,content={'error':{'code':str(exc)}})
+
+@app.exception_handler(FirmwareConfigurationError)
+async def firmware_configuration_error(_, exc):
+    return JSONResponse(status_code=422,content={'error':{'code':str(exc)}})
+
 @app.get('/api/v1/aiot/provider')
 def studio_provider(): return provider_status()
+
+@app.get('/api/v1/aiot/assistant/status')
+def assistant_status():
+    return {'model':provider_status(),'source_search_configured':bool(os.getenv('TAVILY_API_KEY','').strip())}
 
 def region(rid):
     with db.engine.connect() as c: r=c.execute(select(db.regions).where(db.regions.c.id==rid)).mappings().first()
@@ -165,6 +184,124 @@ def save_version(c,pid,text,design,version):
     c.execute(db.messages.insert(),[{'project_id':pid,'role':'user','text':text},{'project_id':pid,'role':'assistant','text':design['response']}])
     c.execute(db.connections.insert(),[{'version_id':vid,**{k:w[k] for k in ['source','target','signal']}} for w in design['connections']])
 
+def assistant_region(rid):
+    with db.engine.connect() as c:
+        row=c.execute(select(db.regions,db.countries.c.code.label('country_code'),db.countries.c.name.label('country_name'))
+                      .join(db.countries,db.countries.c.id==db.regions.c.country_id)
+                      .where(db.regions.c.id==rid)).mappings().first()
+    if not row: raise HTTPException(404,'regionNotFound')
+    return dict(row)
+
+def assistant_thread(cid,user_id):
+    with db.engine.connect() as c:
+        row=c.execute(select(db.studio_conversations).where(db.studio_conversations.c.id==cid,
+                         db.studio_conversations.c.user_id==user_id)).mappings().first()
+        if not row: raise HTTPException(404,'conversationNotFound')
+        messages=[dict(m) for m in c.execute(select(db.studio_chat_messages)
+                  .where(db.studio_chat_messages.c.conversation_id==cid)
+                  .order_by(db.studio_chat_messages.c.id)).mappings()]
+    return {**dict(row),'messages':messages}
+
+@app.get('/api/v1/aiot/assistant/conversations')
+def assistant_conversations(user=Depends(auth.current_user)):
+    with db.engine.connect() as c:
+        return [dict(r) for r in c.execute(select(db.studio_conversations)
+                .where(db.studio_conversations.c.user_id==user['id'])
+                .order_by(db.studio_conversations.c.id.desc())).mappings()]
+
+@app.get('/api/v1/aiot/assistant/conversations/{cid}')
+def get_assistant_conversation(cid:int,user=Depends(auth.current_user)):
+    return assistant_thread(cid,user['id'])
+
+def create_assistant_design(text, context, rid):
+    pid=context.get('project_id')
+    previous=project(pid)['design'] if pid else None
+    design=generate(context['design_request'],previous)
+    material_estimate=context.get('estimate')
+    design['farm_context']=context.get('farm_profile',{})
+    design['material_estimate']=material_estimate
+    if pid:
+        with db.engine.begin() as c:
+            version=c.execute(select(func.max(db.versions.c.version)).where(db.versions.c.project_id==pid)).scalar_one() or 0
+            save_version(c,pid,text,design,version+1)
+            c.execute(db.projects.update().where(db.projects.c.id==pid).values(deployed=False))
+    else:
+        with db.engine.begin() as c:
+            pid=c.execute(db.projects.insert().values(region_id=rid,name='ResiliFarm Studio')).inserted_primary_key[0]
+            save_version(c,pid,text,design,1)
+    context['project_id']=pid
+    return project(pid)
+
+@app.post('/api/v1/aiot/assistant/messages')
+def assistant_message(x:AssistantMessageInput,user=Depends(auth.current_user)):
+    r=assistant_region(x.region_id)
+    existing=assistant_thread(x.conversation_id,user['id']) if x.conversation_id else None
+    context=dict(existing['context'] or {}) if existing else {}
+    prior_messages=existing['messages'] if existing else []
+    region_changed=existing is not None and existing['region_id']!=x.region_id
+    if region_changed:
+        context['region_changed']=True
+    pending=context.get('pending_field')
+    profile=dict(context.get('farm_profile') or {})
+    result=None
+    design_project=None
+
+    if context.get('design_intake'):
+        updated=update_profile(x.text,profile,pending)
+        field_answered=(pending is None or updated.get(pending) is not None
+                        or pending in updated.get('unknown_fields',[]))
+        if field_answered:
+            profile=updated
+            context['farm_profile']=profile
+            result=question_turn(profile,r,x.language)
+        else:
+            # Keep an invalid intake answer in the structured flow. Sending it to
+            # free-form generation can produce a plausible-sounding but unrelated
+            # design instead of resolving the missing input.
+            result=question_turn(profile,r,x.language)
+            result['reply_key']='farmAnswerUnclear'
+    elif context.get('project_id') and is_design_edit(x.text):
+        context['design_request']=x.text
+        context['design_intake']=True
+        profile=update_profile(x.text,profile)
+        context['farm_profile']=profile
+        result=question_turn(profile,r,x.language)
+    elif is_design_request(x.text):
+        context['design_request']=x.text
+        context['design_intake']=True
+        profile=update_profile(x.text,profile)
+        context['farm_profile']=profile
+        result=question_turn(profile,r,x.language)
+    else:
+        result=answer_agriculture(x.text,prior_messages,r,x.language)
+
+    if result['intent']=='followup':
+        context['pending_field']=result.get('pending_field')
+    elif result['intent']=='estimate':
+        context.pop('pending_field',None)
+        context['estimate']=result['estimate']
+        context['design_intake']=False
+        design_project=create_assistant_design(x.text,context,x.region_id)
+        result['project']=design_project
+        result['estimate']=design_project['design']['material_estimate']
+
+    text_value=result.get('reply') or result.get('reply_key') or result.get('question_key') or ''
+    message_payload={k:v for k,v in result.items() if k not in ('reply','project')}
+    with db.engine.begin() as c:
+        if existing:
+            cid=existing['id']
+            c.execute(db.studio_conversations.update().where(db.studio_conversations.c.id==cid)
+                      .values(region_id=x.region_id,context=context,project_id=context.get('project_id')))
+        else:
+            cid=c.execute(db.studio_conversations.insert().values(
+                user_id=user['id'],region_id=x.region_id,title=x.text[:160],context=context,
+                project_id=context.get('project_id'))).inserted_primary_key[0]
+        c.execute(db.studio_chat_messages.insert(),[
+            {'conversation_id':cid,'role':'user','text':x.text,'payload':None},
+            {'conversation_id':cid,'role':'assistant','text':text_value,'payload':message_payload},
+        ])
+    return {'conversation':assistant_thread(cid,user['id']),'result':result}
+
 @app.get('/api/v1/aiot/projects')
 def list_projects():
     with db.engine.connect() as c: return [dict(r) for r in c.execute(select(db.projects).order_by(db.projects.c.id.desc())).mappings()]
@@ -194,6 +331,27 @@ def message(pid:int,x:MessageInput):
 @app.post('/api/v1/aiot/projects/{pid}/validate')
 def validate_project(pid:int,x:ValidateInput): return validate(project(pid)['design'],x.supply_v,x.soil_count)
 
+@app.post('/api/v1/aiot/projects/{pid}/firmware')
+def project_firmware(pid:int,x:FirmwareInput):
+    p=project(pid)
+    if p['versions'][-1]['version']!=x.version:
+        raise HTTPException(409,'versionConflict')
+    generated=generate_firmware(p['design'],x)
+    design=deepcopy(p['design'])
+    design['firmware']=generated.pop('code')
+    design['firmware_generation']=generated
+    design['response']='firmwareGenerated'
+    try:
+        with db.engine.begin() as c:
+            latest=c.execute(select(func.max(db.versions.c.version)).where(db.versions.c.project_id==pid)).scalar_one()
+            if latest!=x.version:
+                raise HTTPException(409,'versionConflict')
+            save_version(c,pid,'Generate microcontroller code',design,latest+1)
+            c.execute(db.projects.update().where(db.projects.c.id==pid).values(deployed=False))
+    except IntegrityError:
+        raise HTTPException(409,'versionConflict')
+    return project(pid)
+
 @app.post('/api/v1/aiot/projects/{pid}/deploy')
 def deploy(pid:int):
     project(pid)
@@ -215,7 +373,26 @@ def export(pid:int,language:str=Query('en',pattern='^(en|fr|ja|ar)$'),version:in
     tr=json.loads(translations.read_text(encoding='utf-8')) if translations.exists() else {}
     with zipfile.ZipFile(data,'w',zipfile.ZIP_DEFLATED) as z:
         z.writestr('design.json',json.dumps(p,default=str,ensure_ascii=False,indent=2))
-        z.writestr('bom.csv',bom.getvalue()); z.writestr('starter.ino',p['design']['firmware'])
+        z.writestr('bom.csv',bom.getvalue())
+        firmware_info=p['design'].get('firmware_generation')
+        if firmware_info:
+            z.writestr('resilifarm/resilifarm.ino',p['design']['firmware'])
+            z.writestr('firmware_manifest.json',json.dumps(firmware_info,ensure_ascii=False,indent=2))
+            pin_csv=io.StringIO(); pin_writer=csv.writer(pin_csv)
+            pin_writer.writerow(['component','signal','gpio','mode'])
+            pin_writer.writerows([[pin['name'],pin['symbol'],pin['gpio'],pin['mode']] for pin in firmware_info['pin_map']])
+            z.writestr('firmware_pins.csv',pin_csv.getvalue())
+            z.writestr('firmware_setup.txt','\n\n'.join([
+                'ESP32 Dev Module (classic ESP32), Arduino framework.',
+                'Use firmware_pins.csv for this sketch; conceptual connections.csv may differ.',
+                'Compilation: '+firmware_info['compile_status']+'. Not hardware-tested. Outputs are disabled by default.',
+                'Libraries: '+', '.join(firmware_info['libraries']),
+                tr.get('firmwareRunInstructions', 'Use ESP32 Dev Module; install the listed libraries. Serial: 115200 baud, newline, STOP/RESET.'),
+                tr.get('firmwareCalibrationNote', 'Measure sensors and edit calibration constants before enabling outputs.'),
+                *firmware_info['setup_steps'], *firmware_info['assumptions'], *firmware_info['limitations'],
+            ]))
+        else:
+            z.writestr('starter.ino',p['design']['firmware'])
         z.writestr('assembly.txt','\n\n'.join(tr.get(k,k) for k in p['design']['instructions']))
         wires=io.StringIO(); wire_writer=csv.writer(wires)
         wire_writer.writerow(['source','target','signal'])

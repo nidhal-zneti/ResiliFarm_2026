@@ -482,7 +482,7 @@ export default function App() {
             </div>
           )}
           {page === "home" && <StartHere mode={mode} onNavigate={navigate} />}
-          {page !== "home" && page !== "profile" && (
+          {page !== "home" && page !== "profile" && page !== "studio" && (
             <SectionGuide section={page} mode={mode} />
           )}
           {page === "overview" && weather && (

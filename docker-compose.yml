@@ -21,6 +21,12 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       CORS_ORIGINS: http://localhost:8080,http://127.0.0.1:8080
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      STUDIO_AI_BASE_URL: ${STUDIO_AI_BASE_URL:-}
+      STUDIO_AI_API_KEY: ${STUDIO_AI_API_KEY:-}
+      STUDIO_AI_MODEL: ${STUDIO_AI_MODEL:-}
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-}
+      STUDIO_SUPPLIER_DOMAINS_TN: ${STUDIO_SUPPLIER_DOMAINS_TN:-}
+      STUDIO_SUPPLIER_DOMAINS_JP: ${STUDIO_SUPPLIER_DOMAINS_JP:-}
     depends_on:
       db:
         condition: service_healthy

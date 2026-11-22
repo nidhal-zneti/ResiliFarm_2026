@@ -31,6 +31,21 @@ class ProjectInput(MessageInput):
     name: str = Field('Irrigation controller', min_length=1, max_length=160)
     preferences: list[Literal['solar','LoRa','Wi-Fi','greenhouse']] = Field(default_factory=list, max_length=4)
 
+class AssistantMessageInput(Input):
+    conversation_id: int | None = Field(None, ge=1)
+    region_id: int = Field(1, ge=1)
+    text: str = Field(min_length=1, max_length=4000)
+    language: Literal['en','fr','ja','ar'] = 'en'
+
+class FirmwareInput(Input):
+    version: int = Field(ge=1)
+    board: Literal['esp32-devkit'] = 'esp32-devkit'
+    relay_active_low: bool = Field(default=True, strict=True)
+    temperature_sensor: Literal['none', 'sht31'] = 'none'
+    hardware_notes: str = Field('', max_length=2000)
+    requirements: str = Field('', max_length=2000)
+    language: Literal['en','fr','ja','ar'] = 'en'
+
 class TelemetryInput(Input):
     flow: list[float] = Field(min_length=5, max_length=1000)
     pressure: list[float] = Field(min_length=5, max_length=1000)
